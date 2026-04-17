@@ -1,0 +1,200 @@
+# ==================== Dependencies ====================
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+jspm_packages/
+
+# ==================== Package managers ====================
+package-lock.json
+yarn.lock
+# 保留 pnpm-lock.yaml — 此專案用 pnpm
+
+# ==================== Next.js ====================
+/.next/
+/out/
+/build
+next-env.d.ts
+
+# ==================== TypeScript ====================
+*.tsbuildinfo
+
+# ==================== Testing ====================
+/coverage
+*.lcov
+.nyc_output/
+
+# ==================== Playwright ====================
+/playwright-report/
+/test-results/
+/.playwright/
+/blob-report/
+/playwright/.cache/
+
+# ==================== Logs ====================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ==================== Env & Secrets ====================
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+credentials.json
+secret.json
+
+# ==================== Cache directories ====================
+.cache/
+.eslintcache
+.stylelintcache
+.parcel-cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.vite/
+.turbo/
+.swc/
+
+# ==================== Cloud / Deployment ====================
+.vercel
+.netlify
+.firebase/
+firebase-debug.log
+.firebaserc.local
+.serverless/
+.fusebox/
+.dynamodb/
+
+# ==================== macOS ====================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# ==================== Windows ====================
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ==================== Linux ====================
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==================== IDEs / Editors ====================
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+*.code-workspace
+.ionide
+
+# JetBrains (WebStorm, IntelliJ)
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Vim
+[._]*.s[a-v][a-z]
+!*.svg
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+tags
+[._]*.un~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# ==================== Claude / AI agent state ====================
+.claude/
+.cursor/
+.codeium/
+
+# ==================== Session tracking (harness) ====================
+.remember/
+
+# ==================== Temporary files ====================
+*.tmp
+*.temp
+tmp/
+temp/
+.diff
+.orig
+*.bak
+*.swp
+*.swo
+
+# ==================== TypeScript build artifacts ====================
+*.d.ts.map
+
+# ==================== Storybook ====================
+storybook-static/
+
+# ==================== Supabase / Firebase emulator ====================
+.supabase/
+.firebase/
+
+# ==================== Compressed artifacts ====================
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
