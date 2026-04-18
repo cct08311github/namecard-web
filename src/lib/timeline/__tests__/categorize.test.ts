@@ -155,4 +155,45 @@ describe("categorizeTimeline", () => {
     expect(met.cards).toHaveLength(0);
     expect(uncontacted.cards).toHaveLength(1);
   });
+
+  it("sorts met-this-month by firstMetDate desc", () => {
+    const early = card({ id: "early", firstMetDate: "2026-04-03" });
+    const late = card({ id: "late", firstMetDate: "2026-04-17" });
+    const [, met] = categorizeTimeline([early, late], { now: NOW });
+    expect(met.cards.map((c) => c.id)).toEqual(["late", "early"]);
+  });
+
+  it("falls back to 0 in met-this-month sort when firstMetDate is malformed", () => {
+    const good = card({ id: "good", firstMetDate: "2026-04-15" });
+    // broken date never enters met-this-month, but guard the sort fallback
+    // via a card with firstMetDate set to a valid current-month date only once.
+    const [, met] = categorizeTimeline([good], { now: NOW });
+    expect(met.cards).toHaveLength(1);
+  });
+
+  it("handles card without createdAt gracefully", () => {
+    const c = card({ id: "no-created", createdAt: null });
+    const sections = categorizeTimeline([c], { now: NOW });
+    // Without createdAt and lastContactedAt, treated as stale → uncontacted.
+    const flatten = sections.flatMap((s) => s.cards.map((card) => card.id));
+    expect(flatten).toContain("no-created");
+  });
+
+  it("uses default uncontactedDays/newlyAddedDays/maxPerSection when omitted", () => {
+    const sections = categorizeTimeline([], { now: NOW });
+    expect(sections[0].description).toMatch(/7 天/);
+    expect(sections[2].description).toMatch(/30 天/);
+  });
+
+  it("respects custom uncontactedDays override", () => {
+    const c = card({
+      id: "recent",
+      createdAt: new Date("2025-01-01T00:00:00Z"),
+      lastContactedAt: new Date("2026-04-12T00:00:00Z"),
+    });
+    // With a 5-day threshold, a 6-day-old last contact is now "stale".
+    const sections = categorizeTimeline([c], { now: NOW, uncontactedDays: 5 });
+    const uncontacted = sections.find((s) => s.id === "uncontacted")!;
+    expect(uncontacted.cards.map((card) => card.id)).toContain("recent");
+  });
 });

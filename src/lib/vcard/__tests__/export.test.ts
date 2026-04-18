@@ -81,15 +81,130 @@ describe("toVcard", () => {
     expect(out).toContain("TEL;TYPE=cell,pref:+886-912345678");
   });
 
-  it("emits EMAIL with work type", () => {
+  it("maps each phone label to the correct TEL type", () => {
     const out = toVcard(
       makeCard({
         nameEn: "Alice",
         whyRemember: "x",
-        emails: [{ label: "work", value: "alice@ex.com" }],
+        phones: [
+          { label: "office", value: "1" },
+          { label: "home", value: "2" },
+          { label: "fax", value: "3" },
+          { label: "other", value: "4" },
+        ],
       }),
     );
-    expect(out).toContain("EMAIL;TYPE=work:alice@ex.com");
+    expect(out).toContain("TEL;TYPE=work,voice:1");
+    expect(out).toContain("TEL;TYPE=home,voice:2");
+    expect(out).toContain("TEL;TYPE=work,fax:3");
+    expect(out).toContain("TEL;TYPE=voice:4");
+  });
+
+  it("maps each email label to the correct EMAIL type", () => {
+    const out = toVcard(
+      makeCard({
+        nameEn: "Alice",
+        whyRemember: "x",
+        emails: [
+          { label: "work", value: "w@ex.com" },
+          { label: "personal", value: "p@ex.com" },
+          { label: "other", value: "o@ex.com" },
+        ],
+      }),
+    );
+    expect(out).toContain("EMAIL;TYPE=work:w@ex.com");
+    expect(out).toContain("EMAIL;TYPE=home:p@ex.com");
+    expect(out).toContain("EMAIL;TYPE=internet:o@ex.com");
+  });
+
+  it("skips phones/emails with empty value", () => {
+    const out = toVcard(
+      makeCard({
+        nameEn: "Alice",
+        whyRemember: "x",
+        phones: [{ label: "mobile", value: "" }],
+        emails: [{ label: "work", value: "" }],
+      }),
+    );
+    expect(out).not.toContain("TEL;TYPE=cell");
+    expect(out).not.toContain("EMAIL;TYPE=work");
+  });
+
+  it("emits URL lines when social has linkedinUrl / websiteUrl", () => {
+    const out = toVcard(
+      makeCard({
+        nameEn: "Alice",
+        whyRemember: "x",
+        social: {
+          linkedinUrl: "https://linkedin.com/in/alice",
+          websiteUrl: "https://alice.dev",
+        },
+      }),
+    );
+    expect(out).toContain("URL;TYPE=linkedin:https://linkedin.com/in/alice");
+    expect(out).toContain("URL;TYPE=website:https://alice.dev");
+  });
+
+  it("emits CATEGORIES when firstMetEventTag is set", () => {
+    const out = toVcard(
+      makeCard({
+        nameEn: "Alice",
+        whyRemember: "x",
+        firstMetEventTag: "COMPUTEX 2024",
+      }),
+    );
+    expect(out).toContain("CATEGORIES:COMPUTEX 2024");
+  });
+
+  it("emits ORG with department suffix when department is set", () => {
+    const out = toVcard(
+      makeCard({
+        nameEn: "Alice",
+        whyRemember: "x",
+        companyEn: "ACME",
+        department: "Research",
+      }),
+    );
+    expect(out).toContain("ORG:ACME;Research");
+  });
+
+  it("folds long lines per RFC 6350 (>75 chars)", () => {
+    const out = toVcard(
+      makeCard({
+        nameEn: "Alice",
+        whyRemember: "x".repeat(200),
+      }),
+    );
+    // Folded continuation lines start with a single space.
+    expect(out).toMatch(/\r\n [^\r\n]/);
+  });
+
+  it("uses company fallback for N when nameEn and nameZh are empty", () => {
+    const out = toVcard(
+      makeCard({
+        whyRemember: "x",
+        companyEn: "ACME",
+      }),
+    );
+    // N family/given should be empty (no real person name available).
+    expect(out).toContain("N:;;;;");
+  });
+
+  it("splits single-token English name as givenName only", () => {
+    const out = toVcard(makeCard({ nameEn: "Mononym", whyRemember: "x" }));
+    expect(out).toContain("N:;Mononym;;;");
+  });
+
+  it("includes notes verbatim when both whyRemember and notes set", () => {
+    const out = toVcard(
+      makeCard({
+        nameEn: "Alice",
+        whyRemember: "record A",
+        notes: "additional free-form note",
+      }),
+    );
+    expect(out).toContain("【為什麼記得】record A");
+    expect(out).toContain("additional free-form note");
   });
 
   it("prefixes NOTE with 為什麼記得 and 場合", () => {
