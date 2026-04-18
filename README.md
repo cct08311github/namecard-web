@@ -53,15 +53,20 @@ pnpm dev
 ### 常用指令
 
 ```bash
-pnpm dev              # 開發伺服器
-pnpm build            # 產製 production bundle
-pnpm start            # 啟動 production server
-pnpm test             # 單元測試
-pnpm test:coverage    # 覆蓋率報告
-pnpm test:e2e         # Playwright E2E
-pnpm typecheck        # TypeScript 型別檢查
-pnpm lint             # ESLint
-pnpm format:fix       # Prettier 格式化
+pnpm dev                # 開發伺服器
+pnpm build              # 產製 production bundle
+pnpm start              # 啟動 production server
+pnpm test               # 單元測試
+pnpm test:coverage      # 覆蓋率報告
+pnpm test:e2e           # Playwright E2E
+pnpm typecheck          # TypeScript 型別檢查
+pnpm lint               # ESLint
+pnpm format:fix         # Prettier 格式化
+
+# Typesense（Phase 4 搜尋）
+pnpm search:up          # docker compose up -d typesense
+pnpm search:bootstrap   # 建立 cards collection（idempotent）
+pnpm search:down        # 關閉並回收 volume
 ```
 
 ## 📂 目錄結構（規劃中）
