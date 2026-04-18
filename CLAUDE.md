@@ -22,11 +22,21 @@ Run these locally before opening a PR. CI runs all three (`check` / `rules` / `e
 pnpm typecheck             # tsc --noEmit
 pnpm lint                  # ESLint 9 flat config
 pnpm format                # Prettier --check (auto-fix: pnpm format:fix)
-pnpm test                  # Vitest unit (excludes firestore.rules.test via guard)
-pnpm test:coverage         # 80% threshold enforced on branches/lines/funcs/stmts
-pnpm test:e2e              # Playwright (spawns pnpm dev, chromium + mobile-safari)
-pnpm test:rules            # firebase emulators:exec + rules tests (needs Java 21)
+pnpm test                  # Vitest UT (pure fns + React components via jsdom)
+pnpm test:coverage         # 80% UT threshold — branches/lines/funcs/stmts
+pnpm test:sit              # SIT via firebase emulators:exec (needs Java 21)
+pnpm test:rules            # Firestore rules integration (needs Java 21)
+pnpm test:e2e              # Playwright (chromium + mobile-safari)
 ```
+
+### Test layering (UT / SIT / Rules / E2E)
+
+- **UT** — `*.test.ts[x]`: pure functions + React components via jsdom. No Firebase, no network.
+- **SIT** — `*.sit.test.ts`: real `firebase-admin` against Firestore + Auth emulators. Covers `db/cards.ts`, `lib/firebase/session.ts`, `lib/workspace/ensure.ts`, `(app)/cards/actions.ts`. See `src/test/firebase-emulator.ts`.
+- **Rules integration** — `src/__tests__/firestore.rules.test.ts`: cross-user access denial via `@firebase/rules-unit-testing`.
+- **E2E** — `e2e/*.spec.ts`: full browser via Playwright.
+
+Server-boundary code (`lib/firebase/**`) is excluded from UT coverage because it's covered by SIT — not an exclusion to dodge the bar.
 
 ### Running a single test
 
