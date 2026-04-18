@@ -123,7 +123,7 @@ test.describe("Import wizard (emulator-backed)", () => {
 
       // FieldMappingDialog should appear (LinkedIn confidence ≥ 0.7)
       // The dialog will have a confirm button available without changes
-      const confirmBtn = page.getByRole("button", { name: /確認欄位對應/ });
+      const confirmBtn = page.getByRole("button", { name: /確認匯入/ });
       await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
 
       // Confirm without changing any mapping
@@ -193,7 +193,7 @@ test.describe("Import wizard (emulator-backed)", () => {
       await page.getByLabel("選擇 CSV 檔案").setInputFiles(dupePath);
 
       // Mapping dialog
-      const confirmBtn = page.getByRole("button", { name: /確認欄位對應/ });
+      const confirmBtn = page.getByRole("button", { name: /確認匯入/ });
       await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
       await confirmBtn.click();
 
