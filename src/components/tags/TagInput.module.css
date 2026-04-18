@@ -1,0 +1,108 @@
+.root {
+  position: relative;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-bg);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  min-height: 2.5rem;
+}
+
+.chipRow:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 0.125rem var(--space-sm);
+  background: var(--color-paper-raised);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-serif);
+  font-size: var(--text-caption);
+  color: var(--color-fg);
+}
+
+.chipSwatch {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+}
+
+.chipRemove {
+  background: transparent;
+  border: none;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  padding: 0 0.125rem;
+  line-height: 1;
+  font-size: 0.9rem;
+}
+
+.chipRemove:hover {
+  color: var(--color-accent);
+}
+
+.input {
+  flex: 1;
+  min-width: 8rem;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  color: var(--color-fg);
+}
+
+.suggestList {
+  position: absolute;
+  top: calc(100% + var(--space-2xs));
+  left: 0;
+  right: 0;
+  z-index: 10;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2xs);
+  background: var(--color-paper-raised);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lift);
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.suggestItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  color: var(--color-fg);
+}
+
+.suggestItem:hover,
+.suggestItem:focus-visible {
+  background: var(--color-accent-soft);
+}
+
+.createItem {
+  font-style: italic;
+  color: var(--color-accent-ink);
+}
