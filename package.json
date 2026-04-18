@@ -35,6 +35,7 @@
     "server-only": "^0.0.1",
     "sharp": "^0.34.5",
     "typesense": "^3.0.5",
+    "vcard4-ts": "^0.4.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
