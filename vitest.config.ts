@@ -100,6 +100,9 @@ export default defineConfig({
         "src/db/_utils.ts",
         // Member repository — SIT-covered by members.sit.test.ts.
         "src/db/members.ts",
+        // Workspace members page + shell — RSC page and CSS-only; client is UT-covered.
+        "src/app/(app)/workspace/**/page.tsx",
+        "src/app/(app)/workspace/**/members.module.css",
         // Allowed-emails helper — trivial env reader; UT-covered by members.test.ts.
         "src/lib/auth/allowed-emails.ts",
         // Import route shell — RSC, rendered by E2E / visual review.
