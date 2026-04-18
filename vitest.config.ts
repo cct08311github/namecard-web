@@ -7,14 +7,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: [
-      "node_modules",
-      ".next",
-      "e2e",
-      "tests/e2e",
-      // Rules tests require Firebase emulator + Java; run separately via `pnpm test:rules`.
-      "src/__tests__/firestore.rules.test.ts",
-    ],
+    exclude: ["node_modules", ".next", "e2e", "tests/e2e"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
@@ -26,9 +19,9 @@ export default defineConfig({
         "**/*.d.ts",
         "src/test/**",
         "src/app/layout.tsx",
-        // Rules tests excluded from coverage (separate job).
+        // Rules tests rely on Firebase emulator; measured separately.
         "src/__tests__/firestore.rules.test.ts",
-        // Firebase SDK boundaries require live SDK; unit-test via integration tests.
+        // Firebase SDK boundaries require live SDK; covered via rules + integration tests.
         "src/lib/firebase/**",
       ],
       thresholds: {
