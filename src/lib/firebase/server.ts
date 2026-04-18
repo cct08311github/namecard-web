@@ -64,14 +64,19 @@ export function getAdminApp(): App {
       "Firebase Admin: no project id resolvable from env (FIREBASE_ADMIN_PROJECT_ID / service account / NEXT_PUBLIC_FIREBASE_PROJECT_ID)",
     );
   }
-  cachedApp = initializeApp(
-    {
-      credential: sa ? cert(sa) : undefined,
-      projectId,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    },
-    APP_NAME,
-  );
+  // Build options without a `credential` key when no service account is
+  // resolved — Firebase Admin 13 rejects `{ credential: undefined }` as
+  // invalid (code 'app/invalid-app-options'). Omitting the key lets the
+  // SDK use Application Default Credentials or, when emulator env vars
+  // are set, auto-route to the local emulator with no credential at all.
+  const appOptions: Parameters<typeof initializeApp>[0] = {
+    projectId,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  };
+  if (sa) {
+    appOptions.credential = cert(sa);
+  }
+  cachedApp = initializeApp(appOptions, APP_NAME);
   // Next.js double-init guard: fetch the existing app if we already initialized once.
   return cachedApp ?? getApp(APP_NAME);
 }
