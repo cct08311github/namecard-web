@@ -7,14 +7,7 @@
  *   GCLOUD_PROJECT               any stable string (we use `demo-namecard-sit`)
  */
 
-import {
-  cert,
-  deleteApp,
-  getApps,
-  initializeApp,
-  type App,
-  type ServiceAccount,
-} from "firebase-admin/app";
+import { deleteApp, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
@@ -26,20 +19,13 @@ export function isEmulatorReady(): boolean {
   return Boolean(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
 }
 
-/** Fake service account — emulator accepts any signed JWT. */
-function fakeServiceAccount(): ServiceAccount {
-  return {
-    projectId: EMULATOR_PROJECT_ID,
-    clientEmail: "emulator-sit@example.com",
-    privateKey:
-      "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQ\n-----END PRIVATE KEY-----\n",
-  };
-}
-
 /**
- * Get (or init) a dedicated firebase-admin app bound to emulators. Using a
- * different app name than the production `namecard-web-admin` keeps SIT tests
- * isolated from any accidental production-credentials loading.
+ * Get (or init) a dedicated firebase-admin app bound to emulators.
+ *
+ * Under the emulator, no real credentials are needed — the Admin SDK
+ * auto-detects FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST and
+ * routes traffic there with an unsigned token. Using a different app name
+ * than production's `namecard-web-admin` keeps SIT isolated.
  */
 export function getSitAdminApp(): App {
   if (cachedApp) return cachedApp;
@@ -50,7 +36,6 @@ export function getSitAdminApp(): App {
   }
   cachedApp = initializeApp(
     {
-      credential: cert(fakeServiceAccount()),
       projectId: EMULATOR_PROJECT_ID,
     },
     "sit",
