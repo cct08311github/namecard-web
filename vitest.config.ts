@@ -85,6 +85,15 @@ export default defineConfig({
         "src/lib/export/zip.ts",
         // ExportButton — client UI, E2E-covered in P5F.
         "src/components/cards/ExportButton.tsx",
+        // P5E: LLM tag suggest — thin MiniMax wrapper; SIT/live-tested.
+        "src/lib/tags/suggest-llm.ts",
+        // P5E: Rules skeleton — user-authored; may be empty; covered by rules UT.
+        "src/lib/tags/suggest-rules.ts",
+        // P5E: Tag suggest action — wildcard already covers actions.ts; new file.
+        "src/app/(app)/cards/suggest-tag-actions.ts",
+        // P5E: Suggestion panel + banner — E2E-covered in P5F.
+        "src/components/tags/TagSuggestionsPanel.tsx",
+        "src/components/tags/TagSuggestionsBanner.tsx",
         // Batch import — server-boundary; SIT-covered by cards-batch.sit.test.ts.
         "src/db/cards-batch.ts",
         // Extracted utility — SIT-covered indirectly via tags + cards-batch.

@@ -1,0 +1,101 @@
+.panel {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised, var(--color-surface));
+  margin-block-start: var(--space-4);
+}
+
+.heading {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-block-end: var(--space-2);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.skeleton {
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chipItem {
+  display: contents;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  transition: opacity 200ms ease;
+}
+
+.chip[data-applied] {
+  opacity: 0.5;
+}
+
+.chipName {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.sourceBadge {
+  font-size: var(--text-xs, 0.7rem);
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+  padding: 0 var(--space-1);
+  background: var(--color-surface-sunken, var(--color-border));
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+
+.applyBtn {
+  font-size: var(--text-xs, 0.7rem);
+  font-weight: 600;
+  color: var(--color-accent, oklch(60% 0.15 235));
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+  transition: opacity 150ms ease;
+}
+
+.applyBtn:hover {
+  opacity: 0.7;
+}
+
+.appliedMark {
+  font-size: var(--text-xs, 0.7rem);
+  color: var(--color-text-secondary);
+}
