@@ -33,6 +33,26 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
+  rules:
+    name: Firestore Rules Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:rules
+
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
