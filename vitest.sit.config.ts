@@ -9,8 +9,7 @@ import path from "node:path";
  * `firebase emulators:exec` so env vars (FIRESTORE_EMULATOR_HOST,
  * FIREBASE_AUTH_EMULATOR_HOST, GCLOUD_PROJECT) are populated.
  *
- * UT vs SIT are kept in separate configs so `pnpm test` stays fast and does
- * not require Java / emulators locally.
+ * Single worker + non-concurrent so emulator state doesn't race between tests.
  */
 export default defineConfig({
   test: {
@@ -19,10 +18,7 @@ export default defineConfig({
     exclude: ["node_modules", ".next", "e2e"],
     testTimeout: 15_000,
     hookTimeout: 15_000,
-    pool: "forks",
-    poolOptions: {
-      forks: { singleFork: true },
-    },
+    maxWorkers: 1,
     sequence: {
       concurrent: false,
     },
