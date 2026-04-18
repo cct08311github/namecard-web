@@ -32,7 +32,7 @@ class FakeCookieStore {
     const entry = this.jar.get(name);
     return entry ? { name, value: entry.value } : undefined;
   }
-  set(name: string, value: string, _options?: unknown): void {
+  set(name: string, value: string): void {
     this.jar.set(name, { value });
   }
   delete(name: string): void {
