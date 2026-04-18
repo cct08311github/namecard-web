@@ -68,11 +68,11 @@ suite(`search end-to-end [${EMULATOR_PROJECT_ID}]`, () => {
   });
 
   it("workspace isolation — bob cannot see alice's cards even with identical query", async () => {
-    await createCardForUser(aCard({ nameZh: "alice-only", companyZh: "" }), {
+    await createCardForUser(aCard({ nameZh: "aliceonly", companyZh: "" }), {
       uid: ALICE.uid,
     });
-    const aliceRes = await search(buildSearchParams({ q: "alice-only", memberUid: ALICE.uid }));
-    const bobRes = await search(buildSearchParams({ q: "alice-only", memberUid: BOB.uid }));
+    const aliceRes = await search(buildSearchParams({ q: "aliceonly", memberUid: ALICE.uid }));
+    const bobRes = await search(buildSearchParams({ q: "aliceonly", memberUid: BOB.uid }));
     expect(aliceRes.found).toBe(1);
     expect(bobRes.found).toBe(0);
   });
