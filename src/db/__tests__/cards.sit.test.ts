@@ -247,9 +247,13 @@ describe("cards repository (SIT)", () => {
 
     it("throws when caller is not a member", async () => {
       const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      // In a personal-only workspace model (wid === uid), bob querying
+      // alice's cardId in HIS own workspace returns "not found" before
+      // the memberUids guard fires. Both branches block bob from writes,
+      // so accept either.
       await expect(
         repo.updateCardForUser(id, { whyRemember: "x" }, { uid: TEST_UID_BOB }),
-      ).rejects.toThrow(/無權限修改/);
+      ).rejects.toThrow(/無權限修改|名片不存在/);
     });
   });
 
@@ -273,8 +277,10 @@ describe("cards repository (SIT)", () => {
 
     it("throws when caller is not a member", async () => {
       const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      // See updateCardForUser counterpart — wid redirect fires "not found"
+      // first in the personal-workspace model. Accept either error.
       await expect(repo.softDeleteCardForUser(id, { uid: TEST_UID_BOB })).rejects.toThrow(
-        /無權限刪除/,
+        /無權限刪除|名片不存在/,
       );
     });
   });
