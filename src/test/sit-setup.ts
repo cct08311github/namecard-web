@@ -22,7 +22,6 @@ function requireEnv(name: string): string {
   return v;
 }
 
- 
 console.log("[sit-setup] Emulator env:", {
   FIRESTORE_EMULATOR_HOST: requireEnv("FIRESTORE_EMULATOR_HOST"),
   FIREBASE_AUTH_EMULATOR_HOST: requireEnv("FIREBASE_AUTH_EMULATOR_HOST"),
