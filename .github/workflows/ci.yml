@@ -164,10 +164,10 @@ jobs:
           pnpm exec firebase emulators:exec \
             --only firestore,auth \
             --project demo-namecard-sit \
-            "pnpm exec playwright test e2e/cards-crud.spec.ts e2e/search.spec.ts e2e/import.spec.ts e2e/export.spec.ts e2e/tag-suggest.spec.ts"
+            "pnpm exec playwright test e2e/cards-crud.spec.ts e2e/search.spec.ts e2e/import.spec.ts e2e/export.spec.ts e2e/tag-suggest.spec.ts e2e/workspace-invite.spec.ts"
         env:
           E2E_TEST_MODE: "1"
-          ALLOWED_EMAILS: "e2e-alice@example.com,e2e-export@example.com,e2e-import@example.com,e2e-suggest@example.com"
+          ALLOWED_EMAILS: "e2e-alice@example.com,e2e-export@example.com,e2e-import@example.com,e2e-suggest@example.com,e2e-w6-alice@example.com,e2e-w6-bob@example.com"
           FIREBASE_ADMIN_PROJECT_ID: "demo-namecard-sit"
           GCLOUD_PROJECT: "demo-namecard-sit"
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: "demo-namecard-sit"

@@ -190,6 +190,167 @@ describeIfEmulator("firestore.rules", () => {
     });
   });
 
+  describe("workspace membership", () => {
+    // Use w6-scoped uids to avoid collision with the cards suite above.
+    const ALICE = "uid-alice-w6";
+    const BOB = "uid-bob-w6";
+    const CAROL = "uid-carol-w6";
+
+    function makeW6Workspace(overrides: Record<string, unknown> = {}) {
+      return {
+        ownerUid: ALICE,
+        name: "Alice W6",
+        memberUids: [ALICE],
+        createdAt: new Date(),
+        ...overrides,
+      };
+    }
+
+    function makeW6Card(overrides: Record<string, unknown> = {}) {
+      return {
+        ownerUid: ALICE,
+        workspaceId: ALICE,
+        memberUids: [ALICE],
+        nameZh: "測試聯絡人",
+        whyRemember: "P6C 測試用途",
+        phones: [],
+        emails: [],
+        addresses: [],
+        social: {},
+        tagIds: [],
+        tagNames: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...overrides,
+      };
+    }
+
+    it("alice can read her own cards (baseline)", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "workspaces", ALICE), makeW6Workspace());
+        await setDoc(doc(ctx.firestore(), "workspaces", ALICE, "cards", "card-w6-1"), makeW6Card());
+      });
+      const alice = testEnv.authenticatedContext(ALICE).firestore();
+      await assertSucceeds(getDoc(doc(alice, "workspaces", ALICE, "cards", "card-w6-1")));
+    });
+
+    it("bob can read alice's card when bob is in memberUids", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE),
+          makeW6Workspace({ memberUids: [ALICE, BOB] }),
+        );
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE, "cards", "card-w6-2"),
+          makeW6Card({ memberUids: [ALICE, BOB] }),
+        );
+      });
+      const bob = testEnv.authenticatedContext(BOB).firestore();
+      await assertSucceeds(getDoc(doc(bob, "workspaces", ALICE, "cards", "card-w6-2")));
+    });
+
+    it("bob CANNOT read alice's card when bob is NOT in memberUids", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "workspaces", ALICE), makeW6Workspace());
+        await setDoc(doc(ctx.firestore(), "workspaces", ALICE, "cards", "card-w6-3"), makeW6Card());
+      });
+      const bob = testEnv.authenticatedContext(BOB).firestore();
+      await assertFails(getDoc(doc(bob, "workspaces", ALICE, "cards", "card-w6-3")));
+    });
+
+    it("bob loses read access after being removed from memberUids", async () => {
+      // Seed card with bob included.
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE),
+          makeW6Workspace({ memberUids: [ALICE, BOB] }),
+        );
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE, "cards", "card-w6-4"),
+          makeW6Card({ memberUids: [ALICE, BOB] }),
+        );
+      });
+
+      // Simulate removal: update card to drop bob from memberUids.
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE, "cards", "card-w6-4"),
+          makeW6Card({ memberUids: [ALICE] }),
+        );
+      });
+
+      const bob = testEnv.authenticatedContext(BOB).firestore();
+      await assertFails(getDoc(doc(bob, "workspaces", ALICE, "cards", "card-w6-4")));
+    });
+
+    it("only owner can update the workspace doc", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE),
+          makeW6Workspace({ memberUids: [ALICE, BOB] }),
+        );
+      });
+
+      // Alice (owner) may update.
+      const alice = testEnv.authenticatedContext(ALICE).firestore();
+      await assertSucceeds(
+        updateDoc(doc(alice, "workspaces", ALICE), {
+          name: "Alice's Workspace (updated)",
+        }),
+      );
+
+      // Bob (editor) may NOT update.
+      const bob = testEnv.authenticatedContext(BOB).firestore();
+      await assertFails(
+        updateDoc(doc(bob, "workspaces", ALICE), {
+          name: "Bob tries to rename",
+        }),
+      );
+    });
+
+    it("card write: alice OK, bob OK when member, carol denied when non-member", async () => {
+      // Set up workspace with alice and bob as members.
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE),
+          makeW6Workspace({ memberUids: [ALICE, BOB] }),
+        );
+        // Seed an existing card for the update test.
+        await setDoc(
+          doc(ctx.firestore(), "workspaces", ALICE, "cards", "card-w6-5"),
+          makeW6Card({ memberUids: [ALICE, BOB] }),
+        );
+      });
+
+      // Alice creates a new card — OK.
+      const alice = testEnv.authenticatedContext(ALICE).firestore();
+      await assertSucceeds(
+        setDoc(
+          doc(alice, "workspaces", ALICE, "cards", "card-w6-6"),
+          makeW6Card({ memberUids: [ALICE, BOB] }),
+        ),
+      );
+
+      // Bob (editor, in memberUids) updates the existing card — OK.
+      const bob = testEnv.authenticatedContext(BOB).firestore();
+      await assertSucceeds(
+        updateDoc(doc(bob, "workspaces", ALICE, "cards", "card-w6-5"), {
+          nameZh: "Bob 更新了",
+          updatedAt: new Date(),
+        }),
+      );
+
+      // Carol (non-member) write denied.
+      const carol = testEnv.authenticatedContext(CAROL).firestore();
+      await assertFails(
+        setDoc(
+          doc(carol, "workspaces", ALICE, "cards", "card-w6-7"),
+          makeW6Card({ ownerUid: CAROL, memberUids: [CAROL] }),
+        ),
+      );
+    });
+  });
+
   describe("tags", () => {
     beforeEach(async () => {
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
