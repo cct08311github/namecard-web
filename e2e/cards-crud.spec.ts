@@ -38,6 +38,12 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
   });
 
   test("create → timeline → detail → edit → touch → vCard → delete", async ({ page, context }) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (err) => pageErrors.push(`pageerror: ${err.message}`));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") pageErrors.push(`console.error: ${msg.text()}`);
+    });
+
     // ────────────────────────────────────────────────────────────────
     // 1. Home loads after login (no redirect)
     // ────────────────────────────────────────────────────────────────
@@ -69,9 +75,17 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     const submit = page.getByRole("button", { name: /儲存名片/ });
     await submit.click();
 
-    // Firestore auto-IDs are 20 chars — require ≥ 15 so /cards/new isn't
-    // accidentally matched (which would indicate the form rejected).
-    await expect(page).toHaveURL(/\/cards\/[A-Za-z0-9]{15,}$/);
+    // Server Action + Firestore emulator write may take more than 5s on CI.
+    // Bump timeout + dump diagnostics on failure so we can see WHY submit
+    // didn't redirect (JS error, Zod rejection, serverError banner, etc).
+    try {
+      await expect(page).toHaveURL(/\/cards\/[A-Za-z0-9]{15,}$/, { timeout: 20_000 });
+    } catch (err) {
+      console.log("URL did not change. Current:", page.url());
+      console.log("Captured errors:", pageErrors);
+      console.log("Body (first 800):", (await page.locator("body").innerText()).slice(0, 800));
+      throw err;
+    }
     await expect(page.getByRole("heading", { level: 1 })).toContainText("陳志明");
 
     // Capture card id from URL for later steps.
