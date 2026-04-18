@@ -79,9 +79,14 @@ const cardBaseShape = {
 
   // Relationship context (差異化核心)
   whyRemember: z.string().min(1, "「為什麼記得這個人」為必填").max(500),
+  // RHF-backed <input type="date"> initializes as "". .refine allows empty
+  // string so form.handleSubmit doesn't silently reject; onSubmit coerces
+  // "" → undefined before hitting the server.
   firstMetDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), {
+      message: "Invalid date (YYYY-MM-DD)",
+    })
     .optional(),
   firstMetContext: z.string().max(300).optional(),
   firstMetEventTag: z.string().max(60).optional(),
