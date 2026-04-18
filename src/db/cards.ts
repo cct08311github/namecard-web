@@ -1,6 +1,6 @@
 import "server-only";
 
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 import { getAdminFirestore } from "@/lib/firebase/server";
 import {
@@ -52,45 +52,9 @@ export interface CardSummary {
   deletedAt: Date | null;
 }
 
-function tsToDate(value: unknown): Date | null {
-  if (!value) return null;
-  if (value instanceof Timestamp) return value.toDate();
-  if (value instanceof Date) return value;
-  return null;
-}
+import { toSummaryFromData } from "./cards-data";
 
-function toSummary(id: string, data: FirebaseFirestore.DocumentData): CardSummary {
-  return {
-    id,
-    workspaceId: data.workspaceId,
-    ownerUid: data.ownerUid,
-    memberUids: data.memberUids ?? [],
-    nameZh: data.nameZh,
-    nameEn: data.nameEn,
-    namePhonetic: data.namePhonetic,
-    companyZh: data.companyZh,
-    companyEn: data.companyEn,
-    jobTitleZh: data.jobTitleZh,
-    jobTitleEn: data.jobTitleEn,
-    department: data.department,
-    whyRemember: data.whyRemember ?? "",
-    firstMetDate: data.firstMetDate,
-    firstMetContext: data.firstMetContext,
-    firstMetEventTag: data.firstMetEventTag,
-    notes: data.notes,
-    tagIds: data.tagIds ?? [],
-    tagNames: data.tagNames ?? [],
-    phones: data.phones ?? [],
-    emails: data.emails ?? [],
-    social: data.social ?? {},
-    frontImagePath: data.frontImagePath,
-    backImagePath: data.backImagePath,
-    createdAt: tsToDate(data.createdAt),
-    updatedAt: tsToDate(data.updatedAt),
-    lastContactedAt: tsToDate(data.lastContactedAt),
-    deletedAt: tsToDate(data.deletedAt),
-  };
-}
+const toSummary = toSummaryFromData;
 
 interface ListOptions {
   limit?: number;

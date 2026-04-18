@@ -15,6 +15,7 @@ const PRIMARY: NavItem[] = [
   { href: "/", label: "時間軸", description: "最近沒聯絡 · 本月認識" },
   { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
+  { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
 ];
 
 interface AppShellProps {
