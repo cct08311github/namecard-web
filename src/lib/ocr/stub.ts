@@ -1,4 +1,4 @@
-import type { OcrOptions, OcrProvider, OcrResult } from "./types";
+import type { OcrProvider, OcrResult } from "./types";
 
 /**
  * Stub provider used for E2E / local dev so the OCR flow can be exercised
@@ -9,7 +9,7 @@ export function createStubProvider(opts?: { delayMs?: number }): OcrProvider {
   const delayMs = opts?.delayMs ?? 50;
   return {
     id: "stub",
-    async extract(_options: OcrOptions): Promise<OcrResult> {
+    async extract(): Promise<OcrResult> {
       await new Promise((r) => setTimeout(r, delayMs));
       return {
         ok: true,
