@@ -64,14 +64,19 @@ export function getAdminApp(): App {
       "Firebase Admin: no project id resolvable from env (FIREBASE_ADMIN_PROJECT_ID / service account / NEXT_PUBLIC_FIREBASE_PROJECT_ID)",
     );
   }
-  cachedApp = initializeApp(
-    {
-      credential: sa ? cert(sa) : undefined,
-      projectId,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    },
-    APP_NAME,
-  );
+  // Build options without a `credential` key when no service account is
+  // resolved — Firebase Admin 13 rejects `{ credential: undefined }` as
+  // invalid (code 'app/invalid-app-options'). Omitting the key lets the
+  // SDK use Application Default Credentials or, when emulator env vars
+  // are set, auto-route to the local emulator with no credential at all.
+  const appOptions: Parameters<typeof initializeApp>[0] = {
+    projectId,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  };
+  if (sa) {
+    appOptions.credential = cert(sa);
+  }
+  cachedApp = initializeApp(appOptions, APP_NAME);
   // Next.js double-init guard: fetch the existing app if we already initialized once.
   return cachedApp ?? getApp(APP_NAME);
 }
@@ -80,8 +85,25 @@ export function getAdminAuth(): Auth {
   return getAuth(getAdminApp());
 }
 
+let firestoreSettingsApplied = false;
+
 export function getAdminFirestore(): Firestore {
-  return getFirestore(getAdminApp());
+  const db = getFirestore(getAdminApp());
+  // Zod-inferred types return `undefined` for optional fields, and our
+  // repo writes spread the whole input. Firestore Admin SDK rejects
+  // undefined values by default; this setting makes it silently drop
+  // them (same behaviour as the Web SDK's `setDoc`). Must be called
+  // before the first read/write.
+  if (!firestoreSettingsApplied) {
+    try {
+      db.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      // settings() throws if already locked in (e.g. on Next.js hot reload
+      // reusing the app). Safe to ignore — the original settings persist.
+    }
+    firestoreSettingsApplied = true;
+  }
+  return db;
 }
 
 export function getAdminStorage(): Storage {

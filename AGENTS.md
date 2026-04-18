@@ -31,10 +31,24 @@ Personal work namecard management website. Core differentiator: **relationship c
 
 ## 🧪 Testing Requirements
 
-- **TDD mandatory**: tests first (RED) → impl (GREEN) → refactor.
-- **Coverage ≥ 80%** enforced in `vitest.config.ts`.
-- **E2E for every user flow** once Phase 2 lands (Playwright).
-- **Firestore Rules tested** with `@firebase/rules-unit-testing` emulator — cross-user access must be denied.
+Three layers, each with its own Vitest config / npm script:
+
+- **Unit (UT)** — `*.test.ts[x]` — `pnpm test` / `pnpm test:coverage`.
+  Pure functions, React components (jsdom + @testing-library/react). No network, no emulator.
+- **System Integration (SIT)** — `*.sit.test.ts` — `pnpm test:sit`.
+  Real `firebase-admin` against the Firestore + Auth emulators (requires Java).
+  Covers: `db/cards.ts` repository, `lib/firebase/session.ts`, `lib/workspace/ensure.ts`,
+  `(app)/cards/actions.ts`. See `src/test/firebase-emulator.ts` for the harness.
+- **Rules Integration** — `src/__tests__/firestore.rules.test.ts` — `pnpm test:rules`.
+  `@firebase/rules-unit-testing` emulator — cross-user access must be denied.
+- **E2E** — `e2e/*.spec.ts` — `pnpm test:e2e`. Playwright chromium + mobile-safari.
+
+**TDD mandatory**: tests first (RED) → impl (GREEN) → refactor.
+Commit messages prefix `RED:` / `GREEN:` / `REFACTOR:` so the workflow is auditable.
+
+**Coverage ≥ 80%** enforced in `vitest.config.ts` (branches / lines / functions / statements).
+Server-boundary code (`lib/firebase/**`) is covered by SIT, not UT — a conscious
+split, not an exclusion to dodge coverage.
 
 ## 🔐 Security Non-Negotiables
 
