@@ -1,0 +1,127 @@
+/**
+ * Design Tokens — Editorial × 日式極簡
+ *
+ * Do not hardcode palette/type/space values in components. Pull from here.
+ * See AGENTS.md for design non-negotiables.
+ */
+
+:root {
+  /* ==================== Color — oklch for perceptual uniformity ==================== */
+  --color-paper: oklch(97% 0.008 82); /* 米白 */
+  --color-paper-raised: oklch(99% 0.005 82); /* 純白卡片 */
+  --color-ink: oklch(18% 0.008 60); /* 墨黑 */
+  --color-ink-muted: oklch(40% 0.01 60); /* 中灰 */
+  --color-ink-subtle: oklch(58% 0.008 60); /* 淺灰 */
+  --color-rule: oklch(88% 0.008 60); /* 細線 */
+  --color-accent: oklch(55% 0.18 30); /* 朱紅 */
+  --color-accent-ink: oklch(22% 0.15 30); /* 深朱紅 */
+  --color-accent-soft: oklch(92% 0.05 30); /* 柔朱紅 */
+
+  /* Semantic */
+  --color-bg: var(--color-paper);
+  --color-bg-raised: var(--color-paper-raised);
+  --color-fg: var(--color-ink);
+  --color-fg-muted: var(--color-ink-muted);
+  --color-fg-subtle: var(--color-ink-subtle);
+  --color-border: var(--color-rule);
+  --color-link: var(--color-accent-ink);
+
+  /* ==================== Typography ==================== */
+  --font-serif:
+    var(--font-noto-serif-tc), "Noto Serif TC", "Noto Serif", "Songti TC", "PMingLiU", serif;
+  --font-display: var(--font-fraunces), "Fraunces", "Playfair Display", "EB Garamond", serif;
+  --font-sans:
+    var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  /* Fluid type scale (clamp min / preferred / max) */
+  --text-caption: clamp(0.75rem, 0.7rem + 0.15vw, 0.8125rem);
+  --text-body: clamp(0.9375rem, 0.88rem + 0.25vw, 1.0625rem);
+  --text-lead: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  --text-h4: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+  --text-h3: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --text-h2: clamp(2rem, 1.6rem + 1.8vw, 2.75rem);
+  --text-h1: clamp(2.5rem, 1.8rem + 3vw, 4rem);
+  --text-display: clamp(3rem, 1.8rem + 5vw, 6rem);
+
+  /* Line height (編排用) */
+  --leading-tight: 1.12;
+  --leading-snug: 1.28;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.72;
+
+  /* Tracking */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-wider: 0.08em;
+
+  /* ==================== Spacing — fluid section padding ==================== */
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-section: clamp(3rem, 2rem + 4vw, 8rem);
+  --space-gutter: clamp(1.25rem, 0.75rem + 1.5vw, 2.5rem);
+
+  /* ==================== Shape ==================== */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 9999px;
+
+  --border-hair: 0.5px;
+  --border-thin: 1px;
+
+  /* ==================== Shadow — low-saturation, directional ==================== */
+  --shadow-subtle: 0 1px 2px oklch(20% 0.02 60 / 0.06);
+  --shadow-card: 0 2px 6px oklch(20% 0.02 60 / 0.08), 0 0.5px 1px oklch(20% 0.02 60 / 0.04);
+  --shadow-lift: 0 8px 24px oklch(20% 0.02 60 / 0.12), 0 1px 3px oklch(20% 0.02 60 / 0.06);
+
+  /* ==================== Motion ==================== */
+  --duration-fast: 140ms;
+  --duration-normal: 240ms;
+  --duration-slow: 400ms;
+  --duration-editorial: 720ms;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ==================== Layout ==================== */
+  --content-max: 68rem; /* 1088px — 雜誌版型 */
+  --content-narrow: 40rem; /* 讀稿寬度 */
+  --side-rail-width: 16rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode — 低飽和深墨，保留紙感 */
+    --color-paper: oklch(15% 0.01 60);
+    --color-paper-raised: oklch(19% 0.01 60);
+    --color-ink: oklch(94% 0.005 82);
+    --color-ink-muted: oklch(72% 0.008 60);
+    --color-ink-subtle: oklch(56% 0.008 60);
+    --color-rule: oklch(30% 0.008 60);
+    --color-accent: oklch(70% 0.18 30);
+    --color-accent-ink: oklch(88% 0.12 30);
+    --color-accent-soft: oklch(28% 0.08 30);
+
+    --shadow-subtle: 0 1px 2px oklch(0% 0 0 / 0.4);
+    --shadow-card: 0 2px 6px oklch(0% 0 0 / 0.35), 0 0.5px 1px oklch(0% 0 0 / 0.2);
+    --shadow-lift: 0 8px 24px oklch(0% 0 0 / 0.5), 0 1px 3px oklch(0% 0 0 / 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 1ms;
+    --duration-normal: 1ms;
+    --duration-slow: 1ms;
+    --duration-editorial: 1ms;
+  }
+}
