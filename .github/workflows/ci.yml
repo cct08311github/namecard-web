@@ -64,6 +64,10 @@ jobs:
           - "8108:8108"
         env:
           TYPESENSE_API_KEY: local-dev-only-key
+          # /tmp always exists in any Linux image so the data-dir arg
+          # doesn't fail the --data-dir existence check. Ephemeral is
+          # fine for CI — the suite resets the collection per test.
+          TYPESENSE_DATA_DIR: /tmp
           TYPESENSE_ENABLE_CORS: "true"
         options: >-
           --health-cmd "curl -f http://localhost:8108/health || exit 1"
