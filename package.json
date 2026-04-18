@@ -17,7 +17,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "prepare": "husky",
-    "test:rules": "firebase emulators:exec --only firestore \"vitest run src/__tests__/firestore.rules.test.ts\""
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run src/__tests__/firestore.rules.test.ts\"",
+    "test:sit": "firebase emulators:exec --only firestore,auth --project demo-namecard-sit \"vitest run --config vitest.sit.config.ts\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
