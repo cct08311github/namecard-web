@@ -19,6 +19,10 @@ export default defineConfig({
         "**/*.d.ts",
         "src/test/**",
         "src/app/layout.tsx",
+        // Rules tests rely on Firebase emulator; measured separately.
+        "src/__tests__/firestore.rules.test.ts",
+        // Firebase SDK boundaries require live SDK; covered via rules + integration tests.
+        "src/lib/firebase/**",
       ],
       thresholds: {
         lines: 80,

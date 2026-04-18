@@ -1,0 +1,130 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==================== Deny by default ====================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ==================== Helpers ====================
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isMember(memberUids) {
+      return isAuthed() && request.auth.uid in memberUids;
+    }
+
+    function isWorkspaceMember(wid) {
+      return isAuthed() && request.auth.uid in
+        get(/databases/$(database)/documents/workspaces/$(wid)).data.memberUids;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isSafeString(value, maxLen) {
+      return value is string && value.size() <= maxLen;
+    }
+
+    function isOptionalString(data, field, maxLen) {
+      return !(field in data) || isSafeString(data[field], maxLen);
+    }
+
+    function validCard(data) {
+      return
+        // Required integrity fields
+        data.ownerUid is string &&
+        data.workspaceId is string &&
+        data.memberUids is list &&
+        data.memberUids.size() >= 1 &&
+        // Why-remember is required and capped
+        data.whyRemember is string &&
+        data.whyRemember.size() > 0 &&
+        data.whyRemember.size() <= 500 &&
+        // Optional name/company/title length bounds
+        isOptionalString(data, 'nameZh', 100) &&
+        isOptionalString(data, 'nameEn', 100) &&
+        isOptionalString(data, 'namePhonetic', 100) &&
+        isOptionalString(data, 'jobTitleZh', 100) &&
+        isOptionalString(data, 'jobTitleEn', 100) &&
+        isOptionalString(data, 'department', 100) &&
+        isOptionalString(data, 'companyZh', 100) &&
+        isOptionalString(data, 'companyEn', 100) &&
+        isOptionalString(data, 'firstMetContext', 300) &&
+        isOptionalString(data, 'notes', 4000) &&
+        // Arrays bounded
+        (!('phones' in data) || (data.phones is list && data.phones.size() <= 10)) &&
+        (!('emails' in data) || (data.emails is list && data.emails.size() <= 10)) &&
+        (!('tagIds' in data) || (data.tagIds is list && data.tagIds.size() <= 30)) &&
+        (!('tagNames' in data) || (data.tagNames is list && data.tagNames.size() <= 30));
+    }
+
+    function ownershipUnchanged() {
+      return
+        resource.data.ownerUid == incoming().ownerUid &&
+        resource.data.workspaceId == incoming().workspaceId &&
+        resource.data.memberUids == incoming().memberUids;
+    }
+
+    // ==================== Workspaces ====================
+    match /workspaces/{wid} {
+      allow read: if isMember(resource.data.memberUids);
+
+      // Create: only by the owner, personal-workspace rule enforces wid == uid on client,
+      // but the server-side invariant we enforce is: ownerUid == request.auth.uid.
+      allow create: if isAuthed() &&
+        incoming().ownerUid == request.auth.uid &&
+        incoming().memberUids is list &&
+        incoming().memberUids.size() >= 1 &&
+        request.auth.uid in incoming().memberUids &&
+        isSafeString(incoming().name, 100);
+
+      // Update: only owner. ownerUid cannot change. Member list changes must be owner-driven.
+      allow update: if isAuthed() &&
+        resource.data.ownerUid == request.auth.uid &&
+        incoming().ownerUid == resource.data.ownerUid &&
+        isSafeString(incoming().name, 100);
+
+      // Delete: only owner (personal workspace deletion should cascade via Admin SDK).
+      allow delete: if isAuthed() && resource.data.ownerUid == request.auth.uid;
+
+      // ==================== Cards subcollection ====================
+      match /cards/{cardId} {
+        allow read: if isMember(resource.data.memberUids);
+
+        allow create: if isAuthed() &&
+          validCard(incoming()) &&
+          incoming().ownerUid == request.auth.uid &&
+          incoming().workspaceId == wid &&
+          request.auth.uid in incoming().memberUids &&
+          isWorkspaceMember(wid);
+
+        allow update: if isAuthed() &&
+          validCard(incoming()) &&
+          isMember(resource.data.memberUids) &&
+          ownershipUnchanged();
+
+        allow delete: if isAuthed() && isMember(resource.data.memberUids);
+      }
+
+      // ==================== Tags subcollection ====================
+      match /tags/{tagId} {
+        allow read: if isWorkspaceMember(wid);
+
+        allow create: if isAuthed() &&
+          isWorkspaceMember(wid) &&
+          isSafeString(incoming().name, 60);
+
+        allow update: if isAuthed() &&
+          isWorkspaceMember(wid) &&
+          isSafeString(incoming().name, 60);
+
+        allow delete: if isAuthed() && isWorkspaceMember(wid);
+      }
+    }
+  }
+}
