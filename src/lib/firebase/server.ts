@@ -85,8 +85,25 @@ export function getAdminAuth(): Auth {
   return getAuth(getAdminApp());
 }
 
+let firestoreSettingsApplied = false;
+
 export function getAdminFirestore(): Firestore {
-  return getFirestore(getAdminApp());
+  const db = getFirestore(getAdminApp());
+  // Zod-inferred types return `undefined` for optional fields, and our
+  // repo writes spread the whole input. Firestore Admin SDK rejects
+  // undefined values by default; this setting makes it silently drop
+  // them (same behaviour as the Web SDK's `setDoc`). Must be called
+  // before the first read/write.
+  if (!firestoreSettingsApplied) {
+    try {
+      db.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      // settings() throws if already locked in (e.g. on Next.js hot reload
+      // reusing the app). Safe to ignore — the original settings persist.
+    }
+    firestoreSettingsApplied = true;
+  }
+  return db;
 }
 
 export function getAdminStorage(): Storage {
