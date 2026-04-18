@@ -28,7 +28,10 @@ export default defineConfig({
   ],
   webServer: process.env.CI
     ? {
-        command: "pnpm build && pnpm start",
+        // E2E_TEST_MODE is set by the emulator-backed e2e-crud CI job,
+        // which pre-builds outside `firebase emulators:exec` and just needs
+        // `pnpm start` here. Plain e2e (auth-gate) still wants build+start.
+        command: process.env.E2E_TEST_MODE === "1" ? "pnpm start" : "pnpm build && pnpm start",
         url: baseURL,
         reuseExistingServer: false,
         timeout: 180_000,

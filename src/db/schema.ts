@@ -47,11 +47,11 @@ export const addressSchema = z.object({
 export const socialSchema = z.object({
   lineId: z.string().max(100).optional(),
   wechatId: z.string().max(100).optional(),
-  linkedinUrl: z.string().url().max(500).optional(),
+  linkedinUrl: z.string().max(500).optional(),
   twitterHandle: z.string().max(60).optional(),
   instagramHandle: z.string().max(60).optional(),
-  facebookUrl: z.string().url().max(500).optional(),
-  websiteUrl: z.string().url().max(500).optional(),
+  facebookUrl: z.string().max(500).optional(),
+  websiteUrl: z.string().max(500).optional(),
 });
 
 /** Base schema shared between create / update / DB representation. */
@@ -69,7 +69,7 @@ const cardBaseShape = {
   // Company
   companyZh: z.string().max(100).optional(),
   companyEn: z.string().max(100).optional(),
-  companyWebsite: z.string().url().max(500).optional(),
+  companyWebsite: z.string().max(500).optional(),
 
   // Multi-value
   phones: z.array(phoneSchema).max(10).default([]),
@@ -79,9 +79,14 @@ const cardBaseShape = {
 
   // Relationship context (差異化核心)
   whyRemember: z.string().min(1, "「為什麼記得這個人」為必填").max(500),
+  // RHF-backed <input type="date"> initializes as "". .refine allows empty
+  // string so form.handleSubmit doesn't silently reject; onSubmit coerces
+  // "" → undefined before hitting the server.
   firstMetDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), {
+      message: "Invalid date (YYYY-MM-DD)",
+    })
     .optional(),
   firstMetContext: z.string().max(300).optional(),
   firstMetEventTag: z.string().max(60).optional(),

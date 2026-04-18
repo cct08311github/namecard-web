@@ -8,6 +8,10 @@ function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/_next/")) return true;
   if (pathname.startsWith("/favicon")) return true;
+  // Test-only bypass route — route handler itself returns 404 in production
+  // (gated by E2E_TEST_MODE). Exposing it here just keeps it reachable for
+  // Playwright under CI to mint sessions.
+  if (pathname === "/api/test/bypass-login") return true;
   return false;
 }
 

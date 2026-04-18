@@ -74,7 +74,7 @@ jobs:
       - run: pnpm test:sit
 
   e2e:
-    name: Playwright E2E
+    name: Playwright E2E (auth-gate)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -88,12 +88,62 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm test:e2e
+      - run: pnpm exec playwright test e2e/auth-gate.spec.ts
         env:
           NEXT_TELEMETRY_DISABLED: "1"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-auth
+          path: playwright-report/
+          retention-days: 7
+
+  e2e-crud:
+    name: Playwright E2E (CRUD via emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - name: Build Next.js production bundle
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Run CRUD E2E against emulator
+        run: |
+          pnpm exec firebase emulators:exec \
+            --only firestore,auth \
+            --project demo-namecard-sit \
+            "pnpm exec playwright test e2e/cards-crud.spec.ts"
+        env:
+          E2E_TEST_MODE: "1"
+          ALLOWED_EMAILS: "e2e-alice@example.com"
+          FIREBASE_ADMIN_PROJECT_ID: "demo-namecard-sit"
+          GCLOUD_PROJECT: "demo-namecard-sit"
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: "demo-namecard-sit"
+          NEXT_PUBLIC_FIREBASE_API_KEY: "emulator-key"
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "demo-namecard-sit.firebaseapp.com"
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "demo-namecard-sit.appspot.com"
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "0"
+          NEXT_PUBLIC_FIREBASE_APP_ID: "0:0:web:0"
+          SESSION_COOKIE_SECRET: "dummy-e2e-secret-at-least-32-chars-long"
+          PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3000"
+          NEXT_TELEMETRY_DISABLED: "1"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-crud
           path: playwright-report/
           retention-days: 7

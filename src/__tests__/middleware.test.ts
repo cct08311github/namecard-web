@@ -20,7 +20,7 @@ function makeRequest(pathname: string, opts?: { sessionCookie?: string }): NextR
 }
 
 describe("middleware — public path bypass", () => {
-  it.each([["/login"], ["/unauthorized"], ["/api/health"]])(
+  it.each([["/login"], ["/unauthorized"], ["/api/health"], ["/api/test/bypass-login"]])(
     "lets %s through without session cookie (NextResponse.next)",
     (path) => {
       const res = middleware(makeRequest(path));
