@@ -98,6 +98,10 @@ export default defineConfig({
         "src/db/cards-batch.ts",
         // Extracted utility — SIT-covered indirectly via tags + cards-batch.
         "src/db/_utils.ts",
+        // Member repository — SIT-covered by members.sit.test.ts.
+        "src/db/members.ts",
+        // Allowed-emails helper — trivial env reader; UT-covered by members.test.ts.
+        "src/lib/auth/allowed-emails.ts",
         // Import route shell — RSC, rendered by E2E / visual review.
         "src/app/(app)/import/page.tsx",
         // ImportWizard — partially UT-covered; remainder in Playwright.

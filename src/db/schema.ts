@@ -164,12 +164,21 @@ export const tagCreateSchema = tagDocSchema
 export type TagDoc = z.infer<typeof tagDocSchema>;
 export type TagCreateInput = z.infer<typeof tagCreateSchema>;
 
+/** Workspace member role. */
+export const memberRoleSchema = z.enum(["owner", "editor"]);
+export type MemberRole = z.infer<typeof memberRoleSchema>;
+
 /** Workspace document. */
 export const workspaceDocSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(100),
   ownerUid: z.string(),
   memberUids: z.array(z.string()).min(1),
+  /**
+   * Optional role map — added in Phase 6A. Absent on workspaces created
+   * before P6A; code must fall back to inferring role from `ownerUid`.
+   */
+  memberRoles: z.record(z.string(), memberRoleSchema).optional(),
   createdAt: timestampSchema,
 });
 
