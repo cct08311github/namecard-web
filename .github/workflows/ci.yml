@@ -102,6 +102,14 @@ jobs:
           TYPESENSE_PORT: "8108"
           TYPESENSE_PROTOCOL: "http"
           TYPESENSE_API_KEY: "local-dev-only-key"
+          FIREBASE_ADMIN_PROJECT_ID: "demo-namecard-sit"
+          GCLOUD_PROJECT: "demo-namecard-sit"
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: "demo-namecard-sit"
+          NEXT_PUBLIC_FIREBASE_API_KEY: "emulator-key"
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "demo-namecard-sit.firebaseapp.com"
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "demo-namecard-sit.appspot.com"
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "0"
+          NEXT_PUBLIC_FIREBASE_APP_ID: "0:0:web:0"
 
   e2e:
     name: Playwright E2E (auth-gate)
