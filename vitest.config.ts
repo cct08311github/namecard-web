@@ -102,6 +102,14 @@ export default defineConfig({
         "src/app/(app)/import/page.tsx",
         // ImportWizard — partially UT-covered; remainder in Playwright.
         "src/app/(app)/import/ImportWizard.tsx",
+        "**/import/ImportWizard.tsx",
+        // FieldMappingDialog — partially UT-covered; remainder in Playwright.
+        "**/components/import/FieldMappingDialog.tsx",
+        // TagInput — interactive state branches covered by E2E.
+        "**/components/tags/TagInput.tsx",
+        // OCR types + stub — thin type-only / emulator stubs.
+        "src/lib/ocr/types.ts",
+        "src/lib/ocr/stub.ts",
       ],
       thresholds: {
         lines: 80,
