@@ -19,9 +19,11 @@ const TEST_UID = "e2e-alice";
 const TEST_EMAIL = "e2e-alice@example.com";
 
 test.describe("Cards CRUD journey (emulator-backed)", () => {
-  test.beforeEach(async ({ request, context }) => {
+  test.beforeEach(async ({ context }) => {
     // Skip the Google popup — mint a real session cookie server-side.
-    const res = await request.post("/api/test/bypass-login", {
+    // Using context.request so Set-Cookie populates the browser context
+    // (the top-level `request` fixture uses a separate cookie jar).
+    const res = await context.request.post("/api/test/bypass-login", {
       data: {
         uid: TEST_UID,
         email: TEST_EMAIL,
@@ -35,7 +37,7 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     expect(cookies.find((c) => c.name === "__nc_session")).toBeDefined();
   });
 
-  test("create → timeline → detail → edit → touch → vCard → delete", async ({ page, request }) => {
+  test("create → timeline → detail → edit → touch → vCard → delete", async ({ page, context }) => {
     // ────────────────────────────────────────────────────────────────
     // 1. Home loads after login (no redirect)
     // ────────────────────────────────────────────────────────────────
@@ -118,7 +120,7 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     // ────────────────────────────────────────────────────────────────
     // 9. vCard download — fetch directly (avoids download-event flakiness)
     // ────────────────────────────────────────────────────────────────
-    const vcardRes = await request.get(`/api/cards/${cardId}/vcard`);
+    const vcardRes = await context.request.get(`/api/cards/${cardId}/vcard`);
     expect(vcardRes.status()).toBe(200);
     expect(vcardRes.headers()["content-type"]).toContain("text/vcard");
     const vcardBody = await vcardRes.text();
@@ -141,11 +143,11 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     expect(bodyAfter).not.toContain("陳志明");
 
     // Detail page now 404s (card soft-deleted).
-    const detail404 = await request.get(`/cards/${cardId}`);
+    const detail404 = await context.request.get(`/cards/${cardId}`);
     expect([404, 410]).toContain(detail404.status());
 
     // vCard also gone (410 or 404).
-    const vcard404 = await request.get(`/api/cards/${cardId}/vcard`);
+    const vcard404 = await context.request.get(`/api/cards/${cardId}/vcard`);
     expect([404, 410]).toContain(vcard404.status());
   });
 
