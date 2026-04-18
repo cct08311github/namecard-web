@@ -40,10 +40,15 @@ export async function createSession(idToken: string): Promise<SessionUser> {
     expiresIn: SESSION_COOKIE_MAX_AGE_MS,
   });
   const cookieStore = await cookies();
+  // secure cookies only travel on https. In CI we run `pnpm start` in
+  // production mode against http://127.0.0.1, so secure:true would be
+  // dropped by strict browsers (notably WebKit/Safari). E2E_TEST_MODE
+  // relaxes this just for the emulator-backed CI job.
+  const isE2E = process.env.E2E_TEST_MODE === "1";
   cookieStore.set(SESSION_COOKIE_NAME, sessionCookie, {
     maxAge: Math.floor(SESSION_COOKIE_MAX_AGE_MS / 1000),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: !isE2E && process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
   });
