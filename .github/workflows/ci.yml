@@ -64,13 +64,13 @@ jobs:
           - "8108:8108"
         env:
           TYPESENSE_API_KEY: local-dev-only-key
-          TYPESENSE_DATA_DIR: /tmp/typesense-data
           TYPESENSE_ENABLE_CORS: "true"
         options: >-
           --health-cmd "curl -f http://localhost:8108/health || exit 1"
           --health-interval 5s
           --health-timeout 3s
-          --health-retries 10
+          --health-retries 20
+          --health-start-period 10s
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

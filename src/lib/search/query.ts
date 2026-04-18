@@ -78,5 +78,8 @@ export function buildSearchParams({
 function escapeFilter(value: string): string {
   // Typesense filter values with special chars need backtick-wrapping.
   if (/^[a-zA-Z0-9_-]+$/.test(value)) return value;
-  return `\`${value.replace(/`/g, "\\`")}\``;
+  // Escape backslashes FIRST so a rogue backslash can't neutralize the
+  // backtick escape that follows, then escape the backticks themselves.
+  const escaped = value.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
+  return `\`${escaped}\``;
 }
