@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signOutAction } from "@/app/(auth)/login/actions";
+import { SearchBox } from "@/components/search/SearchBox";
 import type { SessionUser } from "@/lib/firebase/session";
 
 import styles from "./AppShell.module.css";
@@ -31,6 +32,10 @@ export function AppShell({ user, children }: AppShellProps) {
           <span className={styles.brandGlyph}>N</span>
           <span className={styles.brandWord}>Namecard</span>
         </Link>
+
+        <div className={styles.searchHost}>
+          <SearchBox />
+        </div>
 
         <nav>
           <p className={styles.navLabel}>導覽</p>

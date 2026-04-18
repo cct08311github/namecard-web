@@ -45,6 +45,10 @@
   color: var(--color-fg);
 }
 
+.searchHost {
+  margin: var(--space-md) 0;
+}
+
 .navLabel {
   font-family: var(--font-sans);
   font-size: var(--text-caption);
