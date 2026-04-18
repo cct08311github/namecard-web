@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   vcardToCardCreateInput,
+  csvRowToCardCreateInput,
   normalizePhone,
   normalizeEmail,
   InvalidMappedCardError,
 } from "../mapper";
 import type { ParsedVcard } from "@/lib/vcard/parse";
+import type { CanonicalCardField } from "@/lib/csv/linkedin";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -135,5 +137,88 @@ describe("normalizePhone", () => {
 describe("normalizeEmail", () => {
   it("handles already normalized input", () => {
     expect(normalizeEmail("test@example.com")).toBe("test@example.com");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// csvRowToCardCreateInput
+// ---------------------------------------------------------------------------
+
+describe("csvRowToCardCreateInput", () => {
+  const linkedInHeaders = [
+    "First Name",
+    "Last Name",
+    "Email Address",
+    "Company",
+    "Position",
+    "Connected On",
+  ];
+
+  const linkedInMapping: Record<string, CanonicalCardField> = {
+    "First Name": "firstName",
+    "Last Name": "lastName",
+    "Email Address": "emailWork",
+    Company: "companyEn",
+    Position: "jobTitleEn",
+    "Connected On": "firstMetDate",
+  };
+
+  it("1. LinkedIn row → nameEn joined, emailWork mapped", () => {
+    const row = ["Alice", "Chen", "alice@example.com", "Acme Corp", "Engineer", "15 Apr 2024"];
+    const result = csvRowToCardCreateInput(row, linkedInMapping, linkedInHeaders);
+    expect(result.nameEn).toBe("Alice Chen");
+    expect(result.emails).toHaveLength(1);
+    expect(result.emails[0]).toEqual({ label: "work", value: "alice@example.com" });
+    expect(result.companyEn).toBe("Acme Corp");
+    expect(result.jobTitleEn).toBe("Engineer");
+  });
+
+  it("2. firstMetDate parses 'DD Mon YYYY' format", () => {
+    const row = ["Alice", "Chen", "alice@example.com", "", "", "15 Apr 2024"];
+    const result = csvRowToCardCreateInput(row, linkedInMapping, linkedInHeaders);
+    expect(result.firstMetDate).toBe("2024-04-15");
+  });
+
+  it("3. firstMetDate parses 'YYYY-MM-DD' format", () => {
+    const row = ["Alice", "Chen", "alice@example.com", "", "", "2024-04-15"];
+    const result = csvRowToCardCreateInput(row, linkedInMapping, linkedInHeaders);
+    expect(result.firstMetDate).toBe("2024-04-15");
+  });
+
+  it("4. invalid date dropped silently (firstMetDate is undefined)", () => {
+    const row = ["Alice", "Chen", "alice@example.com", "", "", "not-a-date"];
+    const result = csvRowToCardCreateInput(row, linkedInMapping, linkedInHeaders);
+    expect(result.firstMetDate).toBeUndefined();
+  });
+
+  it("5. whyRemember defaults to '來自 CSV 匯入'", () => {
+    const row = ["Alice", "Chen", "alice@example.com", "", "", ""];
+    const result = csvRowToCardCreateInput(row, linkedInMapping, linkedInHeaders);
+    expect(result.whyRemember).toBe("來自 CSV 匯入");
+  });
+
+  it("6. blank cells don't pollute output (email/company/title omitted)", () => {
+    const row = ["Alice", "Chen", "", "", "", ""];
+    const result = csvRowToCardCreateInput(row, linkedInMapping, linkedInHeaders);
+    expect(result.emails).toHaveLength(0);
+    expect(result.companyEn).toBeUndefined();
+    expect(result.jobTitleEn).toBeUndefined();
+  });
+
+  it("7. only firstName present → nameEn is just firstName", () => {
+    const headers = ["First Name", "Company"];
+    const mapping: Record<string, CanonicalCardField> = {
+      "First Name": "firstName",
+      Company: "companyEn",
+    };
+    const row = ["Alice", "Acme"];
+    const result = csvRowToCardCreateInput(row, mapping, headers);
+    expect(result.nameEn).toBe("Alice");
+  });
+
+  it("8. email is normalized (lowercased)", () => {
+    const row = ["Alice", "Chen", "ALICE@EXAMPLE.COM", "", "", ""];
+    const result = csvRowToCardCreateInput(row, linkedInMapping, linkedInHeaders);
+    expect(result.emails[0].value).toBe("alice@example.com");
   });
 });
