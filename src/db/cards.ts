@@ -9,6 +9,7 @@ import {
   SUB_COLLECTION_CARDS,
   COLLECTION_WORKSPACES,
 } from "@/lib/firebase/shared";
+import { syncWithFallback } from "@/lib/search/reconcile";
 
 import type { CardCreateInput, CardUpdateInput } from "./schema";
 
@@ -150,6 +151,13 @@ export async function createCardForUser(
     updatedAt: now,
     deletedAt: null,
   });
+  // Re-read so serverTimestamp is resolved before we ship to Typesense;
+  // sync failures degrade to the reconcile queue, they don't abort the
+  // Firestore write.
+  const snap = await ref.get();
+  if (snap.exists) {
+    await syncWithFallback(wid, "upsert", ref.id, toSummary(ref.id, snap.data()!));
+  }
   return { id: ref.id };
 }
 
@@ -173,6 +181,10 @@ export async function updateCardForUser(
     workspaceId: data.workspaceId,
     memberUids: data.memberUids,
   });
+  const after = await ref.get();
+  if (after.exists) {
+    await syncWithFallback(wid, "upsert", cardId, toSummary(cardId, after.data()!));
+  }
 }
 
 export async function softDeleteCardForUser(
@@ -190,6 +202,8 @@ export async function softDeleteCardForUser(
     deletedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
+  // Soft-delete → remove from index; the reconciler handles any failure.
+  await syncWithFallback(wid, "delete", cardId, null);
 }
 
 export async function touchLastContactedAt(
@@ -198,10 +212,17 @@ export async function touchLastContactedAt(
 ): Promise<void> {
   const wid = personalWorkspaceId(uid);
   const db = getAdminFirestore();
-  await db.doc(`${cardsPath(wid)}/${cardId}`).update({
+  const ref = db.doc(`${cardsPath(wid)}/${cardId}`);
+  await ref.update({
     lastContactedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
+  // Ranking signal changed — reindex so sort_by: lastContactedAt:desc
+  // reflects the new contact event immediately.
+  const after = await ref.get();
+  if (after.exists && after.data()?.deletedAt === null) {
+    await syncWithFallback(wid, "upsert", cardId, toSummary(cardId, after.data()!));
+  }
 }
 
 export { COLLECTION_WORKSPACES, SUB_COLLECTION_CARDS };

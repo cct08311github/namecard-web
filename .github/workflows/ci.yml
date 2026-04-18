@@ -57,6 +57,20 @@ jobs:
     name: System Integration Tests (Firebase emulators)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      typesense:
+        image: typesense/typesense:0.26.0
+        ports:
+          - "8108:8108"
+        env:
+          TYPESENSE_API_KEY: local-dev-only-key
+          TYPESENSE_DATA_DIR: /tmp/typesense-data
+          TYPESENSE_ENABLE_CORS: "true"
+        options: >-
+          --health-cmd "curl -f http://localhost:8108/health || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -72,6 +86,11 @@ jobs:
           java-version: "21"
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:sit
+        env:
+          TYPESENSE_HOST: "127.0.0.1"
+          TYPESENSE_PORT: "8108"
+          TYPESENSE_PROTOCOL: "http"
+          TYPESENSE_API_KEY: "local-dev-only-key"
 
   e2e:
     name: Playwright E2E (auth-gate)
