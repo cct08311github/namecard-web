@@ -39,9 +39,18 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
 
   test("create → timeline → detail → edit → touch → vCard → delete", async ({ page, context }) => {
     const pageErrors: string[] = [];
+    const requestLog: string[] = [];
     page.on("pageerror", (err) => pageErrors.push(`pageerror: ${err.message}`));
     page.on("console", (msg) => {
       if (msg.type() === "error") pageErrors.push(`console.error: ${msg.text()}`);
+    });
+    page.on("request", (req) => {
+      if (req.method() === "POST") requestLog.push(`POST ${req.url()}`);
+    });
+    page.on("response", (res) => {
+      if (res.request().method() === "POST") {
+        requestLog.push(`  ← ${res.status()} ${res.url()}`);
+      }
     });
 
     // ────────────────────────────────────────────────────────────────
@@ -83,7 +92,14 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     } catch (err) {
       console.log("URL did not change. Current:", page.url());
       console.log("Captured errors:", pageErrors);
-      console.log("Body (first 800):", (await page.locator("body").innerText()).slice(0, 800));
+      console.log("POST requests:", requestLog);
+      // Check visible validation error messages:
+      const errorText = await page.locator("[role='alert']").allTextContents();
+      console.log("Alert text:", errorText);
+      // Submit button state
+      const submitDisabled = await submit.isDisabled();
+      console.log("Submit disabled?", submitDisabled);
+      console.log("Body (first 1500):", (await page.locator("body").innerText()).slice(0, 1500));
       throw err;
     }
     await expect(page.getByRole("heading", { level: 1 })).toContainText("陳志明");
