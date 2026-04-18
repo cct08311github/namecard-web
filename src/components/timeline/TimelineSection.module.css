@@ -1,0 +1,108 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 40rem;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 400;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  margin: 0;
+  color: var(--color-fg);
+}
+
+.description {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-body);
+  color: var(--color-fg-muted);
+  margin: 0;
+  line-height: var(--leading-snug);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.list > li {
+  border-bottom: var(--border-hair) solid var(--color-border);
+}
+
+.list > li:first-child {
+  border-top: var(--border-hair) solid var(--color-border);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.2fr) 2fr minmax(7rem, auto);
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-sm);
+  text-decoration: none;
+  color: inherit;
+  align-items: baseline;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+@media (max-width: 40rem) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+}
+
+.row:hover {
+  background: var(--color-accent-soft);
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: var(--text-h4);
+  font-weight: 500;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-fg);
+}
+
+.sub {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-fg-muted);
+}
+
+.why {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+  color: var(--color-fg-muted);
+}
+
+.meta {
+  justify-self: end;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-accent-ink);
+  text-align: right;
+}
