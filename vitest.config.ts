@@ -81,6 +81,10 @@ export default defineConfig({
         "src/components/scan/**",
         "src/components/capture/**",
         "src/app/(app)/tags/TagsClient.tsx",
+        // Batch export ZIP builder — SIT-covered (gated on Storage emulator).
+        "src/lib/export/zip.ts",
+        // ExportButton — client UI, E2E-covered in P5F.
+        "src/components/cards/ExportButton.tsx",
         // Batch import — server-boundary; SIT-covered by cards-batch.sit.test.ts.
         "src/db/cards-batch.ts",
         // Extracted utility — SIT-covered indirectly via tags + cards-batch.

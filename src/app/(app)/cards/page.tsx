@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CardGallery } from "@/components/cards/CardGallery";
 import { CardList } from "@/components/cards/CardList";
+import { ExportButton } from "@/components/cards/ExportButton";
 import { TagFilterBar } from "@/components/cards/TagFilterBar";
 import { ViewToggle } from "@/components/cards/ViewToggle";
 import { listCardsForUser, type CardSummary } from "@/db/cards";
@@ -18,6 +19,8 @@ import styles from "./cards.module.css";
 export const metadata = {
   title: "名片冊",
 };
+
+const MAX_CARDS = 500;
 
 interface CardsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -111,6 +114,13 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
         </div>
         <div className={styles.controls}>
           <ViewToggle current={isGallery ? "gallery" : "list"} sort={sort} />
+          {cards.length > 0 && (
+            <ExportButton
+              cardIds={
+                hasSearchState && cards.length < MAX_CARDS ? cards.map((c) => c.id) : undefined
+              }
+            />
+          )}
           <Link href="/cards/new" className={styles.newBtn}>
             新增
           </Link>
