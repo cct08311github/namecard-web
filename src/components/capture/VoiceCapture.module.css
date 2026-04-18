@@ -1,0 +1,89 @@
+.voice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.controls {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: stretch;
+}
+
+.micBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.micBtn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-paper-raised);
+}
+
+.listening {
+  background: var(--color-accent);
+  color: var(--color-paper);
+  border-color: var(--color-accent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--color-accent-soft);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.micIcon {
+  font-size: 1.1em;
+}
+
+.langBtn {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+}
+
+.langBtn:hover {
+  color: var(--color-fg);
+  border-color: var(--color-fg-muted);
+}
+
+.hint {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-caption);
+  color: var(--color-fg-subtle);
+}
+
+.error {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-caption);
+  color: var(--color-accent);
+}

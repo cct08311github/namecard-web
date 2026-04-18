@@ -2,7 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSION_COOKIE_NAME } from "@/lib/firebase/shared";
 
-const PUBLIC_PATHS = new Set<string>(["/login", "/unauthorized", "/api/health"]);
+const PUBLIC_PATHS = new Set<string>([
+  "/login",
+  "/unauthorized",
+  "/api/health",
+  // PWA metadata — must be reachable without a session so the browser can
+  // install the app from the login page.
+  "/manifest.webmanifest",
+  "/icon",
+  "/apple-icon",
+]);
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
