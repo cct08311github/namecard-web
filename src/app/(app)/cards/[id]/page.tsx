@@ -2,13 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CardActions } from "@/components/cards/CardActions";
+import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
 import { getCardForUser } from "@/db/cards";
+import type { CardCreateInput } from "@/db/schema";
 import { readSession } from "@/lib/firebase/session";
 
 import styles from "./detail.module.css";
 
 interface DetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export async function generateMetadata({ params }: DetailPageProps) {
@@ -22,8 +25,10 @@ export async function generateMetadata({ params }: DetailPageProps) {
   };
 }
 
-export default async function CardDetailPage({ params }: DetailPageProps) {
+export default async function CardDetailPage({ params, searchParams }: DetailPageProps) {
   const { id } = await params;
+  const sp = await searchParams;
+  const showSuggest = sp["suggest"] === "1";
   const user = await readSession();
   if (!user) return null;
   const card = await getCardForUser(user.uid, id);
@@ -36,6 +41,34 @@ export default async function CardDetailPage({ params }: DetailPageProps) {
   const primaryPhone = card.phones.find((p) => p.primary) ?? card.phones[0];
   const primaryEmail = card.emails.find((e) => e.primary) ?? card.emails[0];
 
+  // Build a CardCreateInput-shaped draft from the stored card for the suggestion panel.
+  // CardSummary is a projection of CardDoc — some fields (addresses, companyWebsite,
+  // ocrProvider, etc.) are not included. Omit them; the suggestion layer tolerates
+  // missing optional fields gracefully.
+  const cardDraft: CardCreateInput = {
+    nameZh: card.nameZh,
+    nameEn: card.nameEn,
+    namePhonetic: card.namePhonetic,
+    jobTitleZh: card.jobTitleZh,
+    jobTitleEn: card.jobTitleEn,
+    department: card.department,
+    companyZh: card.companyZh,
+    companyEn: card.companyEn,
+    phones: card.phones,
+    emails: card.emails,
+    addresses: [],
+    social: card.social ?? {},
+    whyRemember: card.whyRemember,
+    firstMetDate: card.firstMetDate,
+    firstMetContext: card.firstMetContext,
+    firstMetEventTag: card.firstMetEventTag,
+    notes: card.notes,
+    tagIds: card.tagIds,
+    tagNames: card.tagNames,
+    frontImagePath: card.frontImagePath,
+    backImagePath: card.backImagePath,
+  };
+
   return (
     <article className={styles.article}>
       <nav aria-label="Breadcrumbs" className={styles.crumbs}>
@@ -43,6 +76,15 @@ export default async function CardDetailPage({ params }: DetailPageProps) {
         <span aria-hidden="true"> · </span>
         <span>{primary}</span>
       </nav>
+
+      {showSuggest && (
+        <TagSuggestionsBanner
+          cardId={card.id}
+          cardDraft={cardDraft}
+          currentTagIds={card.tagIds}
+          currentTagNames={card.tagNames}
+        />
+      )}
 
       <div className={styles.layout}>
         <main className={styles.main}>

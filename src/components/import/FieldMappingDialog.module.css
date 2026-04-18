@@ -1,0 +1,140 @@
+/* FieldMappingDialog — matches SearchBox backdrop / dialog pattern */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: oklch(15% 0.008 60 / 0.35);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-lg) var(--space-md);
+}
+
+.dialog {
+  width: min(44rem, 100%);
+  max-height: 80vh;
+  background: var(--color-paper-raised);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: var(--border-hair) solid var(--color-border);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-h4);
+  font-weight: 500;
+  color: var(--color-fg);
+  margin: 0 0 var(--space-2xs);
+  letter-spacing: var(--tracking-tight);
+}
+
+.subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg-muted);
+  margin: 0;
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm) 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: var(--border-hair) solid var(--color-border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.headerLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.select {
+  width: 100%;
+  padding: var(--space-2xs) var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg);
+  background: var(--color-bg);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-sm) center;
+  padding-right: calc(var(--space-sm) * 2 + 12px);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: var(--border-thin) solid var(--color-border);
+}
+
+.btnCancel {
+  padding: var(--space-2xs) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg-muted);
+  background: transparent;
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color 150ms,
+    border-color 150ms;
+}
+
+.btnCancel:hover {
+  color: var(--color-fg);
+  border-color: var(--color-fg-muted);
+}
+
+.btnConfirm {
+  padding: var(--space-2xs) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-paper-raised);
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 150ms;
+}
+
+.btnConfirm:hover {
+  opacity: 0.88;
+}

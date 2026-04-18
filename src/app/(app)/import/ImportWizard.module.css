@@ -1,0 +1,362 @@
+/* ImportWizard.module.css — uses design tokens from src/styles/tokens.css only */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: var(--content-narrow);
+  padding: var(--space-xl) var(--space-gutter);
+}
+
+/* ---- Header ---- */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-fg);
+}
+
+.lede {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  color: var(--color-fg-muted);
+  line-height: var(--leading-normal);
+}
+
+/* ---- Section ---- */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-h4);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-fg);
+}
+
+/* ---- Tabs ---- */
+.tabs {
+  display: flex;
+  gap: var(--space-xs);
+  border-bottom: var(--border-thin) solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.tab {
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+  margin-bottom: -1px;
+}
+
+.tab:hover {
+  color: var(--color-fg);
+}
+
+.tabActive {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+  font-weight: 500;
+}
+
+/* ---- Legal notice ---- */
+.legalNotice {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent-soft);
+  border-left: 2px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-accent-ink);
+  line-height: var(--leading-normal);
+}
+
+/* ---- Info banner ---- */
+.infoBanner {
+  margin: 0;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-bg-raised);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg-muted);
+}
+
+/* ---- Error banner ---- */
+.errorBanner {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent-soft);
+  border-left: 2px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-accent-ink);
+  line-height: var(--leading-normal);
+}
+
+.errorBanner ul {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-md);
+}
+
+.errorBannerTitle {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ---- Dropzone ---- */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--color-bg-raised);
+  border: var(--border-thin) dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.dropzone:hover {
+  border-color: var(--color-accent);
+}
+
+.dropzoneHint {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-fg-muted);
+}
+
+.fileInput {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-fg);
+  cursor: pointer;
+}
+
+/* ---- Bulk action bar ---- */
+.bulkBar {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.bulkBtn {
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--color-bg-raised);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.bulkBtn:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+/* ---- Preview table ---- */
+.tableWrapper {
+  overflow-x: auto;
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+}
+
+.th {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-raised);
+  border-bottom: var(--border-thin) solid var(--color-border);
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  white-space: nowrap;
+}
+
+.tr:nth-child(even) {
+  background: var(--color-bg-raised);
+}
+
+.td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: var(--border-hair) solid var(--color-border);
+  color: var(--color-fg);
+  vertical-align: middle;
+}
+
+.tr:last-child .td {
+  border-bottom: none;
+}
+
+/* ---- Status chips ---- */
+.chip {
+  display: inline-block;
+  padding: 2px var(--space-xs);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chipNew {
+  background: var(--color-bg-raised);
+  border: var(--border-hair) solid var(--color-border);
+  color: var(--color-fg-muted);
+}
+
+.chipDupe {
+  background: oklch(
+    94% 0.07 80 / 0.5
+  ); /* warm amber tint — token-safe: derived from accent hue family */
+  border: var(--border-hair) solid oklch(78% 0.12 80);
+  color: oklch(28% 0.12 60);
+}
+
+/* ---- Decision select ---- */
+.decisionSelect {
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--color-bg);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg);
+  cursor: pointer;
+}
+
+.decisionSelect:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* ---- Action bars ---- */
+.submitBar,
+.resultActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* ---- Buttons ---- */
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-lg);
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: oklch(97% 0.005 82);
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.btnPrimary:hover {
+  opacity: 0.88;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-lg);
+  background: transparent;
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-fg);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.btnSecondary:hover {
+  border-color: var(--color-fg-muted);
+}
+
+/* ---- Result grid ---- */
+.resultGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+}
+
+.resultGrid dt {
+  color: var(--color-fg-muted);
+}
+
+.resultGrid dd {
+  margin: 0;
+  font-weight: 500;
+  color: var(--color-fg);
+}
+
+/* ---- State screens ---- */
+.stateScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-2xl) var(--space-gutter);
+  text-align: center;
+}
+
+.stateMsg {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-lead);
+  color: var(--color-fg-muted);
+}
+
+.errorMsg {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-accent);
+}

@@ -88,7 +88,7 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     // Bump timeout + dump diagnostics on failure so we can see WHY submit
     // didn't redirect (JS error, Zod rejection, serverError banner, etc).
     try {
-      await expect(page).toHaveURL(/\/cards\/[A-Za-z0-9]{15,}$/, { timeout: 20_000 });
+      await expect(page).toHaveURL(/\/cards\/[A-Za-z0-9]{15,}(\?suggest=1)?$/, { timeout: 20_000 });
     } catch (err) {
       console.log("URL did not change. Current:", page.url());
       console.log("Captured errors:", pageErrors);
@@ -105,7 +105,7 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("陳志明");
 
     // Capture card id from URL for later steps.
-    const cardIdMatch = page.url().match(/\/cards\/([A-Za-z0-9]{15,})$/);
+    const cardIdMatch = page.url().match(/\/cards\/([A-Za-z0-9]{15,})(\?|$)/);
     expect(cardIdMatch).toBeTruthy();
     const cardId = cardIdMatch![1];
 

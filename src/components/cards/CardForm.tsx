@@ -98,7 +98,8 @@ export function CardForm({ mode, cardId, defaults }: CardFormProps) {
       }
       if (mode === "create") {
         const id = result?.data && "id" in result.data ? result.data.id : null;
-        if (id) router.push(`/cards/${id}`);
+        // Append ?suggest=1 so the detail page shows the tag suggestion panel.
+        if (id) router.push(`/cards/${id}?suggest=1`);
         else router.push("/cards");
       } else {
         router.push(`/cards/${cardId}`);
