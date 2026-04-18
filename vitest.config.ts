@@ -81,6 +81,14 @@ export default defineConfig({
         "src/components/scan/**",
         "src/components/capture/**",
         "src/app/(app)/tags/TagsClient.tsx",
+        // Batch import — server-boundary; SIT-covered by cards-batch.sit.test.ts.
+        "src/db/cards-batch.ts",
+        // Extracted utility — SIT-covered indirectly via tags + cards-batch.
+        "src/db/_utils.ts",
+        // Import route shell — RSC, rendered by E2E / visual review.
+        "src/app/(app)/import/page.tsx",
+        // ImportWizard — partially UT-covered; remainder in Playwright.
+        "src/app/(app)/import/ImportWizard.tsx",
       ],
       thresholds: {
         lines: 80,
