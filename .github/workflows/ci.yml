@@ -69,12 +69,6 @@ jobs:
           # fine for CI — the suite resets the collection per test.
           TYPESENSE_DATA_DIR: /tmp
           TYPESENSE_ENABLE_CORS: "true"
-        options: >-
-          --health-cmd "curl -f http://localhost:8108/health || exit 1"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
-          --health-start-period 10s
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -89,6 +83,19 @@ jobs:
           distribution: "temurin"
           java-version: "21"
       - run: pnpm install --frozen-lockfile
+      - name: Wait for Typesense to be ready
+        run: |
+          echo "Waiting for Typesense on port 8108..."
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8108/health | grep -q '"ok":true'; then
+              echo "Typesense is ready."
+              exit 0
+            fi
+            echo "  attempt $i/30 — retrying in 2s"
+            sleep 2
+          done
+          echo "Typesense did not become ready in time." >&2
+          exit 1
       - run: pnpm test:sit
         env:
           TYPESENSE_HOST: "127.0.0.1"
