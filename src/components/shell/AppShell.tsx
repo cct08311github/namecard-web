@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signOutAction } from "@/app/(auth)/login/actions";
+import { SearchBox } from "@/components/search/SearchBox";
 import type { SessionUser } from "@/lib/firebase/session";
 
 import styles from "./AppShell.module.css";
@@ -15,6 +16,7 @@ const PRIMARY: NavItem[] = [
   { href: "/", label: "時間軸", description: "最近沒聯絡 · 本月認識" },
   { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
+  { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
 ];
 
 interface AppShellProps {
@@ -30,6 +32,10 @@ export function AppShell({ user, children }: AppShellProps) {
           <span className={styles.brandGlyph}>N</span>
           <span className={styles.brandWord}>Namecard</span>
         </Link>
+
+        <div className={styles.searchHost}>
+          <SearchBox />
+        </div>
 
         <nav>
           <p className={styles.navLabel}>導覽</p>

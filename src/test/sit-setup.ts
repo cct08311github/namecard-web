@@ -27,3 +27,25 @@ console.log("[sit-setup] Emulator env:", {
   FIREBASE_AUTH_EMULATOR_HOST: requireEnv("FIREBASE_AUTH_EMULATOR_HOST"),
   GCLOUD_PROJECT: requireEnv("GCLOUD_PROJECT"),
 });
+
+/**
+ * When Typesense is configured (CI SIT job or local search:up), bootstrap
+ * the cards collection once so the afterWrite sync hook in existing card
+ * SITs doesn't enqueue junk into searchSyncFailures. Best-effort — a dead
+ * Typesense surfaces later via waitForTypesense() in each suite.
+ */
+export async function bootstrapTypesenseIfConfigured(): Promise<void> {
+  if (!process.env.TYPESENSE_HOST || !process.env.TYPESENSE_API_KEY) return;
+  const { ensureCardsCollection } = await import("@/lib/search/bootstrap");
+  try {
+    await ensureCardsCollection();
+    console.log("[sit-setup] Typesense cards collection bootstrapped");
+  } catch (err) {
+    console.warn(
+      "[sit-setup] Typesense bootstrap failed — search SITs will self-skip:",
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
+
+await bootstrapTypesenseIfConfigured();

@@ -7,6 +7,7 @@ import { useFieldArray, useForm, type Resolver, type SubmitHandler } from "react
 import type { z } from "zod";
 
 import { createCardAction, updateCardAction } from "@/app/(app)/cards/actions";
+import { TagInput } from "@/components/tags/TagInput";
 import { cardCreateSchema, type CardCreateInput } from "@/db/schema";
 
 import styles from "./CardForm.module.css";
@@ -106,7 +107,9 @@ export function CardForm({ mode, cardId, defaults }: CardFormProps) {
     });
   };
 
-  const { register, formState } = form;
+  const { register, formState, watch, setValue } = form;
+  const tagIds = watch("tagIds") ?? [];
+  const tagNames = watch("tagNames") ?? [];
 
   return (
     <form className={styles.form} onSubmit={form.handleSubmit(onSubmit)}>
@@ -301,6 +304,22 @@ export function CardForm({ mode, cardId, defaults }: CardFormProps) {
             {...register("firstMetContext")}
           />
         </label>
+      </fieldset>
+
+      <fieldset className={styles.section}>
+        <legend className={styles.legend}>標籤</legend>
+        <div className={styles.field}>
+          <span className={styles.label}>用標籤分類（例：COMPUTEX 2024、半導體、待回覆）</span>
+          <TagInput
+            value={tagIds}
+            nameValue={tagNames}
+            onChange={(ids, names) => {
+              setValue("tagIds", ids, { shouldDirty: true });
+              setValue("tagNames", names, { shouldDirty: true });
+            }}
+            disabled={submitting}
+          />
+        </div>
       </fieldset>
 
       <fieldset className={styles.section}>

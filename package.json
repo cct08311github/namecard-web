@@ -18,7 +18,10 @@
     "test:e2e:ui": "playwright test --ui",
     "prepare": "husky",
     "test:rules": "firebase emulators:exec --only firestore \"vitest run src/__tests__/firestore.rules.test.ts\"",
-    "test:sit": "firebase emulators:exec --only firestore,auth --project demo-namecard-sit \"vitest run --config vitest.sit.config.ts\""
+    "test:sit": "firebase emulators:exec --only firestore,auth --project demo-namecard-sit \"vitest run --config vitest.sit.config.ts\"",
+    "search:up": "docker compose -f docker-compose.dev.yml up -d typesense",
+    "search:down": "docker compose -f docker-compose.dev.yml down",
+    "search:bootstrap": "node --experimental-strip-types scripts/typesense-bootstrap.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

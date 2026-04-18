@@ -151,7 +151,9 @@ out/
 Session.vim
 Sessionx.vim
 .netrwhist
-tags
+# `tags` (lowercase, root-only) is the ctags output; do not ignore
+# our source `tags/` directories under src/app and src/lib.
+/tags
 [._]*.un~
 
 # Emacs
