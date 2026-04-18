@@ -15,14 +15,6 @@
         { "fieldPath": "memberUids", "arrayConfig": "CONTAINS" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "cards",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "memberUids", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "tagIds", "arrayConfig": "CONTAINS" }
-      ]
     }
   ],
   "fieldOverrides": []
