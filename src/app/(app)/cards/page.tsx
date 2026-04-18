@@ -2,9 +2,12 @@ import Link from "next/link";
 
 import { CardGallery } from "@/components/cards/CardGallery";
 import { CardList } from "@/components/cards/CardList";
+import { TagFilterBar } from "@/components/cards/TagFilterBar";
 import { ViewToggle } from "@/components/cards/ViewToggle";
 import { listCardsForUser, type CardSummary } from "@/db/cards";
+import { listTagsForUser } from "@/db/tags";
 import { readSession } from "@/lib/firebase/session";
+import { applyTagFilter } from "@/lib/cards/filter";
 import { getTypesenseClient } from "@/lib/search/client";
 import { buildSearchParams } from "@/lib/search/query";
 import { CARDS_COLLECTION_NAME } from "@/lib/search/schema";
@@ -61,19 +64,27 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   const order: "asc" | "desc" = sort === "oldest" ? "asc" : "desc";
   const { q, tag, tagMode } = parseSearchParams(raw);
 
+  const [allCards, allTags] = await Promise.all([
+    listCardsForUser(user.uid, { limit: 200, orderBy, order }),
+    listTagsForUser(user.uid),
+  ]);
+
   let cards: CardSummary[];
   const hasSearchState = q.length > 0 || tag.length > 0;
   if (hasSearchState) {
     const ids = await searchCardIds(user.uid, q, tag, tagMode);
     if (ids && ids.length > 0) {
-      const all = await listCardsForUser(user.uid, { limit: 200, orderBy, order });
-      const byId = new Map(all.map((c) => [c.id, c]));
+      const byId = new Map(allCards.map((c) => [c.id, c]));
       cards = ids.map((id) => byId.get(id)).filter((c): c is CardSummary => Boolean(c));
+    } else if (ids === null && tag.length > 0) {
+      // Typesense unreachable — fall back to client-side tag filter so
+      // the UI stays usable even with search down.
+      cards = applyTagFilter(allCards, tag, tagMode);
     } else {
       cards = [];
     }
   } else {
-    cards = await listCardsForUser(user.uid, { orderBy, order, limit: 200 });
+    cards = allCards;
   }
 
   return (
@@ -105,6 +116,8 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
           </Link>
         </div>
       </header>
+
+      <TagFilterBar tags={allTags} selectedIds={tag} tagMode={tagMode} />
 
       {cards.length === 0 ? (
         <div className={styles.empty}>

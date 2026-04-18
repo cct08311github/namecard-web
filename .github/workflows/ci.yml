@@ -145,7 +145,7 @@ jobs:
           pnpm exec firebase emulators:exec \
             --only firestore,auth \
             --project demo-namecard-sit \
-            "pnpm exec playwright test e2e/cards-crud.spec.ts"
+            "pnpm exec playwright test e2e/cards-crud.spec.ts e2e/search.spec.ts"
         env:
           E2E_TEST_MODE: "1"
           ALLOWED_EMAILS: "e2e-alice@example.com"
