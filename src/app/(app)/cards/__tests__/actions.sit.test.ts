@@ -11,13 +11,10 @@ import {
   EMULATOR_PROJECT_ID,
   disposeSitApp,
   getSitFirestore,
-  isEmulatorReady,
   resetEmulators,
 } from "@/test/firebase-emulator";
 import { TEST_EMAIL_ALICE, TEST_UID_ALICE, aCard } from "@/test/fixtures";
 import type { SessionUser } from "@/lib/firebase/session";
-
-const describeIfEmulator = isEmulatorReady() ? describe : describe.skip;
 
 // Session value switched per test.
 let mockSessionUser: SessionUser | null = null;
@@ -48,7 +45,7 @@ async function seedWorkspace(uid: string): Promise<void> {
     });
 }
 
-describeIfEmulator("cards server actions (SIT)", () => {
+describe("cards server actions (SIT)", () => {
   let actions: typeof import("../actions");
 
   beforeAll(async () => {

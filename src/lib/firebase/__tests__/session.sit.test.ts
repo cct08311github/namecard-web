@@ -13,13 +13,10 @@ import { SESSION_COOKIE_NAME } from "@/lib/firebase/shared";
 import {
   EMULATOR_PROJECT_ID,
   disposeSitApp,
-  isEmulatorReady,
   resetEmulators,
   seedEmulatorUser,
 } from "@/test/firebase-emulator";
 import { TEST_EMAIL_ALICE, TEST_EMAIL_BOB, TEST_UID_ALICE, TEST_UID_BOB } from "@/test/fixtures";
-
-const describeIfEmulator = isEmulatorReady() ? describe : describe.skip;
 
 /**
  * In-memory cookie store that mimics Next.js's ReadonlyRequestCookies enough
@@ -50,7 +47,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => currentStore,
 }));
 
-describeIfEmulator("session (SIT)", () => {
+describe("session (SIT)", () => {
   let session: typeof import("../session");
 
   beforeAll(async () => {

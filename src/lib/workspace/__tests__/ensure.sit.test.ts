@@ -10,14 +10,11 @@ import {
   EMULATOR_PROJECT_ID,
   disposeSitApp,
   getSitFirestore,
-  isEmulatorReady,
   resetEmulators,
 } from "@/test/firebase-emulator";
 import { TEST_UID_ALICE, TEST_UID_BOB } from "@/test/fixtures";
 
-const describeIfEmulator = isEmulatorReady() ? describe : describe.skip;
-
-describeIfEmulator("ensurePersonalWorkspace (SIT)", () => {
+describe("ensurePersonalWorkspace (SIT)", () => {
   let ensurePersonalWorkspace: typeof import("../ensure").ensurePersonalWorkspace;
 
   beforeAll(async () => {

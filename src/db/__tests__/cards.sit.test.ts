@@ -15,12 +15,9 @@ import {
   EMULATOR_PROJECT_ID,
   disposeSitApp,
   getSitFirestore,
-  isEmulatorReady,
   resetEmulators,
 } from "@/test/firebase-emulator";
 import { TEST_UID_ALICE, TEST_UID_BOB, aCard } from "@/test/fixtures";
-
-const describeIfEmulator = isEmulatorReady() ? describe : describe.skip;
 
 /** Seed alice's personal workspace directly (bypasses app's ensure call) */
 async function seedWorkspace(uid: string): Promise<void> {
@@ -35,7 +32,7 @@ async function seedWorkspace(uid: string): Promise<void> {
     });
 }
 
-describeIfEmulator("cards repository (SIT)", () => {
+describe("cards repository (SIT)", () => {
   let repo: typeof import("../cards");
 
   beforeAll(async () => {
