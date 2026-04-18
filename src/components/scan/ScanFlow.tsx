@@ -200,6 +200,11 @@ function UploadPicker({ onFile }: { onFile: (file: File) => void }) {
 }
 
 function ImagePane({ url }: { url: string }) {
+  // Scheme allowlist — url is always a same-origin blob: from
+  // URL.createObjectURL, but a scheme check keeps XSS analyzers happy and
+  // defends against future refactors that might route signed URLs here.
+  const isSafe = url.startsWith("blob:") || url.startsWith("https://");
+  if (!isSafe) return null;
   return (
     <figure className={styles.imagePane}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
