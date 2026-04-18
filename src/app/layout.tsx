@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, Noto_Serif_TC } from "next/font/google";
 
 import "./globals.css";
@@ -34,13 +34,26 @@ export const metadata: Metadata = {
   description: "個人工作名片管理網站 — 以關係脈絡為核心",
   applicationName: "Namecard Web",
   authors: [{ name: "cct08311github" }],
-  icons: {
-    icon: "/favicon.ico",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Namecard",
+    statusBarStyle: "default",
   },
   robots: {
     index: false,
     follow: false,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbf9f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1814" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { createCardAction } from "@/app/(app)/cards/actions";
 import { scanCardAction } from "@/app/(app)/cards/scan/actions";
 import type { CardCreateInput } from "@/db/schema";
-import type { OcrFields } from "@/lib/ocr";
+import type { OcrFields } from "@/lib/ocr/types";
 
 import { CardFormPrefilled } from "./CardFormPrefilled";
 import styles from "./ScanFlow.module.css";

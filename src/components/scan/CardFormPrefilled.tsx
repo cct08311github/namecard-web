@@ -7,8 +7,8 @@ import type { z } from "zod";
 
 import { VoiceCapture } from "@/components/capture/VoiceCapture";
 import { cardCreateSchema, type CardCreateInput } from "@/db/schema";
-import type { OcrFields } from "@/lib/ocr";
-import { isLowConfidence } from "@/lib/ocr";
+import type { OcrFields } from "@/lib/ocr/types";
+import { isLowConfidence } from "@/lib/ocr/types";
 
 import styles from "./CardFormPrefilled.module.css";
 
