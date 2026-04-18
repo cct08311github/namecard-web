@@ -69,12 +69,13 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     const submit = page.getByRole("button", { name: /儲存名片/ });
     await submit.click();
 
-    // Redirect to detail page.
-    await expect(page).toHaveURL(/\/cards\/[A-Za-z0-9]+/);
-    await expect(page.locator("h1")).toContainText("陳志明");
+    // Firestore auto-IDs are 20 chars — require ≥ 15 so /cards/new isn't
+    // accidentally matched (which would indicate the form rejected).
+    await expect(page).toHaveURL(/\/cards\/[A-Za-z0-9]{15,}$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("陳志明");
 
     // Capture card id from URL for later steps.
-    const cardIdMatch = page.url().match(/\/cards\/([A-Za-z0-9]+)/);
+    const cardIdMatch = page.url().match(/\/cards\/([A-Za-z0-9]{15,})$/);
     expect(cardIdMatch).toBeTruthy();
     const cardId = cardIdMatch![1];
 
