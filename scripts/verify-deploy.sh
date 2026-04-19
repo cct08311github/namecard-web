@@ -6,7 +6,7 @@
 # 檢查項目：
 #   1. PM2 process "namecard-web" 狀態為 online
 #   2. Docker container "namecard-typesense" 正在執行
-#   3. Next.js localhost:3013/namecard-web/api/health 回應 200
+#   3. Next.js localhost:3014/namecard-web/api/health 回應 200
 #   4. tailscale serve status 包含 /namecard-web 路由
 #   5. Typesense http://127.0.0.1:8108/health 回應 {"ok":true}
 #
@@ -56,9 +56,9 @@ else
 fi
 
 # ---- 3. Next.js health endpoint -----------------------------
-info "[3/5] Next.js http://localhost:3013/namecard-web/api/health ..."
+info "[3/5] Next.js http://localhost:3014/namecard-web/api/health ..."
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
-  "http://localhost:3013/namecard-web/api/health" 2>/dev/null || echo "000")
+  "http://localhost:3014/namecard-web/api/health" 2>/dev/null || echo "000")
 if [ "$HTTP_CODE" = "200" ]; then
   pass "Next.js health endpoint returned 200"
 else
@@ -70,7 +70,7 @@ info "[4/5] Tailscale Serve /namecard-web route ..."
 if /usr/local/bin/tailscale serve status 2>/dev/null | grep -q "/namecard-web"; then
   pass "Tailscale Serve includes /namecard-web"
 else
-  fail "Tailscale Serve does NOT include /namecard-web (run: tailscale serve --bg --set-path=/namecard-web http://localhost:3013)"
+  fail "Tailscale Serve does NOT include /namecard-web (run: tailscale serve --bg --set-path=/namecard-web http://localhost:3014)"
 fi
 
 # ---- 5. Typesense health ------------------------------------

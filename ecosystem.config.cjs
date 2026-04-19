@@ -32,7 +32,7 @@ module.exports = {
       autorestart: true,
       env_production: {
         NODE_ENV: "production",
-        PORT: "3013",
+        PORT: "3014",
         NAMECARD_BASE_PATH: "/namecard-web",
         // All secrets must be provided in .env.production (see .env.production.example).
         // PM2 does NOT auto-load .env files; source them before starting or use

@@ -29,7 +29,7 @@ Tailscale MagicDNS (HTTPS)
   tailscale serve (TLS termination + path routing)
         │
         ▼
-  localhost:3013  ← PM2: namecard-web (Next.js)
+  localhost:3014  ← PM2: namecard-web (Next.js)
         │
         ├── Firebase Admin SDK → Firestore / Auth / Storage (namecard-web-prd)
         └── localhost:8108    ← Docker: namecard-typesense
@@ -37,7 +37,7 @@ Tailscale MagicDNS (HTTPS)
 
 | 元件       | 管理工具                      | Port                     |
 | ---------- | ----------------------------- | ------------------------ |
-| Next.js    | PM2 (`namecard-web`)          | 3013                     |
+| Next.js    | PM2 (`namecard-web`)          | 3014                     |
 | Typesense  | Docker (`namecard-typesense`) | 127.0.0.1:8108           |
 | TLS + 路由 | Tailscale Serve               | 443 (public via tailnet) |
 | Firebase   | Google Cloud (外部)           | —                        |
@@ -88,7 +88,7 @@ pm2 startup launchd
 # → 依照輸出的指令貼上執行（通常需要 sudo）
 
 # 8. 設定 Tailscale Serve 路由
-tailscale serve --bg --set-path=/namecard-web http://localhost:3013
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014
 
 # 9. 健康檢查
 scripts/verify-deploy.sh
@@ -133,7 +133,7 @@ scripts/verify-deploy.sh
 
 1. PM2 `namecard-web` 狀態為 online
 2. Docker `namecard-typesense` container 正在執行
-3. `http://localhost:3013/namecard-web/api/health` 回應 HTTP 200
+3. `http://localhost:3014/namecard-web/api/health` 回應 HTTP 200
 4. `tailscale serve status` 包含 `/namecard-web` 路由
 5. `http://127.0.0.1:8108/health` 回應 `{"ok":true}`
 
@@ -151,7 +151,7 @@ pm2 logs namecard-web --lines 100
 
 | 症狀                                       | 排查                                                   |
 | ------------------------------------------ | ------------------------------------------------------ |
-| `PORT 3013 already in use`                 | `lsof -i :3013` 找出佔用 PID → `kill <PID>`            |
+| `PORT 3014 already in use`                 | `lsof -i :3014` 找出佔用 PID → `kill <PID>`            |
 | `GOOGLE_APPLICATION_CREDENTIALS not found` | 確認 `.env.production` 中路徑正確且檔案存在            |
 | `SESSION_COOKIE_SECRET too short`          | 確認 secret ≥ 32 字元                                  |
 | `basePath` 資源 404                        | 確認 build 時有設定 `NAMECARD_BASE_PATH=/namecard-web` |
@@ -173,7 +173,7 @@ docker compose -f docker-compose.prod.yml \
 tailscale serve status
 
 # 重新設定
-tailscale serve --bg --set-path=/namecard-web http://localhost:3013
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014
 
 # 驗證
 curl -s https://mac-mini.tailde842d.ts.net/namecard-web/api/health
@@ -272,7 +272,7 @@ pm2 save
 pm2 startup launchd
 
 # 8. Tailscale Serve
-tailscale serve --bg --set-path=/namecard-web http://localhost:3013
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014
 
 # 9. 驗證
 scripts/verify-deploy.sh
@@ -318,7 +318,7 @@ docker exec -it namecard-typesense sh    # 進入 container shell
 
 ```bash
 tailscale serve status                  # 查看 serve 設定
-tailscale serve --bg --set-path=/namecard-web http://localhost:3013
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014
 tailscale serve --https=443 off         # 移除所有 serve（謹慎使用）
 ```
 
@@ -334,7 +334,7 @@ npx firebase deploy --only storage
 ```bash
 scripts/verify-deploy.sh
 # 或手動
-curl -s http://localhost:3013/namecard-web/api/health
+curl -s http://localhost:3014/namecard-web/api/health
 curl -s http://127.0.0.1:8108/health
 pm2 list
 docker ps | grep namecard
