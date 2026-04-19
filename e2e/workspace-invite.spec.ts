@@ -156,7 +156,9 @@ test.describe("Workspace invite / remove journey (emulator-backed)", () => {
     await expect(bobPage.getByLabel("邀請成員 Email")).toBeVisible();
 
     // The member list contains Bob (owner role).
-    await expect(bobPage.getByRole("listitem").first()).toContainText("擁有者");
+    await expect(
+      bobPage.getByRole("list", { name: "成員" }).getByRole("listitem").first(),
+    ).toContainText("擁有者");
 
     // Page renders without unhandled errors.
     await expect(bobPage.locator("h1")).toBeVisible();

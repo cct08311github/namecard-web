@@ -95,7 +95,7 @@ export function MembersClient({ members, currentUid, isOwner }: MembersClientPro
       {members.length === 0 ? (
         <p className={styles.empty}>目前沒有成員。</p>
       ) : (
-        <ul className={styles.list}>
+        <ul className={styles.list} aria-label="成員">
           {members.map((member) => {
             const displayName = member.displayName ?? member.email ?? member.uid;
             const isCurrentUser = member.uid === currentUid;
