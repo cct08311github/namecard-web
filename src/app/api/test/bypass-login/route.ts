@@ -19,6 +19,7 @@ import { NextResponse } from "next/server";
 
 import { getAdminAuth } from "@/lib/firebase/server";
 import { createSession } from "@/lib/firebase/session";
+import { ensurePersonalWorkspace } from "@/lib/workspace/ensure";
 
 export const dynamic = "force-dynamic";
 
@@ -91,5 +92,9 @@ export async function POST(request: Request) {
   }
 
   const user = await createSession(idToken);
+  // Mirror the production login flow (src/app/(auth)/login/actions.ts):
+  // createSession alone does not create the Firestore workspace doc.
+  // Without this call, /workspace/members throws "Workspace 不存在".
+  await ensurePersonalWorkspace({ uid: user.uid, displayName: user.displayName });
   return NextResponse.json({ ok: true, uid: user.uid, email: user.email });
 }

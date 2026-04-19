@@ -18,6 +18,7 @@ const PRIMARY: NavItem[] = [
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
   { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
   { href: "/import", label: "匯入", description: "vCard / CSV / LinkedIn" },
+  { href: "/workspace/members", label: "成員", description: "邀請 · 權限" },
 ];
 
 interface AppShellProps {
