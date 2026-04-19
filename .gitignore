@@ -166,7 +166,11 @@ Sessionx.vim
 *.sublime-project
 
 # ==================== Claude / AI agent state ====================
-.claude/
+# Ignore all .claude/ contents except version-controlled skills.
+# Note: parent directory must use /* (not /) for negation to work.
+.claude/*
+!.claude/skills/
+!.claude/skills/**
 .cursor/
 .codeium/
 
