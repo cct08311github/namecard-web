@@ -1,0 +1,34 @@
+# Production Typesense for namecard-web.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml down
+#   docker compose -f docker-compose.prod.yml logs -f typesense
+#
+# Requirements:
+#   TYPESENSE_API_KEY must be set in .env.production (or exported in shell).
+#   docker compose automatically reads .env files — either pass --env-file .env.production
+#   or export TYPESENSE_API_KEY before calling docker compose.
+#
+# Port binding: 127.0.0.1:8108 only — Typesense is NOT publicly reachable.
+# The Next.js server (also on localhost) connects to http://127.0.0.1:8108.
+
+services:
+  typesense:
+    image: typesense/typesense:28.0
+    container_name: namecard-typesense
+    restart: unless-stopped
+    ports:
+      # Bind to loopback only — do not expose to LAN or tailnet.
+      - "127.0.0.1:8108:8108"
+    volumes:
+      # Named bind-mount keeps data outside the container; survives `docker compose down`.
+      - ./.typesense-data-prod:/data
+    command: >-
+      --data-dir /data
+      --api-key=${TYPESENSE_API_KEY}
+      --listen-port 8108
+      --enable-cors
+    # No container-internal healthcheck — the Typesense 28.0 image ships with curl,
+    # but we rely on scripts/verify-deploy.sh for external readiness probing to keep
+    # this compose file simple and avoid HEALTHCHECK restart loops on cold start.

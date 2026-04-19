@@ -107,6 +107,13 @@ src/
 - [ ] Phase 6：Workspace 邀請 UI
 - [ ] Phase 7：部署 + 監控 + RUNBOOK
 
+## 🚢 部署
+
+生產環境部署至 Mac mini M4，透過 PM2 + Tailscale Serve 提供服務。
+
+- 目標 URL：`https://mac-mini.tailde842d.ts.net/namecard-web/`
+- 詳細部署流程、排查指南、備份與災難還原：[RUNBOOK.md](./RUNBOOK.md)
+
 ## 📜 License
 
 MIT — 見 [LICENSE](./LICENSE)

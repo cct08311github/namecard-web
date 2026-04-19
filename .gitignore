@@ -200,3 +200,9 @@ storybook-static/
 *.tgz
 *.rar
 *.7z
+
+# ==================== Phase 7 production artifacts ====================
+# Real secrets — never commit
+.env.production
+# Typesense production data volume (bind-mount)
+.typesense-data-prod/
