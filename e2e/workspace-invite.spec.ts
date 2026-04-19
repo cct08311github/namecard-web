@@ -38,6 +38,13 @@ async function bypassLogin(
 
 test.describe("Workspace invite / remove journey (emulator-backed)", () => {
   test("alice invites bob → bob sees alice's card", async ({ browser }) => {
+    // Pre-create Bob's Auth user so Alice's invite can find him by email.
+    // bypassLogin creates the user in Auth as a side effect; we discard
+    // the context immediately since Alice's flow uses a separate context.
+    const primer = await browser.newContext();
+    await bypassLogin(primer, BOB_UID, BOB_EMAIL, "Bob W6");
+    await primer.close();
+
     // ── Alice context ──────────────────────────────────────────────────
     const aliceCtx = await browser.newContext();
     const alicePage = await aliceCtx.newPage();
@@ -81,6 +88,13 @@ test.describe("Workspace invite / remove journey (emulator-backed)", () => {
   });
 
   test("alice removes bob → bob no longer sees alice's card", async ({ browser }) => {
+    // Pre-create Bob's Auth user so Alice's invite can find him by email.
+    // bypassLogin creates the user in Auth as a side effect; we discard
+    // the context immediately since Alice's flow uses a separate context.
+    const primer = await browser.newContext();
+    await bypassLogin(primer, BOB_UID, BOB_EMAIL, "Bob W6");
+    await primer.close();
+
     // ── Alice context: invite Bob first ───────────────────────────────
     const aliceCtx = await browser.newContext();
     const alicePage = await aliceCtx.newPage();
