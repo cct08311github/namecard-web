@@ -88,6 +88,9 @@
       "protobufjs",
       "re2",
       "@vercel/speed-insights"
-    ]
+    ],
+    "overrides": {
+      "axios@<1.15.0": "^1.15.0"
+    }
   }
 }
