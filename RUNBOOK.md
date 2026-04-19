@@ -75,19 +75,25 @@ cp .env.production.example .env.production
 docker compose -f docker-compose.prod.yml \
   --env-file .env.production up -d
 
-# 5. 建置 Next.js
+# 5. Bootstrap Typesense `cards` collection（idempotent — 空 collection 必做）
+#    若漏跑，app 搜尋頁會顯示「搜尋服務暫時無法連線」而無 stderr 錯誤。
+pnpm search:bootstrap
+
+# 6. 建置 Next.js
 NAMECARD_BASE_PATH=/namecard-web pnpm build
 
-# 6. 啟動 PM2（載入 .env.production 環境變數）
-set -a; source .env.production; set +a
+# 7. 啟動 PM2
+#    ecosystem.config.cjs 會在 config eval 時 parse .env.production
+#    並合入 env_production — 不需要手動 source 就能把 secrets 傳進 Node 進程。
+#    （Next.js 16 + Turbopack 的 `next start` 不會自動 load .env.production。）
 pm2 start ecosystem.config.cjs --env production
 pm2 save
 
-# 7. 確保 PM2 跟隨系統啟動（只需執行一次）
+# 8. 確保 PM2 跟隨系統啟動（只需執行一次）
 pm2 startup launchd
 # → 依照輸出的指令貼上執行（通常需要 sudo）
 
-# 8. 設定 Tailscale Serve 路由
+# 9. 設定 Tailscale Serve 路由
 #
 # 重要：upstream URL 必須包含 /namecard-web 路徑。
 # Tailscale Serve 會將傳入的 /namecard-web 前綴剝除後再轉發；
@@ -95,8 +101,11 @@ pm2 startup launchd
 # 只會收到裸路徑並回傳 404。帶上路徑後，剝除前綴與 basePath 對齊，
 # 確保 Next.js 正確回應所有請求。
 tailscale serve --bg --set-path=/namecard-web http://localhost:3014/namecard-web
+#
+# 同時把此映射加進 ~/.openclaw/bin/tailscale-serve-setup.sh 的 PATH_MAPPINGS，
+# 否則 Mac mini 重開後 LaunchAgent 不會恢復這條路由。
 
-# 9. 健康檢查
+# 10. 健康檢查（7 點全綠才算部署成功）
 scripts/verify-deploy.sh
 ```
 
@@ -123,6 +132,19 @@ pm2 reload namecard-web
 
 # 5. 驗證
 scripts/verify-deploy.sh
+```
+
+**改到 `.env.production` 時**：要重啟才會注入新 env（`pm2 reload` 不重讀 ecosystem config）：
+
+```bash
+pm2 start ecosystem.config.cjs --env production   # 會覆蓋既有 process 並 re-parse .env.production
+pm2 save                                           # 更新 dump.pm2，重開後 resurrect 會帶新 env
+```
+
+**改到 `firestore.indexes.json` 或 `firestore.rules` 時**：CI 只跑 emulator 測試，prod 要手動部署：
+
+```bash
+pnpm exec firebase deploy --only firestore:indexes,firestore:rules,storage --project namecard-web-prd
 ```
 
 ---

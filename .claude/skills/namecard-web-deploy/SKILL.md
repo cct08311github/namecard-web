@@ -44,11 +44,12 @@ description: Mac mini M4 deployment operations for namecard-web — use when dep
 2. `pnpm install --prod=false`（build 需要 dev dep）
 3. `NAMECARD_BASE_PATH=/namecard-web pnpm build`
 4. `docker compose -f docker-compose.prod.yml up -d`（Typesense）
-5. `pm2 start ecosystem.config.cjs --env production`
-6. `pm2 save` — **不能漏**
-7. 補 Tailscale serve 映射到 `tailscale-serve-setup.sh`（見上面「開機自恢復鏈」），跑一次驗證
-8. Firebase Console 加 authorized domain（見 pitfall #3）
-9. 跑驗證流程（見下）
+5. `pnpm search:bootstrap`（建 `cards` collection — 見 pitfall #7）
+6. `pm2 start ecosystem.config.cjs --env production`（config 會 parse `.env.production` 自動注入 secrets — 見 pitfall #8）
+7. `pm2 save` — **不能漏**，否則重開後 resurrect 會缺東西
+8. 補 Tailscale serve 映射到 `tailscale-serve-setup.sh`（見上面「開機自恢復鏈」），跑一次驗證
+9. Firebase Console 加 authorized domain（見 pitfall #3）
+10. 跑驗證：`bash scripts/verify-deploy.sh`（7 點全綠）
 
 ### 重開機後系統恢復
 
@@ -102,13 +103,17 @@ curl -skL -o /dev/null -w "public %{http_code}\n" https://mac-mini.tailde842d.ts
 pm2 logs namecard-web --lines 40 --nostream --err | tail -20
 ```
 
-### 驗證清單（完整五點健檢）
+### 驗證清單（完整七點健檢）
 
 直接跑現成腳本：
 
 ```bash
-bash scripts/verify-deploy.sh    # 5-point: PM2 / Docker / Next health / Tailscale serve / Typesense
+bash scripts/verify-deploy.sh
+# 7-point: PM2 / Docker / Next health / Tailscale serve / Typesense /
+#          cards collection bootstrapped / PM2 process has secret env
 ```
+
+第 6 點抓 pitfall #7（collection 沒 bootstrap），第 7 點抓 pitfall #8（env 沒進 PM2 process）— 這兩種都是會讓 app 靜默 degrade 的狀況。
 
 ## Pitfalls（踩過的坑，按優先順序）
 
@@ -180,7 +185,53 @@ pnpm exec firebase deploy --only firestore:indexes --project namecard-web-prd
 - 每次 `firestore.indexes.json` 改動後 deploy，用 `firestore_list_indexes` MCP 確認 state=READY
 - 清掉舊 COLLECTION-scope 殘留：`firebase deploy ... --force`（會刪除 JSON 中未列的 index）
 
-### 7. `pnpm build` 的 "multiple lockfiles" warning
+### 7. Typesense `cards` collection 未 bootstrap
+
+**症狀**: search UI 顯示「搜尋服務暫時無法連線，請稍後再試或用名片冊瀏覽」，但 `docker ps` 看 namecard-typesense 是 Up、`/health` 200、`.env.production` 的 `TYPESENSE_API_KEY` 正確。
+**根因**: Typesense container 啟動時是空的，必須由 app / script 先建立 schema 才能使用。App 的 search path 沒自動 bootstrap（只在 search 失敗時顯示 graceful degradation），所以首次部署漏跑 `pnpm search:bootstrap` 會無限 degrade。
+**解法**:
+
+```bash
+pnpm search:bootstrap   # idempotent — 會回「already exists」或「created」
+```
+
+若該筆首次被 upsert 時 collection 還沒建，寫入失敗會進 `workspaces/{uid}/searchSyncFailures/` queue；之後編輯該名片會觸發 re-sync，或等 `reconcileFailures(uid)` drain queue。
+
+**預防**:
+
+- 首次部署流程一定要跑 `pnpm search:bootstrap`
+- `scripts/verify-deploy.sh` 檢查第 6 點會 curl `collections/cards` 確認 HTTP 200
+- `scripts/typesense-bootstrap.ts` 用自包 fetch（不經 `src/lib/search/bootstrap.ts` 模組鏈），避免 Node 25 `--experimental-strip-types` 對無副檔名相對 import 的報錯
+
+### 8. Next.js 16 production runtime 不自動讀 `.env.production`
+
+**症狀**: `searchCardsAction` 回 `degraded: true` 但 stderr 完全乾淨（沒 `[search] query failed`）；或 Server Action 靜默失敗。`/login` 仍能 work（因為 `NEXT_PUBLIC_*` 是 build-time inline 到 client bundle）。
+**根因**: 與 Next 13/14 + Webpack 行為不同，Next.js 16 + Turbopack 的 `next start` runtime 在我們這個 setup 下**不會**自動 load `.env.production` 到 server-side `process.env`。而 PM2 本身也不 auto-load dotenv。Server Action 裡 `process.env.TYPESENSE_HOST` 讀到 undefined，`search-actions.ts:43-50` 的 `typesenseConfigured()` 回 false，直接走 degraded 路徑不報錯。
+**診斷**:
+
+```bash
+PID=$(pm2 jlist | python3 -c "import json,sys;d=json.load(sys.stdin);print(next(x['pid'] for x in d if x['name']=='namecard-web'))")
+ps eww -o command= -p $PID | tr ' ' '\n' | awk -F= 'NF==2 && ($1 ~ /TYPESENSE|FIREBASE|MINIMAX|GOOGLE|SESSION|ALLOWED/){print $1"="(length($2)>0?"***":"(empty)")}' | sort -u
+# 若缺 TYPESENSE_API_KEY / GOOGLE_APPLICATION_CREDENTIALS / SESSION_COOKIE_SECRET 等，就是這問題
+```
+
+**解法**: `ecosystem.config.cjs` 在 config eval 時直接 parse `.env.production` 並合進 `env_production`：
+
+```js
+function parseDotenv(path) { /* 見檔案實作 */ }
+const dotenvProd = parseDotenv(path.join(__dirname, ".env.production"));
+module.exports = { apps: [{ ..., env_production: { ...dotenvProd, PORT, NAMECARD_BASE_PATH }, ... }] };
+```
+
+這樣 `pm2 start ecosystem.config.cjs --env production` 一次就對，不需要操作者記得先 `source .env.production`。
+
+**預防**:
+
+- 改完 `.env.production` 後跑 `pm2 start ecosystem.config.cjs --env production && pm2 save`（ecosystem re-parse 新 env；`save` 更新 dump.pm2 供 resurrect 用）
+- `scripts/verify-deploy.sh` 第 7 點 spot-check `ps eww` 看 `TYPESENSE_API_KEY` + `GOOGLE_APPLICATION_CREDENTIALS` 是否進 process
+- `dump.pm2` 含明文 secret snapshot（可接受的單人部署 trade-off；若多人使用要改走 wrapper script + LaunchAgent 每次重讀）
+
+### 9. `pnpm build` 的 "multiple lockfiles" warning
 
 **症狀**: build log 出現 `Next.js inferred your workspace root ... selected .../package-lock.json`。
 **影響**: 無害（不影響 runtime），只影響 standalone output 的 file tracing — 我們沒用 standalone，可忽略。真要消掉：在 `next.config.ts` 加 `outputFileTracingRoot: __dirname`。
