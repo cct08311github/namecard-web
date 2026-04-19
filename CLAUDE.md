@@ -3,6 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > **Read this with [AGENTS.md](./AGENTS.md)** — AGENTS.md owns architecture invariants and non-negotiables; this file owns "how to work productively" (commands, big-picture flow).
+>
+> **Touching the Mac mini deployment?** Read [`.claude/skills/namecard-web-deploy/SKILL.md`](./.claude/skills/namecard-web-deploy/SKILL.md) first — it captures architecture facts (PM2 id=10, port 3014, basePath build-time invariant), the reboot-survival chain (LaunchAgents for Tailscale serve + PM2 resurrect + Docker Desktop login item), 3 task decision trees, and 7 real pitfalls we hit during Phase 7 rollout.
 
 ## Commands
 
@@ -51,11 +53,12 @@ pnpm exec playwright test e2e/auth-gate.spec.ts
 Rules and indexes live in-repo (`firestore.rules`, `storage.rules`, `firestore.indexes.json`). Deploy with:
 
 ```bash
-npx firebase deploy --only firestore:rules,firestore:indexes
-npx firebase deploy --only storage
+pnpm exec firebase deploy --only firestore:indexes,firestore:rules,storage --project namecard-web-prd
 ```
 
 Target project is pinned to `namecard-web-prd` via `.firebaserc`. Firebase Storage must be enabled in the Console once (one-time manual step) before `storage` deploys work.
+
+**CI does not auto-deploy** — the `ci.yml` Rules Integration job only runs against the emulator. Every change to `firestore.indexes.json` / `firestore.rules` / `storage.rules` needs a manual deploy, or the next real query against the new shape returns `FAILED_PRECONDITION: query requires an index`. After deploy, indexes take seconds (empty collection) to minutes (large collection) to become `Enabled`.
 
 ## Big-picture architecture
 
@@ -63,7 +66,7 @@ Target project is pinned to `namecard-web-prd` via `.firebaserc`. Firebase Stora
 
 - **Next.js 16** App Router with React Server Components (note: many APIs differ from Next 13/14 training data; when in doubt, check `node_modules/next/dist/docs/`).
 - **Firebase** — Auth (Google provider) + Firestore + Storage, all pointed at the single `namecard-web-prd` project.
-- **Typesense** — Phase 4+ search (Docker Compose in `docker-compose.dev.yml`, not required for MVP).
+- **Typesense** — full-text search (dev: `docker-compose.dev.yml`, prod: `docker-compose.prod.yml` bound to `127.0.0.1:8108` on the Mac mini). Required for `/cards` search and tag auto-suggest from Phase 4 onward.
 - **next-safe-action + Zod** — typed Server Actions with server-side error handling.
 - **React Hook Form + useFieldArray** — multi-value form fields (phones/emails).
 - **CSS Modules + design tokens** (`src/styles/tokens.css`) — no hardcoded palette, Fraunces + Noto Serif TC + Inter via `next/font`.
@@ -128,6 +131,10 @@ Several repo-level files are intentionally hard to weaken:
 - `.prettierrc.json` — a `PreToolUse:Write` hook blocks direct creation; prettier config lives inline under `package.json#prettier`.
 - `eslint.config.mjs` — blocked by the config-protection hook when using `Edit`. Use a Bash heredoc for additive changes (adding ignored globs for generated outputs is legitimate; weakening rules is not).
 - `.github/workflows/*.yml` — a security-reminder hook watches for `${{ github.event.* }}` usage in `run:` steps. Always pass untrusted inputs through `env:`.
+
+### Project-scoped Claude skills
+
+`.claude/skills/<name>/SKILL.md` is the canonical place for long-lived operational knowledge. The rest of `.claude/` (session locks, scheduled-task state, etc.) is gitignored — only `.claude/skills/**` is version-controlled, via an allowlist at `.gitignore:.claude/*` + `!.claude/skills/**`. If you're capturing a pitfall you don't want the next session to re-learn, extend an existing SKILL.md or add a new one under this directory rather than burying it in `CLAUDE.md` or a comment.
 
 ## Patterns you will rediscover
 

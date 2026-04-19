@@ -49,14 +49,80 @@ pids
 *.pid.lock
 
 # ==================== Env & Secrets ====================
+# dotenv files — block all except explicit examples
 .env
 .env.*
 !.env.example
 !.env.*.example
+
+# Crypto material (private keys + certs)
 *.pem
 *.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+*.asc
+*.gpg
+# Public keys are OK — override if you need to commit a .pub key
+!*.pub.pem
+
+# SSH keys (never commit)
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_dsa
+id_dsa.*
+id_ecdsa
+id_ecdsa.*
+known_hosts
+authorized_keys
+
+# Generic secret-looking files
 credentials.json
 secret.json
+secrets.json
+secrets.yaml
+secrets.yml
+*.secret
+*.secrets
+
+# Cloud provider credentials
+# Firebase admin SDK service account keys (anything matching project keyfile naming)
+*firebase-adminsdk*.json
+*-service-account*.json
+service-account*.json
+serviceAccountKey*.json
+# Google Cloud
+gcloud-*.json
+*-gcp-credentials.json
+application_default_credentials.json
+# AWS
+.aws/credentials
+aws-credentials
+# Package-manager auth tokens
+.npmrc
+!.npmrc.example
+.yarnrc
+.netrc
+
+# Database dumps & local stores
+*.sqlite
+*.sqlite3
+*.db
+*.rdb
+*.sql
+*.sql.gz
+*.dump
+dump.rdb
+
+# Backup / export artifacts that may embed PII
+backup-*.json
+firestore-backup-*/
+*.backup.json
 
 # ==================== Cache directories ====================
 .cache/
@@ -166,7 +232,11 @@ Sessionx.vim
 *.sublime-project
 
 # ==================== Claude / AI agent state ====================
-.claude/
+# Ignore all .claude/ contents except version-controlled skills.
+# Note: parent directory must use /* (not /) for negation to work.
+.claude/*
+!.claude/skills/
+!.claude/skills/**
 .cursor/
 .codeium/
 
