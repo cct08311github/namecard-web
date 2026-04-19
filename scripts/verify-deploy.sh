@@ -70,7 +70,7 @@ info "[4/5] Tailscale Serve /namecard-web route ..."
 if /usr/local/bin/tailscale serve status 2>/dev/null | grep -q "/namecard-web"; then
   pass "Tailscale Serve includes /namecard-web"
 else
-  fail "Tailscale Serve does NOT include /namecard-web (run: tailscale serve --bg --set-path=/namecard-web http://localhost:3014)"
+  fail "Tailscale Serve does NOT include /namecard-web (run: tailscale serve --bg --set-path=/namecard-web http://localhost:3014/namecard-web)"
 fi
 
 # ---- 5. Typesense health ------------------------------------

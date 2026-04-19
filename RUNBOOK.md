@@ -88,7 +88,13 @@ pm2 startup launchd
 # → 依照輸出的指令貼上執行（通常需要 sudo）
 
 # 8. 設定 Tailscale Serve 路由
-tailscale serve --bg --set-path=/namecard-web http://localhost:3014
+#
+# 重要：upstream URL 必須包含 /namecard-web 路徑。
+# Tailscale Serve 會將傳入的 /namecard-web 前綴剝除後再轉發；
+# 若 upstream 不帶此路徑，Next.js（basePath: "/namecard-web"）
+# 只會收到裸路徑並回傳 404。帶上路徑後，剝除前綴與 basePath 對齊，
+# 確保 Next.js 正確回應所有請求。
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014/namecard-web
 
 # 9. 健康檢查
 scripts/verify-deploy.sh
@@ -173,7 +179,7 @@ docker compose -f docker-compose.prod.yml \
 tailscale serve status
 
 # 重新設定
-tailscale serve --bg --set-path=/namecard-web http://localhost:3014
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014/namecard-web
 
 # 驗證
 curl -s https://mac-mini.tailde842d.ts.net/namecard-web/api/health
@@ -272,7 +278,7 @@ pm2 save
 pm2 startup launchd
 
 # 8. Tailscale Serve
-tailscale serve --bg --set-path=/namecard-web http://localhost:3014
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014/namecard-web
 
 # 9. 驗證
 scripts/verify-deploy.sh
@@ -318,7 +324,7 @@ docker exec -it namecard-typesense sh    # 進入 container shell
 
 ```bash
 tailscale serve status                  # 查看 serve 設定
-tailscale serve --bg --set-path=/namecard-web http://localhost:3014
+tailscale serve --bg --set-path=/namecard-web http://localhost:3014/namecard-web
 tailscale serve --https=443 off         # 移除所有 serve（謹慎使用）
 ```
 
