@@ -143,18 +143,42 @@ bash scripts/verify-deploy.sh    # 5-point: PM2 / Docker / Next health / Tailsca
 
 PR `9fe4912` 把 3013 改 3014 因為家計本佔了 3013。若哪天 3014 也被佔：改 `ecosystem.config.cjs` `PORT`、同步改 `tailscale-serve-setup.sh` 的 `/namecard-web` 映射、同步更新 `RUNBOOK.md`、`scripts/verify-deploy.sh`、CI `.github/workflows/*.yml`。grep：`grep -r "3014" . --include="*.cjs" --include="*.yml" --include="*.md" --include="*.sh"`。
 
-### 6. Firestore indexes 沒 deploy 到 prod
+### 6. Firestore indexes: 沒 deploy 或 queryScope 錯
 
-**症狀**: 登入後任何頁面（timeline 首頁、/cards）回 500，log 顯示 `FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/...`。
-**根因**: Repo `firestore.indexes.json` 定義了 composite indexes（`memberUids ARRAY_CONTAINS + createdAt DESC`、`+ lastContactedAt DESC`），但 Firebase prod 沒建。CI 跑的是 emulator，不會自動部署到 prod。
+**症狀 A（沒部署）**: 登入後任何頁面回 500，log 顯示 `FAILED_PRECONDITION: The query requires an index. You can create it here: ...`
+**症狀 B（scope 錯）**: `firestore.indexes.json` 已部署、`firebase firestore:indexes` 有顯示 index，但 query 仍回同樣錯誤。
+
+**根因**:
+
+- A: repo 的 `firestore.indexes.json` 沒用 `firebase deploy` 推到 prod。CI 只跑 emulator，不 auto-deploy。
+- B: **`queryScope` 不匹配**。Firestore index 有兩種 scope：
+  - `COLLECTION`（若 JSON 沒指定的預設值）— 用於 `db.collection(path)` query
+  - `COLLECTION_GROUP` — 用於 `db.collectionGroup(name)` query
+
+  本 repo 因「collection-path invariant」(`workspaces/{wid}/cards/{cardId}`) 跨 workspace 讀必須用 collection group query（`db.collectionGroup("cards").where(...)`），所以 **所有 `cards` 和 `tags` 的 composite index 都必須 `queryScope: COLLECTION_GROUP`**。Firebase CLI 在 JSON 沒寫 scope 時靜默套 `COLLECTION`，部署會成功但 runtime 仍缺 index。
+
 **解法**:
 
 ```bash
-pnpm exec firebase deploy --only firestore:indexes,firestore:rules,storage --project namecard-web-prd
+# 1. 確認 firestore.indexes.json 每個需要 collection-group query 的 index 都有
+#    "queryScope": "COLLECTION_GROUP"
+grep -rn "\.collectionGroup(" src/ --include="*.ts"   # 每個這種 query 都要有對應 COLLECTION_GROUP index
+
+# 2. Deploy
+pnpm exec firebase deploy --only firestore:indexes --project namecard-web-prd
+
+# 3. 新 index 進 CREATING state，collection group index 首次建立要全 scan 子集合，
+#    空資料 1-5 分鐘。查狀態（Firebase MCP）：
+#    firestore_list_indexes parent=projects/namecard-web-prd/databases/(default)/collectionGroups/cards
+#    或 Console: https://console.firebase.google.com/project/namecard-web-prd/firestore/indexes
+#    等所有需要的 index state=READY 後 query 才會成功
 ```
 
-新 index 通常幾秒到幾分鐘建好（空集合秒級）。建中時 query 會先回錯；等 console 狀態變 Enabled 就好。
-**預防**: 每次 `firestore.indexes.json` 或 `firestore.rules` / `storage.rules` 改動後，deploy 一次。未來可考慮在 CI merge-to-main job 加自動 deploy（需 Firebase CI token）。
+**預防**:
+
+- 新增 composite query 時，若用 `db.collectionGroup(...)`，`firestore.indexes.json` 必設 `"queryScope": "COLLECTION_GROUP"`
+- 每次 `firestore.indexes.json` 改動後 deploy，用 `firestore_list_indexes` MCP 確認 state=READY
+- 清掉舊 COLLECTION-scope 殘留：`firebase deploy ... --force`（會刪除 JSON 中未列的 index）
 
 ### 7. `pnpm build` 的 "multiple lockfiles" warning
 
