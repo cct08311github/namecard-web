@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCardForUser } from "@/db/cards";
+import { getCardForUser, listContactEventsForUser } from "@/db/cards";
 import { readSession } from "@/lib/firebase/session";
 import { toVcard, vcardFilename } from "@/lib/vcard/export";
 
@@ -14,7 +14,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!card) return new NextResponse("Not Found", { status: 404 });
   if (card.deletedAt) return new NextResponse("Gone", { status: 410 });
 
-  const body = toVcard(card);
+  // Pull at most 10 most-recent contact events to embed in the NOTE
+  // block; keeps the vCard small while preserving the "what did we last
+  // talk about" context business users need when archiving / sharing.
+  const events = await listContactEventsForUser(id, user.uid, 10);
+  const body = toVcard(card, { events });
   const filename = vcardFilename(card);
 
   return new NextResponse(body, {

@@ -237,6 +237,107 @@ describe("toVcard", () => {
   });
 });
 
+describe("toVcard contact events", () => {
+  it("omits NOTE when there are no events and no other notes/why/context", () => {
+    const out = toVcard(makeCard({ nameEn: "A", whyRemember: "x" }));
+    // whyRemember still fills the NOTE; but there should be no 【互動紀錄】 marker.
+    expect(out).not.toContain("【互動紀錄】");
+  });
+
+  it("appends 【互動紀錄】 block when events are passed", () => {
+    const card = makeCard({ nameEn: "A", whyRemember: "x" });
+    const out = toVcard(card, {
+      events: [
+        {
+          id: "e1",
+          at: new Date("2026-04-24T05:03:00Z"),
+          note: "發了 proposal",
+          authorUid: "u",
+          authorDisplay: null,
+        },
+        {
+          id: "e2",
+          at: new Date("2026-04-20T07:30:00Z"),
+          note: "約週末碰面",
+          authorUid: "u",
+          authorDisplay: null,
+        },
+      ],
+    });
+    expect(out).toContain("【互動紀錄】");
+    expect(out).toContain("- 發了 proposal");
+    expect(out).toContain("- 約週末碰面");
+  });
+
+  it("marks empty-note events as（無備註）", () => {
+    const card = makeCard({ nameEn: "A", whyRemember: "x" });
+    const out = toVcard(card, {
+      events: [
+        {
+          id: "e",
+          at: new Date("2026-04-24T00:00:00Z"),
+          note: "",
+          authorUid: "u",
+          authorDisplay: null,
+        },
+      ],
+    });
+    expect(out).toContain("（無備註）");
+  });
+
+  it("caps at eventLimit (default 10)", () => {
+    const card = makeCard({ nameEn: "A", whyRemember: "x" });
+    const events = Array.from({ length: 15 }, (_, i) => ({
+      id: `e${i}`,
+      at: new Date(`2026-04-${String(10 + i).padStart(2, "0")}T00:00:00Z`),
+      // short tokens so RFC 6350 line-fold doesn't split them mid-match
+      note: `n${i}z`,
+      authorUid: "u",
+      authorDisplay: null,
+    }));
+    const out = toVcard(card, { events });
+    // Strip fold breaks so tokens that straddle a 75-char boundary are
+    // still findable by contain().
+    const unfolded = out.replace(/\r\n /g, "");
+    // Only the first 10 should appear; n0z..n9z yes, n10z..n14z no.
+    for (let i = 0; i < 10; i++) expect(unfolded).toContain(`n${i}z`);
+    for (let i = 10; i < 15; i++) expect(unfolded).not.toContain(`n${i}z`);
+  });
+
+  it("respects a custom eventLimit", () => {
+    const card = makeCard({ nameEn: "A", whyRemember: "x" });
+    const events = [
+      { id: "a", at: new Date(), note: "a", authorUid: "u", authorDisplay: null },
+      { id: "b", at: new Date(), note: "b", authorUid: "u", authorDisplay: null },
+      { id: "c", at: new Date(), note: "c", authorUid: "u", authorDisplay: null },
+    ];
+    const out = toVcard(card, { events, eventLimit: 2 });
+    expect(out).toContain("- a");
+    expect(out).toContain("- b");
+    expect(out).not.toContain("- c");
+  });
+
+  it("orders NOTE sections as: whyRemember → context → notes → events", () => {
+    const card = makeCard({
+      nameEn: "A",
+      whyRemember: "WHY",
+      firstMetContext: "CTX",
+      notes: "NOTES",
+    });
+    const out = toVcard(card, {
+      events: [{ id: "e", at: new Date(), note: "EV", authorUid: "u", authorDisplay: null }],
+    });
+    const whyIdx = out.indexOf("WHY");
+    const ctxIdx = out.indexOf("CTX");
+    const notesIdx = out.indexOf("NOTES");
+    const evIdx = out.indexOf("【互動紀錄】");
+    expect(whyIdx).toBeGreaterThan(0);
+    expect(ctxIdx).toBeGreaterThan(whyIdx);
+    expect(notesIdx).toBeGreaterThan(ctxIdx);
+    expect(evIdx).toBeGreaterThan(notesIdx);
+  });
+});
+
 describe("vcardFilename", () => {
   it("uses nameEn when available", () => {
     const filename = vcardFilename(makeCard({ nameEn: "Alice Chen", whyRemember: "x" }));
