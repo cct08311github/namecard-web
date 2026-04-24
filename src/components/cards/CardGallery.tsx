@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { CardSummary } from "@/db/cards";
+import { daysSinceContact, shouldShowStaleBadge } from "@/lib/timeline/staleness";
 
 import styles from "./CardGallery.module.css";
 
@@ -34,11 +35,14 @@ function tiltFor(id: string): number {
 }
 
 export function CardGallery({ cards }: CardGalleryProps) {
+  const now = new Date();
   return (
     <ul className={styles.grid}>
       {cards.map((card, index) => {
         const tilt = tiltFor(card.id);
         const isFeatured = index % 7 === 0 && cards.length > 6;
+        const stale = shouldShowStaleBadge(card, now);
+        const days = stale ? daysSinceContact(card, now) : null;
         return (
           <li
             key={card.id}
@@ -48,7 +52,14 @@ export function CardGallery({ cards }: CardGalleryProps) {
             <Link href={`/cards/${card.id}`} className={styles.link}>
               <article className={styles.card}>
                 <header className={styles.cardHeader}>
-                  <h2 className={styles.name}>{primaryName(card)}</h2>
+                  <h2 className={styles.name}>
+                    {card.isPinned && (
+                      <span className={styles.pinBadge} aria-label="重要聯絡人" title="重要聯絡人">
+                        📍{" "}
+                      </span>
+                    )}
+                    {primaryName(card)}
+                  </h2>
                   {secondaryName(card) && <p className={styles.nameEn}>{secondaryName(card)}</p>}
                   {role(card) && <p className={styles.role}>{role(card)}</p>}
                   {company(card) && <p className={styles.company}>{company(card)}</p>}
@@ -62,6 +73,9 @@ export function CardGallery({ cards }: CardGalleryProps) {
                   ) : card.firstMetDate ? (
                     <span className={styles.eventTag}>{card.firstMetDate}</span>
                   ) : null}
+                  {stale && days !== null && (
+                    <span className={styles.staleBadge}>{days} 天沒聯絡</span>
+                  )}
                 </footer>
               </article>
             </Link>
