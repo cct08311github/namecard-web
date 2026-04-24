@@ -43,6 +43,7 @@ export function toSummaryFromData(id: string, data: FirebaseFirestore.DocumentDa
     social: data.social ?? {},
     frontImagePath: data.frontImagePath,
     backImagePath: data.backImagePath,
+    isPinned: data.isPinned === true,
     createdAt: tsToDate(data.createdAt),
     updatedAt: tsToDate(data.updatedAt),
     lastContactedAt: tsToDate(data.lastContactedAt),

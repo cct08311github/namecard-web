@@ -33,6 +33,7 @@ export function aCard(overrides: Partial<CardCreateInput> = {}): CardCreateInput
     tagNames: [],
     frontImagePath: undefined,
     backImagePath: undefined,
+    isPinned: false,
     ocrProvider: undefined,
     ocrConfidence: undefined,
     ocrRawJson: undefined,

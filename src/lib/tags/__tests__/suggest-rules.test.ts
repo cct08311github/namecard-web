@@ -14,6 +14,7 @@ function makeCard(overrides: Partial<CardCreateInput> = {}): CardCreateInput {
     tagIds: [],
     tagNames: [],
     whyRemember: "test",
+    isPinned: false,
     ...overrides,
   };
 }

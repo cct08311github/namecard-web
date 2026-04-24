@@ -23,6 +23,7 @@ function aExistingCard(overrides: Partial<CardSummary> = {}): CardSummary {
     tagNames: [],
     phones: [],
     emails: [{ label: "work", value: "david@test.example" }],
+    isPinned: false,
     createdAt: null,
     updatedAt: null,
     lastContactedAt: null,

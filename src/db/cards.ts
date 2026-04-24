@@ -46,6 +46,12 @@ export interface CardSummary {
   social?: Record<string, string | undefined>;
   frontImagePath?: string;
   backImagePath?: string;
+  /**
+   * Optional for backwards compat with card docs predating the pin
+   * feature. Consumers should treat undefined as false (categorize,
+   * CardActions already do).
+   */
+  isPinned?: boolean;
   createdAt: Date | null;
   updatedAt: Date | null;
   lastContactedAt: Date | null;
@@ -187,6 +193,27 @@ export async function touchLastContactedAt(
   if (after.exists && after.data()?.deletedAt === null) {
     await syncWithFallback(wid, "upsert", cardId, toSummary(cardId, after.data()!));
   }
+}
+
+/**
+ * Toggle the pin flag on a card. Pinned cards surface in the Timeline
+ * "Pinned" section at the top and are excluded from "uncontacted"
+ * so core contacts aren't shame-nudged. Pin state does not affect
+ * Typesense ranking (pinned is a UI concern, not a search signal),
+ * so this write intentionally skips the reindex.
+ */
+export async function setCardPinned(cardId: string, uid: string, pinned: boolean): Promise<void> {
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const ref = db.doc(`${cardsPath(wid)}/${cardId}`);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error("card not found");
+  const data = snap.data()!;
+  if (!data.memberUids?.includes(uid)) throw new Error("無權限修改此名片");
+  await ref.update({
+    isPinned: pinned,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 }
 
 // ==================== Contact events (append-only log) ====================

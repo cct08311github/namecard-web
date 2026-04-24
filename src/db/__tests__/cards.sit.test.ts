@@ -313,6 +313,21 @@ describe("cards repository (SIT)", () => {
     });
   });
 
+  describe("setCardPinned", () => {
+    it("flips isPinned on and off", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.setCardPinned(id, TEST_UID_ALICE, true);
+      expect((await repo.getCardForUser(TEST_UID_ALICE, id))!.isPinned).toBe(true);
+      await repo.setCardPinned(id, TEST_UID_ALICE, false);
+      expect((await repo.getCardForUser(TEST_UID_ALICE, id))!.isPinned).toBe(false);
+    });
+
+    it("refuses to pin a card the caller doesn't own", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await expect(repo.setCardPinned(id, TEST_UID_BOB, true)).rejects.toThrow();
+    });
+  });
+
   describe("logContactEvent + listContactEventsForUser", () => {
     it("appends an event and bumps lastContactedAt in one atomic write", async () => {
       const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import { deleteCardAction, logContactAction } from "@/app/(app)/cards/actions";
+import { deleteCardAction, logContactAction, toggleCardPinAction } from "@/app/(app)/cards/actions";
 
 import styles from "./CardActions.module.css";
 
@@ -14,6 +14,7 @@ interface CardActionsProps {
   primaryEmail?: string;
   lineId?: string;
   linkedinUrl?: string;
+  isPinned?: boolean;
 }
 
 export function CardActions({
@@ -22,6 +23,7 @@ export function CardActions({
   primaryEmail,
   lineId,
   linkedinUrl,
+  isPinned = false,
 }: CardActionsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -72,6 +74,18 @@ export function CardActions({
       const result = await deleteCardAction({ id: cardId });
       if (result?.serverError) setError(result.serverError);
       else router.push("/cards");
+    });
+  };
+
+  const handleTogglePin = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await toggleCardPinAction({ id: cardId, pinned: !isPinned });
+      if (result?.serverError) setError(result.serverError);
+      else {
+        setToast(isPinned ? "已取消置頂" : "已加入重要聯絡人");
+        router.refresh();
+      }
     });
   };
 
@@ -233,6 +247,15 @@ export function CardActions({
       )}
 
       <div className={styles.stack}>
+        <button
+          type="button"
+          className={styles.secondary}
+          onClick={handleTogglePin}
+          disabled={pending}
+          aria-pressed={isPinned}
+        >
+          {isPinned ? "📍 已置頂（取消）" : "📌 設為重要聯絡人"}
+        </button>
         <a href={`/api/cards/${cardId}/vcard`} className={styles.secondary}>
           匯出 vCard
         </a>

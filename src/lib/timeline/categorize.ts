@@ -1,7 +1,7 @@
 import type { CardSummary } from "@/db/cards";
 
 export interface TimelineSection {
-  id: "uncontacted" | "met-this-month" | "newly-added";
+  id: "pinned" | "uncontacted" | "met-this-month" | "newly-added";
   title: string;
   description: string;
   cards: CardSummary[];
@@ -30,14 +30,20 @@ function parseFirstMetDate(raw: string | undefined): Date | null {
 }
 
 /**
- * Categorize cards into the 3 timeline sections.
+ * Categorize cards into the 4 timeline sections.
+ * Priority: pinned > met-this-month > newly-added > uncontacted.
+ * A pinned card shows only in the Pinned section — it's
+ * intentionally never duplicated as "最近沒聯絡" because core
+ * contacts shouldn't be shame-nudged.
+ *
  * Rules:
- *  - met-this-month: firstMetDate within the given "now" month (exclusive of archive).
+ *  - pinned: card.isPinned === true
+ *  - met-this-month: firstMetDate within the given "now" month.
  *  - newly-added: createdAt within newlyAddedDays (default 7). Excluded from uncontacted.
  *  - uncontacted:
  *      - lastContactedAt older than uncontactedDays (default 30), OR
  *      - lastContactedAt is null AND createdAt older than uncontactedDays
- *      - excludes cards already in met-this-month or newly-added
+ *      - excludes cards already pinned / met-this-month / newly-added
  *  - Each section capped by maxPerSection (default 5), sorted deterministically.
  */
 export function categorizeTimeline(
@@ -46,12 +52,17 @@ export function categorizeTimeline(
 ): TimelineSection[] {
   const { now, uncontactedDays = 30, newlyAddedDays = 7, maxPerSection = 5 } = options;
 
+  const pinned: CardSummary[] = [];
   const metThisMonth: CardSummary[] = [];
   const newlyAdded: CardSummary[] = [];
   const uncontacted: CardSummary[] = [];
 
   for (const card of cards) {
     if (card.deletedAt) continue;
+    if (card.isPinned) {
+      pinned.push(card);
+      continue;
+    }
     const firstMet = parseFirstMetDate(card.firstMetDate);
     const createdAt = card.createdAt;
     const lastContactedAt = card.lastContactedAt;
@@ -90,7 +101,21 @@ export function categorizeTimeline(
     return ta - tb;
   });
 
+  // Pinned sorted by most-recently-touched so the top row feels alive.
+  pinned.sort((a, b) => {
+    const ta = a.updatedAt?.getTime() ?? a.createdAt?.getTime() ?? 0;
+    const tb = b.updatedAt?.getTime() ?? b.createdAt?.getTime() ?? 0;
+    return tb - ta;
+  });
+
   return [
+    {
+      id: "pinned",
+      title: "重要聯絡人",
+      description: "核心圈，永遠放在最上方。",
+      // Pinned intentionally not capped — user curates this list themselves.
+      cards: pinned,
+    },
     {
       id: "newly-added",
       title: "新建立",
