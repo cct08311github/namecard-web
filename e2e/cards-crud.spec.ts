@@ -141,10 +141,10 @@ test.describe("Cards CRUD journey (emulator-backed)", () => {
     await expect(page.getByText("後續合作 AI 邊緣推論，穩定聯絡")).toBeVisible();
 
     // ────────────────────────────────────────────────────────────────
-    // 8. Touch "剛剛聯絡過"
+    // 8. Touch "記錄為已聯絡" (quick-CTA button; match by stable aria-label)
     // ────────────────────────────────────────────────────────────────
     await page.goto(`/cards/${cardId}`);
-    await page.getByRole("button", { name: /剛剛聯絡過/ }).click();
+    await page.getByRole("button", { name: /記錄為已聯絡/ }).click();
     // Wait for the action to complete (router.refresh).
     await page.waitForTimeout(500);
 
