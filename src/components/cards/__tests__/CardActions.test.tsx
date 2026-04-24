@@ -8,6 +8,7 @@ import { CardActions } from "../CardActions";
 vi.mock("@/app/(app)/cards/actions", () => ({
   deleteCardAction: vi.fn(),
   logContactAction: vi.fn().mockResolvedValue({ ok: true, eventId: "ev1" }),
+  toggleCardPinAction: vi.fn().mockResolvedValue({ ok: true, pinned: true }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
@@ -98,6 +99,26 @@ describe("CardActions quick CTA row", () => {
           id: "abc",
           note: "wrote follow-up email",
         });
+      });
+    });
+  });
+
+  describe("pin toggle", () => {
+    it("shows 設為重要聯絡人 when unpinned and 已置頂 when pinned", () => {
+      const { rerender } = render(<CardActions cardId="abc" />);
+      expect(screen.getByText(/設為重要聯絡人/)).toBeInTheDocument();
+      rerender(<CardActions cardId="abc" isPinned />);
+      expect(screen.getByText(/已置頂/)).toBeInTheDocument();
+    });
+
+    it("fires toggleCardPinAction with opposite pinned value", async () => {
+      const { toggleCardPinAction } = await import("@/app/(app)/cards/actions");
+      const mocked = vi.mocked(toggleCardPinAction);
+      mocked.mockClear();
+      render(<CardActions cardId="abc" isPinned={false} />);
+      fireEvent.click(screen.getByText(/設為重要聯絡人/));
+      await vi.waitFor(() => {
+        expect(mocked).toHaveBeenCalledWith({ id: "abc", pinned: true });
       });
     });
   });

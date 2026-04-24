@@ -19,6 +19,7 @@ function card(overrides: Partial<CardSummary> = {}): CardSummary {
     phones: [],
     emails: [],
     social: {},
+    isPinned: false,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-01T00:00:00Z"),
     lastContactedAt: null,
@@ -28,21 +29,55 @@ function card(overrides: Partial<CardSummary> = {}): CardSummary {
 }
 
 describe("categorizeTimeline", () => {
-  it("returns 3 sections in fixed order", () => {
+  it("returns 4 sections in fixed order (pinned first)", () => {
     const sections = categorizeTimeline([], { now: NOW });
-    expect(sections.map((s) => s.id)).toEqual(["newly-added", "met-this-month", "uncontacted"]);
+    expect(sections.map((s) => s.id)).toEqual([
+      "pinned",
+      "newly-added",
+      "met-this-month",
+      "uncontacted",
+    ]);
+  });
+
+  it("puts pinned cards in the pinned section and excludes them from uncontacted", () => {
+    const staleAndPinned = card({
+      id: "p",
+      isPinned: true,
+      createdAt: new Date("2020-01-01T00:00:00Z"),
+      lastContactedAt: new Date("2020-01-01T00:00:00Z"),
+    });
+    const staleUnpinned = card({
+      id: "u",
+      isPinned: false,
+      createdAt: new Date("2020-01-01T00:00:00Z"),
+      lastContactedAt: new Date("2020-01-01T00:00:00Z"),
+    });
+    const sections = categorizeTimeline([staleAndPinned, staleUnpinned], { now: NOW });
+    const pinned = sections.find((s) => s.id === "pinned")!;
+    const uncontacted = sections.find((s) => s.id === "uncontacted")!;
+    expect(pinned.cards.map((c) => c.id)).toEqual(["p"]);
+    expect(uncontacted.cards.map((c) => c.id)).toEqual(["u"]);
+  });
+
+  it("pinned section is not capped (bypasses maxPerSection)", () => {
+    const many = Array.from({ length: 12 }, (_, i) =>
+      card({ id: `p${i}`, isPinned: true, updatedAt: new Date(2026, 3, 20 - i) }),
+    );
+    const sections = categorizeTimeline(many, { now: NOW, maxPerSection: 5 });
+    const pinned = sections.find((s) => s.id === "pinned")!;
+    expect(pinned.cards).toHaveLength(12);
   });
 
   it("classifies firstMetDate in current month as met-this-month", () => {
     const c = card({ firstMetDate: "2026-04-10" });
-    const [, met] = categorizeTimeline([c], { now: NOW });
+    const [, , met] = categorizeTimeline([c], { now: NOW });
     expect(met.cards).toHaveLength(1);
     expect(met.cards[0]).toBe(c);
   });
 
   it("classifies firstMetDate last month as NOT met-this-month", () => {
     const c = card({ firstMetDate: "2026-03-10" });
-    const [newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
     expect(met.cards).toHaveLength(0);
     // createdAt is 2026-01-01 so not newly-added; last contact null → uncontacted
     expect(newly.cards).toHaveLength(0);
@@ -54,7 +89,7 @@ describe("categorizeTimeline", () => {
       id: "new",
       createdAt: new Date("2026-04-15T00:00:00Z"),
     });
-    const [newly] = categorizeTimeline([c], { now: NOW });
+    const [, newly] = categorizeTimeline([c], { now: NOW });
     expect(newly.cards.map((card) => card.id)).toContain("new");
   });
 
@@ -64,7 +99,7 @@ describe("categorizeTimeline", () => {
       createdAt: new Date("2025-01-01T00:00:00Z"),
       lastContactedAt: new Date("2026-02-01T00:00:00Z"), // > 30 days before NOW
     });
-    const [, , uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, , , uncontacted] = categorizeTimeline([c], { now: NOW });
     expect(uncontacted.cards.map((card) => card.id)).toContain("stale");
   });
 
@@ -74,7 +109,7 @@ describe("categorizeTimeline", () => {
       createdAt: new Date("2025-01-01T00:00:00Z"),
       lastContactedAt: new Date("2026-04-15T00:00:00Z"), // 3 days before NOW
     });
-    const [newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
     expect([...newly.cards, ...met.cards, ...uncontacted.cards]).toHaveLength(0);
   });
 
@@ -102,7 +137,7 @@ describe("categorizeTimeline", () => {
       id: "newer",
       createdAt: new Date("2026-04-17T00:00:00Z"),
     });
-    const [newly] = categorizeTimeline([older, newer], { now: NOW });
+    const [, newly] = categorizeTimeline([older, newer], { now: NOW });
     expect(newly.cards.map((c) => c.id)).toEqual(["newer", "older"]);
   });
 
@@ -117,7 +152,7 @@ describe("categorizeTimeline", () => {
       createdAt: new Date("2025-01-01T00:00:00Z"),
       lastContactedAt: new Date("2026-01-01T00:00:00Z"),
     });
-    const [, , uncontacted] = categorizeTimeline([b, a], { now: NOW });
+    const [, , , uncontacted] = categorizeTimeline([b, a], { now: NOW });
     expect(uncontacted.cards.map((c) => c.id)).toEqual(["a", "b"]);
   });
 
@@ -151,7 +186,7 @@ describe("categorizeTimeline", () => {
       firstMetDate: "04/10/2026" as unknown as string,
       createdAt: new Date("2025-01-01T00:00:00Z"),
     });
-    const [, met, uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, , met, uncontacted] = categorizeTimeline([c], { now: NOW });
     expect(met.cards).toHaveLength(0);
     expect(uncontacted.cards).toHaveLength(1);
   });
@@ -159,7 +194,7 @@ describe("categorizeTimeline", () => {
   it("sorts met-this-month by firstMetDate desc", () => {
     const early = card({ id: "early", firstMetDate: "2026-04-03" });
     const late = card({ id: "late", firstMetDate: "2026-04-17" });
-    const [, met] = categorizeTimeline([early, late], { now: NOW });
+    const [, , met] = categorizeTimeline([early, late], { now: NOW });
     expect(met.cards.map((c) => c.id)).toEqual(["late", "early"]);
   });
 
@@ -167,7 +202,7 @@ describe("categorizeTimeline", () => {
     const good = card({ id: "good", firstMetDate: "2026-04-15" });
     // broken date never enters met-this-month, but guard the sort fallback
     // via a card with firstMetDate set to a valid current-month date only once.
-    const [, met] = categorizeTimeline([good], { now: NOW });
+    const [, , met] = categorizeTimeline([good], { now: NOW });
     expect(met.cards).toHaveLength(1);
   });
 
@@ -181,8 +216,10 @@ describe("categorizeTimeline", () => {
 
   it("uses default uncontactedDays/newlyAddedDays/maxPerSection when omitted", () => {
     const sections = categorizeTimeline([], { now: NOW });
-    expect(sections[0].description).toMatch(/7 天/);
-    expect(sections[2].description).toMatch(/30 天/);
+    const newly = sections.find((s) => s.id === "newly-added")!;
+    const uncontacted = sections.find((s) => s.id === "uncontacted")!;
+    expect(newly.description).toMatch(/7 天/);
+    expect(uncontacted.description).toMatch(/30 天/);
   });
 
   it("respects custom uncontactedDays override", () => {

@@ -200,6 +200,7 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             primaryEmail={primaryEmail?.value}
             lineId={card.social?.lineId}
             linkedinUrl={card.social?.linkedinUrl}
+            isPinned={card.isPinned}
           />
 
           <footer className={styles.timestamps}>

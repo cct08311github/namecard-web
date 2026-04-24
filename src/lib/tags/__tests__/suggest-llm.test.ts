@@ -16,6 +16,7 @@ function makeCard(overrides: Partial<CardCreateInput> = {}): CardCreateInput {
     whyRemember: "met at conference",
     nameEn: "Alice Chen",
     companyEn: "ACME Corp",
+    isPinned: false,
     ...overrides,
   };
 }

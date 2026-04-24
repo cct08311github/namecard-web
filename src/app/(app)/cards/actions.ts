@@ -7,6 +7,7 @@ import { authedAction } from "@/lib/auth/safe-action";
 import {
   createCardForUser,
   logContactEvent,
+  setCardPinned,
   softDeleteCardForUser,
   updateCardForUser,
 } from "@/db/cards";
@@ -71,6 +72,20 @@ export const logContactAction = authedAction
     revalidatePath("/");
     revalidatePath(`/cards/${parsedInput.id}`);
     return { ok: true as const, eventId };
+  });
+
+/**
+ * Flip a card's pin state. Pinned cards appear in the Timeline's
+ * Pinned section at the top and are excluded from 「最近沒聯絡」.
+ */
+export const toggleCardPinAction = authedAction
+  .inputSchema(z.object({ id: z.string().min(1), pinned: z.boolean() }))
+  .action(async ({ parsedInput, ctx }) => {
+    await setCardPinned(parsedInput.id, ctx.user.uid, parsedInput.pinned);
+    revalidatePath("/");
+    revalidatePath("/cards");
+    revalidatePath(`/cards/${parsedInput.id}`);
+    return { ok: true as const, pinned: parsedInput.pinned };
   });
 
 /**

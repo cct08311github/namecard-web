@@ -15,6 +15,7 @@ function makeCard(overrides: Partial<CardSummary> = {}): CardSummary {
     tagNames: [],
     phones: [],
     emails: [],
+    isPinned: false,
     createdAt: new Date("2026-04-01T00:00:00Z"),
     updatedAt: new Date("2026-04-01T00:00:00Z"),
     lastContactedAt: null,

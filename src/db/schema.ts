@@ -105,6 +105,10 @@ const cardBaseShape = {
   // Tags (denormalized — tagIds for query, tagNames for display)
   tagIds: z.array(z.string().max(80)).max(30).default([]),
   tagNames: z.array(z.string().max(60)).max(30).default([]),
+
+  // Pin — surfaced in Pinned section at the top of the timeline.
+  // Optional for backwards-compat with existing card docs.
+  isPinned: z.boolean().optional(),
 };
 
 /** Payload shape when creating a card (client → server). */
