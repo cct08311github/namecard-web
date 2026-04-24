@@ -1,9 +1,41 @@
-import type { CardSummary } from "@/db/cards";
+import type { CardSummary, ContactEvent } from "@/db/cards";
 
 /**
  * Minimal vCard 4.0 generator — handcrafted for reliable iOS / macOS / Google
  * Contacts import. Values are escaped per RFC 6350 §3.4.
  */
+
+export interface ToVcardOptions {
+  /**
+   * Optional interaction log to append to the NOTE field. Newest events
+   * first. Only the first `eventLimit` (default 10) are serialized to
+   * keep the vCard readable — older ones still live in Firestore.
+   */
+  events?: ContactEvent[];
+  eventLimit?: number;
+}
+
+function formatEventStamp(at: Date): string {
+  // Local-time, minute-precision. Keeps the vCard NOTE scannable by
+  // humans without dragging timezone machinery into the export.
+  const y = at.getFullYear();
+  const mo = String(at.getMonth() + 1).padStart(2, "0");
+  const d = String(at.getDate()).padStart(2, "0");
+  const h = String(at.getHours()).padStart(2, "0");
+  const m = String(at.getMinutes()).padStart(2, "0");
+  return `${y}-${mo}-${d} ${h}:${m}`;
+}
+
+function buildEventBlock(events: ContactEvent[], limit: number): string | null {
+  if (!events || events.length === 0) return null;
+  const head = events.slice(0, Math.max(1, limit));
+  const lines = head.map((e) => {
+    const stamp = formatEventStamp(e.at);
+    const note = e.note?.trim();
+    return note ? `${stamp} - ${note}` : `${stamp} -（無備註）`;
+  });
+  return `【互動紀錄】\n${lines.join("\n")}`;
+}
 
 function escapeValue(value: string): string {
   return value
@@ -65,7 +97,7 @@ function emailLineType(label: string): string {
   }
 }
 
-export function toVcard(card: CardSummary): string {
+export function toVcard(card: CardSummary, options: ToVcardOptions = {}): string {
   const lines: string[] = [];
   lines.push("BEGIN:VCARD");
   lines.push("VERSION:4.0");
@@ -125,6 +157,8 @@ export function toVcard(card: CardSummary): string {
   if (card.whyRemember) noteParts.push(`【為什麼記得】${card.whyRemember}`);
   if (card.firstMetContext) noteParts.push(`【場合】${card.firstMetContext}`);
   if (card.notes) noteParts.push(card.notes);
+  const eventBlock = buildEventBlock(options.events ?? [], options.eventLimit ?? 10);
+  if (eventBlock) noteParts.push(eventBlock);
   if (noteParts.length > 0) {
     pushLine(lines, `NOTE:${escapeValue(noteParts.join("\n\n"))}`);
   }
