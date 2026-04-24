@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { CardActions } from "../CardActions";
 
@@ -7,7 +7,7 @@ import { CardActions } from "../CardActions";
 // not the mutation path (SIT covers that).
 vi.mock("@/app/(app)/cards/actions", () => ({
   deleteCardAction: vi.fn(),
-  touchCardAction: vi.fn(),
+  logContactAction: vi.fn().mockResolvedValue({ ok: true, eventId: "ev1" }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
@@ -64,5 +64,41 @@ describe("CardActions quick CTA row", () => {
     rerender(<CardActions cardId="abc" primaryEmail="x@y.com" />);
     expect(screen.getByText("複製 Email")).toBeInTheDocument();
     expect(screen.queryByText("複製電話")).not.toBeInTheDocument();
+  });
+
+  describe("contact-event note flow", () => {
+    it("first click on 已聯絡 expands the note input (doesn't fire the action)", () => {
+      render(<CardActions cardId="abc" />);
+      expect(screen.queryByLabelText(/互動備註/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /記錄為已聯絡/ }));
+      expect(screen.getByLabelText(/互動備註/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /記錄為已聯絡/ })).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+    });
+
+    it("cancel button closes the note input without submitting", () => {
+      render(<CardActions cardId="abc" />);
+      fireEvent.click(screen.getByRole("button", { name: /記錄為已聯絡/ }));
+      expect(screen.getByLabelText(/互動備註/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /取消/ }));
+      expect(screen.queryByLabelText(/互動備註/)).not.toBeInTheDocument();
+    });
+
+    it("typing a note and clicking 記錄 submits the trimmed value", async () => {
+      const { logContactAction } = await import("@/app/(app)/cards/actions");
+      render(<CardActions cardId="abc" />);
+      fireEvent.click(screen.getByRole("button", { name: /記錄為已聯絡/ }));
+      const textarea = screen.getByLabelText(/互動備註/) as HTMLTextAreaElement;
+      fireEvent.change(textarea, { target: { value: "wrote follow-up email" } });
+      fireEvent.click(screen.getByRole("button", { name: /記錄為已聯絡/ }));
+      await vi.waitFor(() => {
+        expect(logContactAction).toHaveBeenCalledWith({
+          id: "abc",
+          note: "wrote follow-up email",
+        });
+      });
+    });
   });
 });

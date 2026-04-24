@@ -189,4 +189,106 @@ export async function touchLastContactedAt(
   }
 }
 
+// ==================== Contact events (append-only log) ====================
+
+export const SUB_COLLECTION_CONTACT_EVENTS = "contactEvents";
+
+export interface ContactEvent {
+  id: string;
+  at: Date;
+  note: string;
+  authorUid: string;
+  authorDisplay: string | null;
+}
+
+export interface LogContactEventOptions {
+  uid: string;
+  note?: string;
+  authorDisplay?: string | null;
+}
+
+/**
+ * Append a contact event to a card's log AND update the card's
+ * lastContactedAt ranking signal in a single batch. Typesense reindex
+ * follows so sort_by: lastContactedAt:desc reflects the change.
+ *
+ * Returns the event id for callers that want to show it optimistically.
+ * Throws if the caller is not a member of the card.
+ */
+export async function logContactEvent(
+  cardId: string,
+  { uid, note = "", authorDisplay = null }: LogContactEventOptions,
+): Promise<string> {
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const cardRef = db.doc(`${cardsPath(wid)}/${cardId}`);
+  const snap = await cardRef.get();
+  if (!snap.exists) throw new Error("card not found");
+  const data = snap.data()!;
+  if (!data.memberUids?.includes(uid)) throw new Error("無權限記錄互動");
+
+  const trimmedNote = note.slice(0, 500);
+  const eventRef = cardRef.collection(SUB_COLLECTION_CONTACT_EVENTS).doc();
+  const now = FieldValue.serverTimestamp();
+  const batch = db.batch();
+  batch.set(eventRef, {
+    at: now,
+    note: trimmedNote,
+    authorUid: uid,
+    authorDisplay,
+  });
+  batch.update(cardRef, {
+    lastContactedAt: now,
+    updatedAt: now,
+  });
+  await batch.commit();
+
+  const after = await cardRef.get();
+  if (after.exists && after.data()?.deletedAt === null) {
+    await syncWithFallback(wid, "upsert", cardId, toSummary(cardId, after.data()!));
+  }
+
+  return eventRef.id;
+}
+
+/**
+ * Read recent contact events for a card, newest first. Access check
+ * uses the same memberUids rule as getCardForUser — we don't leak
+ * events from cards the caller can't otherwise read.
+ */
+export async function listContactEventsForUser(
+  cardId: string,
+  uid: string,
+  limit = 50,
+): Promise<ContactEvent[]> {
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const cardRef = db.doc(`${cardsPath(wid)}/${cardId}`);
+  const cardSnap = await cardRef.get();
+  if (!cardSnap.exists) return [];
+  const data = cardSnap.data()!;
+  if (!data.memberUids?.includes(uid)) return [];
+
+  const snap = await cardRef
+    .collection(SUB_COLLECTION_CONTACT_EVENTS)
+    .orderBy("at", "desc")
+    .limit(limit)
+    .get();
+  return snap.docs.map((doc) => {
+    const raw = doc.data();
+    return {
+      id: doc.id,
+      at: raw.at?.toDate?.() ?? new Date(0),
+      note: typeof raw.note === "string" ? raw.note : "",
+      authorUid: typeof raw.authorUid === "string" ? raw.authorUid : "",
+      authorDisplay:
+        typeof raw.authorDisplay === "string"
+          ? raw.authorDisplay
+          : raw.authorDisplay === null
+            ? null
+            : null,
+    } satisfies ContactEvent;
+  });
+}
+
 export { COLLECTION_WORKSPACES, SUB_COLLECTION_CARDS };

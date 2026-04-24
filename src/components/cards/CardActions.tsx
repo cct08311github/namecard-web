@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import { deleteCardAction, touchCardAction } from "@/app/(app)/cards/actions";
+import { deleteCardAction, logContactAction } from "@/app/(app)/cards/actions";
 
 import styles from "./CardActions.module.css";
 
@@ -28,6 +28,8 @@ export function CardActions({
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [logNoteOpen, setLogNoteOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
 
   useEffect(() => {
     if (!toast) return;
@@ -36,12 +38,25 @@ export function CardActions({
   }, [toast]);
 
   const handleTouch = () => {
+    // First click: reveal the note input. User can type a note and submit,
+    // or click 「跳過備註」 to log an empty event. This keeps 1-click
+    // behavior cheap while making the log meaningful when content matters.
+    if (!logNoteOpen) {
+      setLogNoteOpen(true);
+      return;
+    }
+    submitLog(noteDraft);
+  };
+
+  const submitLog = (note: string) => {
     setError(null);
     startTransition(async () => {
-      const result = await touchCardAction({ id: cardId });
+      const result = await logContactAction({ id: cardId, note });
       if (result?.serverError) setError(result.serverError);
       else {
-        setToast("已記錄聯絡");
+        setToast(note.trim() ? "已記錄互動" : "已標記聯絡");
+        setLogNoteOpen(false);
+        setNoteDraft("");
         router.refresh();
       }
     });
@@ -146,13 +161,52 @@ export function CardActions({
           onClick={handleTouch}
           disabled={pending}
           aria-label="記錄為已聯絡"
+          aria-expanded={logNoteOpen}
         >
           <span className={styles.quickIcon} aria-hidden="true">
             ✅
           </span>
-          <span className={styles.quickLabel}>{pending ? "記錄中…" : "已聯絡"}</span>
+          <span className={styles.quickLabel}>
+            {pending ? "記錄中…" : logNoteOpen ? "記錄" : "已聯絡"}
+          </span>
         </button>
       </div>
+
+      {logNoteOpen && (
+        <div className={styles.noteBox}>
+          <textarea
+            className={styles.noteInput}
+            placeholder="寫一句互動摘要（可留空）"
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value.slice(0, 500))}
+            maxLength={500}
+            rows={2}
+            autoFocus
+            aria-label="互動備註（500 字以內）"
+          />
+          <div className={styles.noteActions}>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => submitLog("")}
+              disabled={pending}
+            >
+              跳過備註
+            </button>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => {
+                setLogNoteOpen(false);
+                setNoteDraft("");
+              }}
+              disabled={pending}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Copy-to-clipboard row — 商務常需快速複製貼到其他 app */}
       {(primaryEmail || primaryPhone) && (

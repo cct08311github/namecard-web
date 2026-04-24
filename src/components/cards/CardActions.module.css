@@ -137,6 +137,45 @@
   border-color: var(--color-accent);
 }
 
+.noteBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.noteInput {
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  line-height: 1.45;
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-fg);
+  resize: vertical;
+  min-height: 60px;
+}
+
+.noteInput:focus {
+  outline: none;
+  border-color: var(--color-ink);
+}
+
+.noteActions {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: flex-end;
+}
+
+.noteActions .secondary {
+  flex: 0 1 auto;
+  padding: var(--space-xs) var(--space-sm);
+}
+
 .toast {
   margin: 0;
   padding: var(--space-xs) var(--space-sm);

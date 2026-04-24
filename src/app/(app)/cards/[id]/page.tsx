@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CardActions } from "@/components/cards/CardActions";
+import { ContactEventList } from "@/components/cards/ContactEventList";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
-import { getCardForUser } from "@/db/cards";
+import { getCardForUser, listContactEventsForUser } from "@/db/cards";
 import type { CardCreateInput } from "@/db/schema";
 import { readSession } from "@/lib/firebase/session";
 
@@ -33,6 +34,7 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
   if (!user) return null;
   const card = await getCardForUser(user.uid, id);
   if (!card || card.deletedAt) notFound();
+  const contactEvents = await listContactEventsForUser(id, user.uid, 30);
 
   const primary = card.nameZh || card.nameEn || "（未命名）";
   const secondary = card.nameZh && card.nameEn ? card.nameEn : null;
@@ -140,6 +142,8 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
               <p className={styles.notesBody}>{card.notes}</p>
             </section>
           )}
+
+          <ContactEventList events={contactEvents} />
         </main>
 
         <aside className={styles.sidebar} aria-label="Contact details">
