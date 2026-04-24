@@ -13,13 +13,89 @@
   margin: 0;
 }
 
+/* Primary CTA row — icon-first, 4-up grid */
+.quick {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xs);
+}
+
+.quickButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--space-sm) 2px;
+  min-height: 64px;
+  border-radius: var(--radius-md);
+  border: var(--border-thin) solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-fg);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+  font-family: var(--font-sans);
+}
+
+.quickButton:hover:not(.quickDisabled):not(:disabled) {
+  border-color: var(--color-fg-muted);
+  transform: translateY(-1px);
+}
+
+.quickButton:active:not(.quickDisabled):not(:disabled) {
+  transform: translateY(0);
+}
+
+.quickButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* The "mark contacted" action is elevated to ink primary */
+.quickPrimary {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border-color: var(--color-ink);
+}
+
+.quickPrimary:hover:not(:disabled) {
+  background: var(--color-accent-ink);
+  border-color: var(--color-accent-ink);
+}
+
+.quickDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.quickIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.quickLabel {
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+}
+
+/* Copy-to-clipboard row */
+.copyRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-xs);
+}
+
 .stack {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
 }
 
-.primary,
 .secondary,
 .destructive {
   font-family: var(--font-sans);
@@ -37,22 +113,6 @@
     background var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);
-}
-
-.primary {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  border-color: var(--color-ink);
-}
-
-.primary:hover:not(:disabled) {
-  background: var(--color-accent-ink);
-  border-color: var(--color-accent-ink);
-}
-
-.primary:disabled {
-  opacity: 0.6;
-  cursor: wait;
 }
 
 .secondary:hover {
@@ -75,6 +135,17 @@
   color: var(--color-paper);
   background: var(--color-accent);
   border-color: var(--color-accent);
+}
+
+.toast {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border-radius: var(--radius-sm);
+  text-align: center;
 }
 
 .error {
