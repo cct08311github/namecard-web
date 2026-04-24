@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { deleteCardAction, logContactAction, toggleCardPinAction } from "@/app/(app)/cards/actions";
+import { shareCardVcard } from "@/lib/share/card-share";
 
 import styles from "./CardActions.module.css";
 
 interface CardActionsProps {
   cardId: string;
+  displayName?: string;
   primaryPhone?: string;
   primaryEmail?: string;
   lineId?: string;
@@ -19,6 +21,7 @@ interface CardActionsProps {
 
 export function CardActions({
   cardId,
+  displayName,
   primaryPhone,
   primaryEmail,
   lineId,
@@ -87,6 +90,18 @@ export function CardActions({
         router.refresh();
       }
     });
+  };
+
+  const handleShare = async () => {
+    setError(null);
+    try {
+      const outcome = await shareCardVcard(cardId, displayName ?? "名片");
+      if (outcome === "shared") setToast("已分享");
+      else if (outcome === "downloaded") setToast("已下載 vCard");
+      // "cancelled" → user dismissed the share sheet; no toast.
+    } catch {
+      setToast("分享失敗，已改為下載");
+    }
   };
 
   const copyToClipboard = async (value: string, label: string) => {
@@ -255,6 +270,9 @@ export function CardActions({
           aria-pressed={isPinned}
         >
           {isPinned ? "📍 已置頂（取消）" : "📌 設為重要聯絡人"}
+        </button>
+        <button type="button" className={styles.secondary} onClick={handleShare}>
+          📤 分享名片
         </button>
         <a href={`/api/cards/${cardId}/vcard`} className={styles.secondary}>
           匯出 vCard

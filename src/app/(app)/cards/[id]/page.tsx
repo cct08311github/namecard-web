@@ -196,6 +196,7 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
 
           <CardActions
             cardId={card.id}
+            displayName={primary}
             primaryPhone={primaryPhone?.value}
             primaryEmail={primaryEmail?.value}
             lineId={card.social?.lineId}
