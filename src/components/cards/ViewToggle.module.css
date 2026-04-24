@@ -1,3 +1,10 @@
+.row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .toggle {
   display: inline-flex;
   border: var(--border-hair) solid var(--color-border);

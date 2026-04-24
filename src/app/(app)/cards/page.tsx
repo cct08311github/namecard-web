@@ -9,6 +9,7 @@ import { listCardsForUser, type CardSummary } from "@/db/cards";
 import { listTagsForUser } from "@/db/tags";
 import { readSession } from "@/lib/firebase/session";
 import { applyTagFilter } from "@/lib/cards/filter";
+import { parseSortKey, sortCards } from "@/lib/cards/sort";
 import { getTypesenseClient } from "@/lib/search/client";
 import { buildSearchParams } from "@/lib/search/query";
 import { CARDS_COLLECTION_NAME } from "@/lib/search/schema";
@@ -61,14 +62,16 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   if (!user) return null;
   const raw = await searchParams;
   const view = typeof raw.view === "string" ? raw.view : "gallery";
-  const sort = typeof raw.sort === "string" ? raw.sort : "newest";
+  const sort = parseSortKey(raw.sort);
   const isGallery = view !== "list";
-  const orderBy: "createdAt" | "updatedAt" = "createdAt";
-  const order: "asc" | "desc" = sort === "oldest" ? "asc" : "desc";
   const { q, tag, tagMode } = parseSearchParams(raw);
 
+  // Always fetch in createdAt desc (Firestore-side); we do the final
+  // sort client-side on the page to support 「最近聯絡」 / 「姓名」
+  // keys without needing per-key Firestore indexes. 200-card ceiling
+  // makes this cheap.
   const [allCards, allTags] = await Promise.all([
-    listCardsForUser(user.uid, { limit: 200, orderBy, order }),
+    listCardsForUser(user.uid, { limit: 200, orderBy: "createdAt", order: "desc" }),
     listTagsForUser(user.uid),
   ]);
 
@@ -89,6 +92,11 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   } else {
     cards = allCards;
   }
+
+  // Apply the user's chosen sort — Typesense search path already
+  // orders hits by relevance, but once we're showing the full list
+  // (or a tag-filtered list) we respect the segment control.
+  if (!q) cards = sortCards(cards, sort);
 
   return (
     <article className={styles.article}>
