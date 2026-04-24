@@ -30,7 +30,14 @@ export function middleware(request: NextRequest) {
 
   const hasSession = request.cookies.has(SESSION_COOKIE_NAME);
   if (!hasSession) {
-    const loginUrl = new URL("/login", request.url);
+    // Clone `nextUrl` (a NextURL) so Next.js auto-prepends the configured
+    // `basePath` on redirect. Using `new URL("/login", request.url)` does
+    // NOT add basePath — it resolves to the raw host root — which under
+    // our Tailscale sub-path deploy goes to a foreign proxy and returns
+    // 502. `nextUrl.clone()` preserves basePath semantics.
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.search = "";
     if (pathname !== "/") loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
