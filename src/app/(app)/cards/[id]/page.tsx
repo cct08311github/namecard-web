@@ -194,6 +194,8 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             cardId={card.id}
             primaryPhone={primaryPhone?.value}
             primaryEmail={primaryEmail?.value}
+            lineId={card.social?.lineId}
+            linkedinUrl={card.social?.linkedinUrl}
           />
 
           <footer className={styles.timestamps}>
