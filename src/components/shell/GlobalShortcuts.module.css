@@ -1,0 +1,102 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 18, 16, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  z-index: 100;
+}
+
+.sheet {
+  max-width: 480px;
+  width: 100%;
+  background: var(--color-paper);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  margin: 0;
+  color: var(--color-fg);
+}
+
+.close {
+  background: transparent;
+  border: none;
+  color: var(--color-fg-muted);
+  font-size: var(--text-body);
+  cursor: pointer;
+  padding: 4px 10px;
+}
+
+.close:hover {
+  color: var(--color-fg);
+}
+
+.list {
+  margin: 0 0 var(--space-md);
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) 1fr;
+  gap: var(--space-md);
+  align-items: center;
+  padding: var(--space-xs) 0;
+  border-bottom: var(--border-hair) solid var(--color-border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row dt {
+  display: flex;
+  gap: 4px;
+}
+
+.row dd {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  color: var(--color-fg);
+}
+
+.sheet :global(kbd),
+.hint :global(kbd) {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-caption);
+  padding: 2px 8px;
+  background: var(--color-bg-raised);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg);
+  box-shadow: 0 1px 0 var(--color-border);
+  min-width: 22px;
+  text-align: center;
+  display: inline-block;
+  line-height: 1;
+}
+
+.hint {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg-muted);
+  line-height: var(--leading-relaxed, 1.5);
+}

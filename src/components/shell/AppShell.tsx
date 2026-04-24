@@ -5,6 +5,7 @@ import { SearchBox } from "@/components/search/SearchBox";
 import type { SessionUser } from "@/lib/firebase/session";
 
 import styles from "./AppShell.module.css";
+import { GlobalShortcuts } from "./GlobalShortcuts";
 
 interface NavItem {
   href: string;
@@ -73,6 +74,7 @@ export function AppShell({ user, children }: AppShellProps) {
         </footer>
       </aside>
       <main className={styles.main}>{children}</main>
+      <GlobalShortcuts />
     </div>
   );
 }
