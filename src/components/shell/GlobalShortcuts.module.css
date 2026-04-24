@@ -77,7 +77,8 @@
   color: var(--color-fg);
 }
 
-kbd {
+.sheet :global(kbd),
+.hint :global(kbd) {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: var(--text-caption);
   padding: 2px 8px;
