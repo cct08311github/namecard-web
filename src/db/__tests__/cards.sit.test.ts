@@ -312,4 +312,69 @@ describe("cards repository (SIT)", () => {
       expect(second.getTime()).toBeGreaterThan(first.getTime());
     });
   });
+
+  describe("logContactEvent + listContactEventsForUser", () => {
+    it("appends an event and bumps lastContactedAt in one atomic write", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const before = Date.now();
+      const eventId = await repo.logContactEvent(id, {
+        uid: TEST_UID_ALICE,
+        note: "發了 proposal",
+        authorDisplay: "Alice",
+      });
+      expect(eventId).toMatch(/^[A-Za-z0-9]+$/);
+
+      const events = await repo.listContactEventsForUser(id, TEST_UID_ALICE);
+      expect(events).toHaveLength(1);
+      expect(events[0].note).toBe("發了 proposal");
+      expect(events[0].authorDisplay).toBe("Alice");
+      expect(events[0].authorUid).toBe(TEST_UID_ALICE);
+      expect(events[0].at.getTime()).toBeGreaterThanOrEqual(before - 1000);
+
+      const card = (await repo.getCardForUser(TEST_UID_ALICE, id))!;
+      expect(card.lastContactedAt).toBeInstanceOf(Date);
+    });
+
+    it("allows empty note and preserves author=null", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.logContactEvent(id, { uid: TEST_UID_ALICE });
+      const events = await repo.listContactEventsForUser(id, TEST_UID_ALICE);
+      expect(events[0].note).toBe("");
+      expect(events[0].authorDisplay).toBeNull();
+    });
+
+    it("truncates notes beyond 500 characters", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const long = "a".repeat(600);
+      await repo.logContactEvent(id, { uid: TEST_UID_ALICE, note: long });
+      const events = await repo.listContactEventsForUser(id, TEST_UID_ALICE);
+      expect(events[0].note).toHaveLength(500);
+    });
+
+    it("returns events newest-first", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.logContactEvent(id, { uid: TEST_UID_ALICE, note: "first" });
+      await new Promise((r) => setTimeout(r, 25));
+      await repo.logContactEvent(id, { uid: TEST_UID_ALICE, note: "second" });
+      await new Promise((r) => setTimeout(r, 25));
+      await repo.logContactEvent(id, { uid: TEST_UID_ALICE, note: "third" });
+
+      const events = await repo.listContactEventsForUser(id, TEST_UID_ALICE);
+      expect(events.map((e) => e.note)).toEqual(["third", "second", "first"]);
+    });
+
+    it("refuses to log on a card the caller doesn't own", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await expect(
+        repo.logContactEvent(id, { uid: TEST_UID_BOB, note: "intruder" }),
+      ).rejects.toThrow();
+    });
+
+    it("returns empty list when caller has no access", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.logContactEvent(id, { uid: TEST_UID_ALICE, note: "private" });
+      const events = await repo.listContactEventsForUser(id, TEST_UID_BOB);
+      expect(events).toEqual([]);
+    });
+  });
 });

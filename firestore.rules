@@ -109,6 +109,28 @@ service cloud.firestore {
           ownershipUnchanged();
 
         allow delete: if isAuthed() && isMember(resource.data.memberUids);
+
+        // ==================== Contact events (append-only log) ====================
+        // Each card accumulates a stream of contact events. Members of the
+        // parent card (read via get() — small, infrequent) can read and
+        // append. Edit and delete are disallowed at the rules layer;
+        // retractions / redactions go through a future Admin-SDK path.
+        match /contactEvents/{eventId} {
+          function parentCardMembers() {
+            return get(/databases/$(database)/documents/workspaces/$(wid)/cards/$(cardId)).data.memberUids;
+          }
+
+          allow read: if isAuthed() && request.auth.uid in parentCardMembers();
+
+          allow create: if isAuthed() &&
+            request.auth.uid in parentCardMembers() &&
+            incoming().authorUid == request.auth.uid &&
+            incoming().at == request.time &&
+            (!('note' in incoming()) ||
+              (incoming().note is string && incoming().note.size() <= 500));
+
+          allow update, delete: if false;
+        }
       }
 
       // ==================== Tags subcollection ====================
