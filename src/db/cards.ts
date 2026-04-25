@@ -5,9 +5,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firebase/server";
 import {
   cardsPath,
+  COLLECTION_PUBLIC_SLUGS,
+  COLLECTION_WORKSPACES,
   personalWorkspaceId,
   SUB_COLLECTION_CARDS,
-  COLLECTION_WORKSPACES,
 } from "@/lib/firebase/shared";
 import { syncWithFallback } from "@/lib/search/reconcile";
 
@@ -61,6 +62,11 @@ export interface CardSummary {
    * valid (mirrors the isPinned backwards-compat pattern).
    */
   followUpAt?: Date | null;
+  /**
+   * If set, this card is exposed as a public profile at /u/{publicSlug}.
+   * Slug uniqueness is owned by `publicSlugs/{slug}` top-level docs.
+   */
+  publicSlug?: string;
   createdAt: Date | null;
   updatedAt: Date | null;
   lastContactedAt: Date | null;
@@ -510,6 +516,132 @@ export async function setCardPinned(cardId: string, uid: string, pinned: boolean
     isPinned: pinned,
     updatedAt: FieldValue.serverTimestamp(),
   });
+}
+
+const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/;
+const RESERVED_SLUGS = new Set([
+  "_next",
+  "api",
+  "app",
+  "admin",
+  "assets",
+  "cards",
+  "companies",
+  "events",
+  "favicon",
+  "followups",
+  "icon",
+  "import",
+  "login",
+  "logout",
+  "manifest",
+  "static",
+  "tags",
+  "u",
+  "unauthorized",
+  "workspace",
+]);
+
+/**
+ * Set or clear the public profile slug for a card. When set, the card
+ * becomes publicly reachable at /u/{slug} (no auth needed). Uniqueness
+ * is enforced by a top-level publicSlugs/{slug} index doc that points
+ * back at the card — write happens in a single transaction so two
+ * users can't grab the same slug simultaneously.
+ *
+ * Pass `slug: null` to take the card off the public hub (clears both
+ * card.publicSlug and the publicSlugs index doc).
+ */
+export async function setPublicSlugForUser(
+  cardId: string,
+  uid: string,
+  slug: string | null,
+): Promise<void> {
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const cardRef = db.doc(`${cardsPath(wid)}/${cardId}`);
+
+  if (slug !== null) {
+    const lower = slug.toLowerCase();
+    if (!SLUG_PATTERN.test(lower)) {
+      throw new Error("slug 格式不合：只允許小寫英數、底線、減號，3-30 字");
+    }
+    if (lower.length < 3 || lower.length > 30) {
+      throw new Error("slug 長度需 3-30 字");
+    }
+    if (RESERVED_SLUGS.has(lower)) {
+      throw new Error(`slug "${lower}" 是系統保留字，請換一個`);
+    }
+  }
+
+  await db.runTransaction(async (txn) => {
+    const cardSnap = await txn.get(cardRef);
+    if (!cardSnap.exists) throw new Error("card not found");
+    const cardData = cardSnap.data()!;
+    if (!cardData.memberUids?.includes(uid)) throw new Error("無權限修改此名片");
+    const previousSlug = typeof cardData.publicSlug === "string" ? cardData.publicSlug : null;
+
+    if (slug === null) {
+      if (previousSlug) {
+        txn.delete(db.doc(`${COLLECTION_PUBLIC_SLUGS}/${previousSlug}`));
+      }
+      txn.update(cardRef, {
+        publicSlug: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    const lower = slug.toLowerCase();
+    if (previousSlug === lower) return; // no-op
+
+    const slugRef = db.doc(`${COLLECTION_PUBLIC_SLUGS}/${lower}`);
+    const slugSnap = await txn.get(slugRef);
+    if (slugSnap.exists) {
+      const owner = slugSnap.data();
+      if (owner?.cardId !== cardId || owner?.workspaceId !== wid) {
+        throw new Error(`slug "${lower}" 已被別人使用，請換一個`);
+      }
+    }
+
+    if (previousSlug) {
+      txn.delete(db.doc(`${COLLECTION_PUBLIC_SLUGS}/${previousSlug}`));
+    }
+    txn.set(slugRef, {
+      workspaceId: wid,
+      cardId,
+      ownerUid: uid,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    txn.update(cardRef, {
+      publicSlug: lower,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
+/**
+ * Public reverse lookup: slug → card. No auth check (public route).
+ * Returns null when the slug doesn't resolve, the index doc is stale,
+ * or the underlying card has been soft-deleted (we don't want a
+ * dangling public URL pointing at a card the user removed).
+ */
+export async function getCardByPublicSlug(slug: string): Promise<CardSummary | null> {
+  const lower = slug.toLowerCase();
+  if (!SLUG_PATTERN.test(lower)) return null;
+  const db = getAdminFirestore();
+  const indexSnap = await db.doc(`${COLLECTION_PUBLIC_SLUGS}/${lower}`).get();
+  if (!indexSnap.exists) return null;
+  const idx = indexSnap.data();
+  const wid = typeof idx?.workspaceId === "string" ? idx.workspaceId : null;
+  const cardId = typeof idx?.cardId === "string" ? idx.cardId : null;
+  if (!wid || !cardId) return null;
+  const cardSnap = await db.doc(`${cardsPath(wid)}/${cardId}`).get();
+  if (!cardSnap.exists) return null;
+  const data = cardSnap.data()!;
+  if (data.deletedAt) return null;
+  if (data.publicSlug !== lower) return null; // index drift safety
+  return toSummary(cardId, data);
 }
 
 /**

@@ -17,6 +17,9 @@ function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/_next/")) return true;
   if (pathname.startsWith("/favicon")) return true;
+  // Public profile pages: /u/{slug} renders a single user's card without
+  // auth so it can be shared like a digital business card.
+  if (pathname.startsWith("/u/")) return true;
   // Test-only bypass route — route handler itself returns 404 in production
   // (gated by E2E_TEST_MODE). Exposing it here just keeps it reachable for
   // Playwright under CI to mint sessions.

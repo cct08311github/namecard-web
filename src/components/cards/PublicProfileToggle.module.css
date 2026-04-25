@@ -1,0 +1,187 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-paper);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.toggleBtn {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-accent-ink);
+  border: var(--border-hair) solid var(--color-accent-ink);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.toggleBtn:hover {
+  background: var(--color-accent-soft, var(--color-paper));
+}
+
+.activeSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.activeLink {
+  font-family: var(--font-mono, var(--font-sans));
+  font-size: var(--text-caption);
+  color: var(--color-accent-ink);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.activeLink:hover {
+  text-decoration: underline;
+}
+
+.hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink);
+  letter-spacing: var(--tracking-wide);
+}
+
+.input {
+  font-family: var(--font-mono, var(--font-sans));
+  font-size: var(--text-body);
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-accent-ink);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-accent-ink) 25%, transparent);
+}
+
+.helper {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro, 0.72rem);
+  color: var(--color-ink-muted);
+  margin: 0;
+}
+
+.error {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-error, #b00020);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.primaryBtn {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: var(--color-accent-ink);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dangerBtn {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-error, #b00020);
+  border: var(--border-hair) solid var(--color-error, #b00020);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.dangerBtn:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--color-error, #b00020) 10%, transparent);
+}
+
+.dangerBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.smallBtn {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.smallBtn:hover {
+  border-color: var(--color-accent-ink);
+}
+
+.toast {
+  position: fixed;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+}

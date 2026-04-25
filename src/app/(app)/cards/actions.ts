@@ -16,10 +16,11 @@ import {
   mergeCardsForUser,
   setCardPinned,
   setFollowUpForUser,
+  setPublicSlugForUser,
   softDeleteCardForUser,
   updateCardForUser,
 } from "@/db/cards";
-import { cardCreateSchema, cardUpdateSchema } from "@/db/schema";
+import { cardCreateSchema, cardUpdateSchema, publicSlugSchema } from "@/db/schema";
 import { briefingCacheKey, type BriefingPick } from "@/lib/coach/briefing";
 import { callBriefingLlm } from "@/lib/coach/briefing-llm";
 import { readBriefingCache, writeBriefingCache } from "@/lib/coach/briefing-store";
@@ -394,6 +395,39 @@ export const getReengageDraftsAction = authedAction
       if (!drafts) return { ok: false, reason: "llm-failed" };
       await writeReengageCache(ctx.user.uid, card.id, hash, drafts);
       return { ok: true, drafts, cached: false };
+    },
+  );
+
+/**
+ * Set or clear the card's public profile slug. When set, the card is
+ * reachable at /u/{slug} (no auth needed). Server-side validates slug
+ * format + reserved words + uniqueness across all workspaces. Returns
+ * the resolved slug on success or a friendly error message on conflict.
+ */
+export const setPublicSlugAction = authedAction
+  .inputSchema(
+    z.object({
+      cardId: z.string().min(1),
+      slug: z.union([publicSlugSchema, z.literal("")]).nullable(),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<{ ok: true; slug: string | null } | { ok: false; reason: string }> => {
+      const desired =
+        parsedInput.slug && parsedInput.slug !== "" ? parsedInput.slug.toLowerCase() : null;
+      try {
+        await setPublicSlugForUser(parsedInput.cardId, ctx.user.uid, desired);
+      } catch (err) {
+        return { ok: false, reason: err instanceof Error ? err.message : "操作失敗" };
+      }
+      revalidatePath("/");
+      revalidatePath("/cards");
+      revalidatePath(`/cards/${parsedInput.cardId}`);
+      if (desired) revalidatePath(`/u/${desired}`);
+      return { ok: true, slug: desired };
     },
   );
 

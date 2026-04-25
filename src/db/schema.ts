@@ -121,7 +121,34 @@ const cardBaseShape = {
       message: "Invalid date (YYYY-MM-DD)",
     })
     .optional(),
+
+  // Public profile slug — when set, this card is reachable as a public
+  // page at /u/{publicSlug} without auth. User picks ONE of their cards
+  // (typically their own) to expose. Slug uniqueness enforced by a
+  // top-level publicSlugs/{slug} doc; see setPublicSlugForUser.
+  publicSlug: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/)
+    .optional(),
 };
+
+/**
+ * Public profile slug rule:
+ * - lowercase a-z, 0-9, dash, underscore
+ * - 3-30 chars
+ * - cannot start/end with dash or underscore
+ *
+ * Reserved against scoping clashes (e.g. "_next") via runtime check
+ * in setPublicSlugForUser.
+ */
+export const publicSlugSchema = z
+  .string()
+  .min(3, "slug 至少 3 字")
+  .max(30, "slug 最多 30 字")
+  .regex(/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/, "只允許小寫英數、底線、減號；不得以符號開頭/結尾");
+export type PublicSlug = z.infer<typeof publicSlugSchema>;
 
 /** Payload shape when creating a card (client → server). */
 export const cardCreateSchema = z
