@@ -208,8 +208,8 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
           <CardActions
             cardId={card.id}
             displayName={primary}
-            primaryPhone={primaryPhone?.value}
-            primaryEmail={primaryEmail?.value}
+            phones={card.phones?.map((p) => ({ label: p.label, value: p.value }))}
+            emails={card.emails?.map((e) => ({ label: e.label, value: e.value }))}
             lineId={card.social?.lineId}
             linkedinUrl={card.social?.linkedinUrl}
             isPinned={card.isPinned}

@@ -27,13 +27,13 @@ describe("CardActions quick CTA row", () => {
 
   it("emits tel: deep link when primaryPhone is provided", () => {
     render(<CardActions cardId="abc" primaryPhone="0928030326" />);
-    const phoneLink = screen.getByLabelText("撥打 0928030326") as HTMLAnchorElement;
+    const phoneLink = screen.getByLabelText(/0928030326/) as HTMLAnchorElement;
     expect(phoneLink.href).toBe("tel:0928030326");
   });
 
   it("emits mailto: deep link when primaryEmail is provided", () => {
     render(<CardActions cardId="abc" primaryEmail="x@y.com" />);
-    const mailLink = screen.getByLabelText("寄信到 x@y.com") as HTMLAnchorElement;
+    const mailLink = screen.getByLabelText(/x@y.com/) as HTMLAnchorElement;
     expect(mailLink.href).toBe("mailto:x@y.com");
   });
 
@@ -100,6 +100,53 @@ describe("CardActions quick CTA row", () => {
           note: "wrote follow-up email",
         });
       });
+    });
+  });
+
+  describe("multi-value channel picker", () => {
+    it("renders single anchor when phones has exactly 1 entry", () => {
+      render(<CardActions cardId="abc" phones={[{ label: "mobile", value: "0900111222" }]} />);
+      const link = screen.getByLabelText(/0900111222/) as HTMLAnchorElement;
+      expect(link.href).toBe("tel:0900111222");
+    });
+
+    it("renders a picker button with caret when phones has 2+ entries", () => {
+      render(
+        <CardActions
+          cardId="abc"
+          phones={[
+            { label: "mobile", value: "0900111222" },
+            { label: "office", value: "02-1234-5678" },
+          ]}
+        />,
+      );
+      // No direct anchor — picker is a button until opened.
+      expect(screen.queryByRole("link", { name: /0900111222/ })).not.toBeInTheDocument();
+      const trigger = screen.getByRole("button", { name: /電話 \(2 個選項\)/ });
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("opens picker on click and lists all phone entries", () => {
+      render(
+        <CardActions
+          cardId="abc"
+          phones={[
+            { label: "mobile", value: "0900111222" },
+            { label: "office", value: "02-1234-5678" },
+          ]}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: /電話 \(2 個選項\)/ }));
+      const links = screen.getAllByRole("menuitem");
+      expect(links).toHaveLength(2);
+      const tel = screen.getByText("0900111222").closest("a") as HTMLAnchorElement;
+      expect(tel.href).toBe("tel:0900111222");
+    });
+
+    it("falls back to primaryPhone (legacy prop) when phones is omitted", () => {
+      render(<CardActions cardId="abc" primaryPhone="0900111222" />);
+      const link = screen.getByLabelText(/0900111222/) as HTMLAnchorElement;
+      expect(link.href).toBe("tel:0900111222");
     });
   });
 
