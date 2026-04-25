@@ -734,3 +734,55 @@ export const getActionItemsAction = authedAction
       return { ok: true, items, cached: false };
     },
   );
+
+/**
+ * Bulk-log a single contact-event note across N cards. Designed for the
+ * "I just met 5 people at one event" workflow — write the shared
+ * context once, attach it to every card.
+ *
+ * Sequential per-card (not parallel) so partial failures still surface
+ * a meaningful count: we write to as many cards as possible, then
+ * report how many succeeded vs. the first error.
+ */
+export const bulkLogContactAction = authedAction
+  .inputSchema(
+    z.object({
+      ids: z.array(z.string().min(1)).min(1).max(50),
+      note: z.string().max(500).default(""),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      { ok: true; logged: number; total: number } | { ok: false; reason: string; logged: number }
+    > => {
+      let logged = 0;
+      for (const id of parsedInput.ids) {
+        try {
+          await logContactEvent(id, {
+            uid: ctx.user.uid,
+            note: parsedInput.note,
+            authorDisplay: ctx.user.displayName ?? null,
+          });
+          logged++;
+        } catch (err) {
+          if (logged > 0) {
+            revalidatePath("/");
+            revalidatePath("/cards");
+            revalidatePath("/followups");
+          }
+          return {
+            ok: false,
+            reason: err instanceof Error ? err.message : "記錄失敗",
+            logged,
+          };
+        }
+      }
+      revalidatePath("/");
+      revalidatePath("/cards");
+      revalidatePath("/followups");
+      return { ok: true, logged, total: parsedInput.ids.length };
+    },
+  );
