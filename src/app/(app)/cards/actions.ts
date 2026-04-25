@@ -12,6 +12,7 @@ import {
   getCardsBySharedEvent,
   listCardsForUser,
   listContactEventsForUser,
+  listRecentContactEventsForUser,
   logContactEvent,
   mergeCardsForUser,
   setCardPinned,
@@ -42,6 +43,9 @@ import { callCoachLlm, isCoachConfigured } from "@/lib/coach/llm";
 import { selectTodayPriorityCards, type PriorityCandidate } from "@/lib/coach/priority";
 import { suggestNextFollowupDate, type FollowupSuggestion } from "@/lib/coach/followup-suggest";
 import { callCardChatLlm } from "@/lib/coach/chat-llm";
+import { actionItemsCacheMarker, type ActionItem } from "@/lib/coach/action-items";
+import { callActionItemsLlm } from "@/lib/coach/action-items-llm";
+import { readActionItemsCache, writeActionItemsCache } from "@/lib/coach/action-items-store";
 import { reengageCacheKey, type ReengageContext, type ReengageDrafts } from "@/lib/coach/reengage";
 import { callReengageLlm } from "@/lib/coach/reengage-llm";
 import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-store";
@@ -686,5 +690,47 @@ export const askCardQuestionAction = authedAction
       const answer = await callCardChatLlm({ card, events }, parsedInput.question);
       if (!answer) return { ok: false, reason: "llm-failed" };
       return { ok: true, answer };
+    },
+  );
+
+/**
+ * ✨ AI Action Items — scan recent /log entries, return things the user
+ * promised to do but hasn't followed up on. Uses the same /recap-style
+ * input range (default 14 days) and caches per item-fingerprint marker
+ * so a no-op page reload doesn't re-burn LLM credits.
+ */
+export const getActionItemsAction = authedAction
+  .inputSchema(
+    z.object({
+      sinceDays: z.number().int().min(1).max(60).default(14),
+      force: z.boolean().optional().default(false),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      | { ok: true; items: ActionItem[]; cached: boolean }
+      | { ok: false; reason: "no-llm" | "no-events" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const recap = await listRecentContactEventsForUser(ctx.user.uid, parsedInput.sinceDays);
+      if (recap.length === 0) return { ok: false, reason: "no-events" };
+
+      const marker = actionItemsCacheMarker(recap);
+      const cacheKey = `v1::since=${parsedInput.sinceDays}::${marker}`;
+
+      if (!parsedInput.force) {
+        const cached = await readActionItemsCache(ctx.user.uid, cacheKey);
+        if (cached) {
+          return { ok: true, items: cached, cached: true };
+        }
+      }
+
+      const items = await callActionItemsLlm(recap);
+      if (items === null) return { ok: false, reason: "llm-failed" };
+      await writeActionItemsCache(ctx.user.uid, cacheKey, items);
+      return { ok: true, items, cached: false };
     },
   );
