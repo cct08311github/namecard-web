@@ -13,6 +13,7 @@ import {
 } from "@/db/cards";
 import type { CardCreateInput } from "@/db/schema";
 import { companySlug, pickCanonicalCompany } from "@/lib/companies/group";
+import { findAnniversariesToday } from "@/lib/timeline/anniversaries";
 import { readSession } from "@/lib/firebase/session";
 
 import styles from "./detail.module.css";
@@ -57,6 +58,15 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
   const secondary = card.nameZh && card.nameEn ? card.nameEn : null;
   const role = card.jobTitleZh || card.jobTitleEn;
   const company = card.companyZh || card.companyEn;
+
+  // Anniversary chip — surfaces "認識 N 週年" only when today is the
+  // anniversary of firstMetDate. Reuses the same pure fn the timeline
+  // section uses, so the chip and the home-screen surface are always
+  // consistent.
+  const anniversaryEntry = findAnniversariesToday([card], new Date()).find(
+    (e) => e.card.id === card.id,
+  );
+  const anniversaryYears = anniversaryEntry?.years ?? null;
 
   // Count siblings at the same company so we can offer a link to the
   // /companies/[slug] hub. Wrapped in try/catch — a flaky list query
@@ -137,6 +147,11 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
                 {role && <span>{role}</span>}
                 {role && company && <em className={styles.sep}>於</em>}
                 {company && <strong>{company}</strong>}
+              </p>
+            )}
+            {anniversaryYears !== null && (
+              <p className={styles.anniversary} role="status">
+                🎉 {anniversaryYears} 年前的今天認識
               </p>
             )}
           </header>

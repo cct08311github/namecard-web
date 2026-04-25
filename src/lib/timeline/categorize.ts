@@ -1,7 +1,9 @@
 import type { CardSummary } from "@/db/cards";
 
+import { findAnniversariesToday } from "./anniversaries";
+
 export interface TimelineSection {
-  id: "due-today" | "pinned" | "uncontacted" | "met-this-month" | "newly-added";
+  id: "due-today" | "anniversaries" | "pinned" | "uncontacted" | "met-this-month" | "newly-added";
   title: string;
   description: string;
   cards: CardSummary[];
@@ -30,14 +32,18 @@ function parseFirstMetDate(raw: string | undefined): Date | null {
 }
 
 /**
- * Categorize cards into the 5 timeline sections.
- * Priority: due-today > pinned > met-this-month > newly-added > uncontacted.
- * A card shows in only one section. due-today wins over pinned because
- * the user *committed to acting today* — that beats the standing pin.
+ * Categorize cards into the 6 timeline sections.
+ * Priority: due-today > anniversaries > pinned > met-this-month > newly-added > uncontacted.
+ * A card shows in only one section. The implicit ranking is:
+ *  - due-today wins everything (you committed to acting today)
+ *  - anniversaries wins over pinned because the milestone is once-per-year
+ *  - pinned beats time-based sections because the user explicitly elevated them
  *
  * Rules:
  *  - due-today: followUpAt is set AND <= end of `now` calendar day
- *  - pinned: card.isPinned === true (and not due-today)
+ *  - anniversaries: firstMetDate matches today's month/day in a prior year
+ *    (Feb 29 anniversaries surface on Feb 28 in non-leap years)
+ *  - pinned: card.isPinned === true (and not due-today / anniversary)
  *  - met-this-month: firstMetDate within the given "now" month.
  *  - newly-added: createdAt within newlyAddedDays (default 7). Excluded from uncontacted.
  *  - uncontacted:
@@ -57,6 +63,12 @@ export function categorizeTimeline(
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
+  // Compute anniversaries up-front so we can exclude them from the
+  // other sections (a card surfacing on its anniversary should not
+  // also appear in pinned / met-this-month).
+  const anniversaryEntries = findAnniversariesToday(cards, now);
+  const anniversaryIds = new Set(anniversaryEntries.map((e) => e.card.id));
+
   const dueToday: CardSummary[] = [];
   const pinned: CardSummary[] = [];
   const metThisMonth: CardSummary[] = [];
@@ -69,6 +81,7 @@ export function categorizeTimeline(
       dueToday.push(card);
       continue;
     }
+    if (anniversaryIds.has(card.id)) continue; // already surfaced
     if (card.isPinned) {
       pinned.push(card);
       continue;
@@ -126,6 +139,14 @@ export function categorizeTimeline(
     return ta - tb;
   });
 
+  // Build the anniversary section title from the largest milestone in
+  // the result so we get e.g. "🎉 一年前的今天" or "🎉 五年前的今天".
+  const anniversaryCards = anniversaryEntries.map((e) => e.card);
+  const topYears = anniversaryEntries[0]?.years ?? 1;
+  const yearsLabel = topYears === 1 ? "一" : topYears.toString();
+  const anniversaryTitle =
+    anniversaryEntries.length > 0 ? `🎉 ${yearsLabel} 年前的今天` : "🎉 週年提醒";
+
   return [
     {
       id: "due-today",
@@ -134,6 +155,13 @@ export function categorizeTimeline(
       // Not capped — every due reminder must be visible, otherwise the
       // whole feature loses trust.
       cards: dueToday,
+    },
+    {
+      id: "anniversaries",
+      title: anniversaryTitle,
+      description: "一年（或多年）前的今天認識的人 — 寫個訊息打聲招呼吧。",
+      // Not capped — anniversaries are inherently rare; let them all show.
+      cards: anniversaryCards,
     },
     {
       id: "pinned",
