@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { FollowupCardRow } from "@/components/followups/FollowupCardRow";
 import { listCardsForUser } from "@/db/cards";
+import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
 import { bucketFollowups, totalFollowups, type FollowupBucket } from "@/lib/timeline/followups";
 
@@ -22,6 +23,7 @@ export default async function FollowupsPage() {
   });
   const groups = bucketFollowups(cards, new Date());
   const total = totalFollowups(groups);
+  const showAiDrafts = isCoachConfigured();
 
   const ordered: FollowupBucket[] = [
     groups.pinnedStale,
@@ -67,7 +69,12 @@ export default async function FollowupsPage() {
               </header>
               <ol className={styles.list}>
                 {bucket.cards.map(({ card, days }) => (
-                  <FollowupCardRow key={card.id} card={card} days={days} />
+                  <FollowupCardRow
+                    key={card.id}
+                    card={card}
+                    days={days}
+                    showAiDrafts={showAiDrafts}
+                  />
                 ))}
               </ol>
             </section>

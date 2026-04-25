@@ -1,10 +1,16 @@
 .row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+  border-bottom: var(--border-hair) solid var(--color-border);
+}
+
+.headerRow {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: var(--space-md);
   align-items: center;
-  padding: var(--space-sm) 0;
-  border-bottom: var(--border-hair) solid var(--color-border);
 }
 
 .link {
