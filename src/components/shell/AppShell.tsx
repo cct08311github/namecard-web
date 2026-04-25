@@ -17,6 +17,7 @@ interface NavItem {
 const PRIMARY: NavItem[] = [
   { href: "/", label: "時間軸", description: "最近沒聯絡 · 本月認識" },
   { href: "/followups", label: "追蹤", description: "誰該 ping 了" },
+  { href: "/intros", label: "🤝 介紹建議", description: "AI 找誰跟誰應該認識" },
   { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
   { href: "/cards/voice", label: "🎙️ 語音建卡", description: "講 30 秒讓 AI 解析" },
