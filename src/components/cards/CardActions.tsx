@@ -9,11 +9,28 @@ import { shareCardVcard } from "@/lib/share/card-share";
 
 import styles from "./CardActions.module.css";
 
+interface PhoneEntry {
+  label: string;
+  value: string;
+}
+interface EmailEntry {
+  label: string;
+  value: string;
+}
+
 interface CardActionsProps {
   cardId: string;
   displayName?: string;
+  /** Backwards-compat single-value prop. Prefer phones[]. */
   primaryPhone?: string;
+  /** Backwards-compat single-value prop. Prefer emails[]. */
   primaryEmail?: string;
+  /**
+   * Full phone list. When >1, the 📞 quick CTA becomes a picker.
+   * Falls back to primaryPhone when omitted.
+   */
+  phones?: PhoneEntry[];
+  emails?: EmailEntry[];
   lineId?: string;
   linkedinUrl?: string;
   isPinned?: boolean;
@@ -24,10 +41,23 @@ export function CardActions({
   displayName,
   primaryPhone,
   primaryEmail,
+  phones,
+  emails,
   lineId,
   linkedinUrl,
   isPinned = false,
 }: CardActionsProps) {
+  // Normalize: prefer the full list when given, else wrap the single
+  // primary into a 1-item list. Empty when there's nothing to show.
+  const phoneList: PhoneEntry[] =
+    phones?.filter((p) => p.value) ??
+    (primaryPhone ? [{ label: "phone", value: primaryPhone }] : []);
+  const emailList: EmailEntry[] =
+    emails?.filter((e) => e.value) ??
+    (primaryEmail ? [{ label: "email", value: primaryEmail }] : []);
+  const [phonePickerOpen, setPhonePickerOpen] = useState(false);
+  const [emailPickerOpen, setEmailPickerOpen] = useState(false);
+  const [copyPickerOpen, setCopyPickerOpen] = useState<"phone" | "email" | null>(null);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
@@ -125,44 +155,24 @@ export function CardActions({
 
       {/* Primary CTAs — 商務人士最常觸發的四個動作 */}
       <div className={styles.quick}>
-        {primaryPhone ? (
-          <a
-            href={`tel:${primaryPhone}`}
-            className={styles.quickButton}
-            aria-label={`撥打 ${primaryPhone}`}
-          >
-            <span className={styles.quickIcon} aria-hidden="true">
-              📞
-            </span>
-            <span className={styles.quickLabel}>電話</span>
-          </a>
-        ) : (
-          <span className={`${styles.quickButton} ${styles.quickDisabled}`} aria-disabled="true">
-            <span className={styles.quickIcon} aria-hidden="true">
-              📞
-            </span>
-            <span className={styles.quickLabel}>電話</span>
-          </span>
-        )}
-        {primaryEmail ? (
-          <a
-            href={`mailto:${primaryEmail}`}
-            className={styles.quickButton}
-            aria-label={`寄信到 ${primaryEmail}`}
-          >
-            <span className={styles.quickIcon} aria-hidden="true">
-              📧
-            </span>
-            <span className={styles.quickLabel}>Email</span>
-          </a>
-        ) : (
-          <span className={`${styles.quickButton} ${styles.quickDisabled}`} aria-disabled="true">
-            <span className={styles.quickIcon} aria-hidden="true">
-              📧
-            </span>
-            <span className={styles.quickLabel}>Email</span>
-          </span>
-        )}
+        <ChannelQuickButton
+          icon="📞"
+          label="電話"
+          entries={phoneList}
+          scheme="tel"
+          open={phonePickerOpen}
+          onToggle={() => setPhonePickerOpen((v) => !v)}
+          onClose={() => setPhonePickerOpen(false)}
+        />
+        <ChannelQuickButton
+          icon="📧"
+          label="Email"
+          entries={emailList}
+          scheme="mailto"
+          open={emailPickerOpen}
+          onToggle={() => setEmailPickerOpen((v) => !v)}
+          onClose={() => setEmailPickerOpen(false)}
+        />
         {lineHref ? (
           <a
             href={lineHref}
@@ -238,25 +248,29 @@ export function CardActions({
       )}
 
       {/* Copy-to-clipboard row — 商務常需快速複製貼到其他 app */}
-      {(primaryEmail || primaryPhone) && (
+      {(emailList.length > 0 || phoneList.length > 0) && (
         <div className={styles.copyRow}>
-          {primaryEmail && (
-            <button
-              type="button"
-              className={styles.secondary}
-              onClick={() => copyToClipboard(primaryEmail, " email")}
-            >
-              複製 Email
-            </button>
+          {emailList.length > 0 && (
+            <CopyButton
+              label="複製 Email"
+              valueLabel=" email"
+              entries={emailList}
+              open={copyPickerOpen === "email"}
+              onToggle={() => setCopyPickerOpen((c) => (c === "email" ? null : "email"))}
+              onClose={() => setCopyPickerOpen(null)}
+              onCopy={(value, label) => copyToClipboard(value, label)}
+            />
           )}
-          {primaryPhone && (
-            <button
-              type="button"
-              className={styles.secondary}
-              onClick={() => copyToClipboard(primaryPhone, "電話")}
-            >
-              複製電話
-            </button>
+          {phoneList.length > 0 && (
+            <CopyButton
+              label="複製電話"
+              valueLabel="電話"
+              entries={phoneList}
+              open={copyPickerOpen === "phone"}
+              onToggle={() => setCopyPickerOpen((c) => (c === "phone" ? null : "phone"))}
+              onClose={() => setCopyPickerOpen(null)}
+              onCopy={(value, label) => copyToClipboard(value, label)}
+            />
           )}
         </div>
       )}
@@ -312,5 +326,178 @@ export function CardActions({
         </p>
       )}
     </section>
+  );
+}
+
+interface ChannelQuickButtonProps {
+  icon: string;
+  label: string;
+  entries: PhoneEntry[];
+  scheme: "tel" | "mailto";
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}
+
+function ChannelQuickButton({
+  icon,
+  label,
+  entries,
+  scheme,
+  open,
+  onToggle,
+  onClose,
+}: ChannelQuickButtonProps) {
+  if (entries.length === 0) {
+    return (
+      <span className={`${styles.quickButton} ${styles.quickDisabled}`} aria-disabled="true">
+        <span className={styles.quickIcon} aria-hidden="true">
+          {icon}
+        </span>
+        <span className={styles.quickLabel}>{label}</span>
+      </span>
+    );
+  }
+  if (entries.length === 1) {
+    const e = entries[0];
+    return (
+      <a
+        href={`${scheme}:${e.value}`}
+        className={styles.quickButton}
+        aria-label={`${label} ${e.value}`}
+      >
+        <span className={styles.quickIcon} aria-hidden="true">
+          {icon}
+        </span>
+        <span className={styles.quickLabel}>{label}</span>
+      </a>
+    );
+  }
+  return (
+    <div className={styles.pickerWrap}>
+      <button
+        type="button"
+        className={styles.quickButton}
+        onClick={onToggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`${label} (${entries.length} 個選項)`}
+      >
+        <span className={styles.quickIcon} aria-hidden="true">
+          {icon}
+        </span>
+        <span className={styles.quickLabel}>{label} ▾</span>
+      </button>
+      {open && (
+        <ChannelPicker
+          entries={entries}
+          renderHref={(e) => `${scheme}:${e.value}`}
+          onClose={onClose}
+        />
+      )}
+    </div>
+  );
+}
+
+interface CopyButtonProps {
+  label: string;
+  valueLabel: string;
+  entries: PhoneEntry[];
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onCopy: (value: string, label: string) => void;
+}
+
+function CopyButton({
+  label,
+  valueLabel,
+  entries,
+  open,
+  onToggle,
+  onClose,
+  onCopy,
+}: CopyButtonProps) {
+  if (entries.length === 1) {
+    const e = entries[0];
+    return (
+      <button
+        type="button"
+        className={styles.secondary}
+        onClick={() => onCopy(e.value, valueLabel)}
+      >
+        {label}
+      </button>
+    );
+  }
+  return (
+    <div className={styles.pickerWrap}>
+      <button
+        type="button"
+        className={styles.secondary}
+        onClick={onToggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {label} ▾
+      </button>
+      {open && (
+        <ChannelPicker
+          entries={entries}
+          onSelect={(e) => {
+            onCopy(e.value, valueLabel);
+            onClose();
+          }}
+          onClose={onClose}
+        />
+      )}
+    </div>
+  );
+}
+
+interface ChannelPickerProps {
+  entries: PhoneEntry[];
+  renderHref?: (e: PhoneEntry) => string;
+  onSelect?: (e: PhoneEntry) => void;
+  onClose: () => void;
+}
+
+function ChannelPicker({ entries, renderHref, onSelect, onClose }: ChannelPickerProps) {
+  // Close on Escape; outside-click handled by absolute backdrop.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className={styles.pickerBackdrop} onClick={onClose} aria-hidden="true" />
+      <ul role="menu" className={styles.pickerMenu}>
+        {entries.map((e, i) => {
+          const inner = (
+            <>
+              <span className={styles.pickerLabel}>{e.label}</span>
+              <span className={styles.pickerValue}>{e.value}</span>
+            </>
+          );
+          return (
+            <li key={`${e.label}-${i}`} role="menuitem">
+              {renderHref ? (
+                <a href={renderHref(e)} className={styles.pickerItem} onClick={onClose}>
+                  {inner}
+                </a>
+              ) : (
+                <button type="button" className={styles.pickerItem} onClick={() => onSelect?.(e)}>
+                  {inner}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
