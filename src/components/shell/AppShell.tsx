@@ -22,6 +22,7 @@ const PRIMARY: NavItem[] = [
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
   { href: "/cards/voice", label: "🎙️ 語音建卡", description: "講 30 秒讓 AI 解析" },
   { href: "/log", label: "🗣️ 對話速記", description: "講一句 log 進對方的卡" },
+  { href: "/recap", label: "📓 對話日誌", description: "最近 14 天 log 過的對話" },
   { href: "/companies", label: "公司", description: "同公司聯絡人聚合" },
   { href: "/events", label: "場合", description: "同場合認識的人" },
   { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
