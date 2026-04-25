@@ -37,6 +37,16 @@ export default async function HomePage() {
         <p className={styles.lead}>
           把「關係脈絡」放在第一位—— 這裡不是名片列表，是你的人脈節奏表。
         </p>
+        {cards.length > 0 && (
+          <div className={styles.quickActions}>
+            <Link href="/log" className={styles.quickAction}>
+              🗣️ 對話速記
+            </Link>
+            <Link href="/cards/voice" className={styles.quickAction}>
+              🎙️ 語音建卡
+            </Link>
+          </div>
+        )}
       </header>
 
       {cards.length === 0 ? (
