@@ -20,6 +20,9 @@ import {
   updateCardForUser,
 } from "@/db/cards";
 import { cardCreateSchema, cardUpdateSchema } from "@/db/schema";
+import { briefingCacheKey, type BriefingPick } from "@/lib/coach/briefing";
+import { callBriefingLlm } from "@/lib/coach/briefing-llm";
+import { readBriefingCache, writeBriefingCache } from "@/lib/coach/briefing-store";
 import {
   contextHash,
   isEmptyInsight,
@@ -27,6 +30,7 @@ import {
   type CoachInsight,
 } from "@/lib/coach/insights";
 import { callCoachLlm, isCoachConfigured } from "@/lib/coach/llm";
+import { selectTodayPriorityCards, type PriorityCandidate } from "@/lib/coach/priority";
 import { readCoachCache, writeCoachCache } from "@/lib/coach/store";
 import { pickCanonicalCompany } from "@/lib/companies/group";
 
@@ -282,6 +286,70 @@ export const getCoachInsightsAction = authedAction
       }
       await writeCoachCache(ctx.user.uid, card.id, hash, insight);
       return { ok: true, insight, cached: false };
+    },
+  );
+
+/**
+ * 📰 今日人脈簡報 — pure-fn priority scorer narrows top 5 candidates,
+ * LLM picks 3 with human-voice reasons. Daily-cache keyed by
+ * (date, sorted candidate ids) so opening the app multiple times
+ * today returns the same picks (no ad-hoc regeneration).
+ *
+ * Returns picks paired with the original CardSummary so the UI can
+ * render mini-cards without a second fetch.
+ */
+export const getDailyBriefingAction = authedAction
+  .inputSchema(z.object({ force: z.boolean().optional().default(false) }))
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      | {
+          ok: true;
+          picks: Array<{ pick: BriefingPick; candidate: PriorityCandidate }>;
+          cached: boolean;
+        }
+      | { ok: false; reason: "no-llm" | "no-candidates" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const allCards = await listCardsForUser(ctx.user.uid, { limit: 500 });
+      const now = new Date();
+      const candidates = selectTodayPriorityCards(allCards, { now });
+      if (candidates.length === 0) return { ok: false, reason: "no-candidates" };
+
+      const cacheKey = briefingCacheKey(
+        now,
+        candidates.map((c) => c.card.id),
+      );
+      const candidateById = new Map(candidates.map((c) => [c.card.id, c]));
+
+      if (!parsedInput.force) {
+        const cached = await readBriefingCache(ctx.user.uid, cacheKey);
+        if (cached && cached.length > 0) {
+          const picks = cached
+            .map((pick) => {
+              const candidate = candidateById.get(pick.cardId);
+              return candidate ? { pick, candidate } : null;
+            })
+            .filter((x): x is { pick: BriefingPick; candidate: PriorityCandidate } => x !== null);
+          if (picks.length > 0) return { ok: true, picks, cached: true };
+        }
+      }
+
+      const llmPicks = await callBriefingLlm(candidates, now);
+      if (!llmPicks || llmPicks.length === 0) {
+        return { ok: false, reason: "llm-failed" };
+      }
+      await writeBriefingCache(ctx.user.uid, cacheKey, llmPicks);
+
+      const picks = llmPicks
+        .map((pick) => {
+          const candidate = candidateById.get(pick.cardId);
+          return candidate ? { pick, candidate } : null;
+        })
+        .filter((x): x is { pick: BriefingPick; candidate: PriorityCandidate } => x !== null);
+      return { ok: true, picks, cached: false };
     },
   );
 
