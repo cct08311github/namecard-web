@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CardActions } from "@/components/cards/CardActions";
+import { CardInlineEdit } from "@/components/cards/CardInlineEdit";
 import { ContactEventList } from "@/components/cards/ContactEventList";
 import { RelatedByEvent } from "@/components/cards/RelatedByEvent";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
@@ -55,9 +56,8 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
   }
 
   const primary = card.nameZh || card.nameEn || "（未命名）";
-  const secondary = card.nameZh && card.nameEn ? card.nameEn : null;
-  const role = card.jobTitleZh || card.jobTitleEn;
-  const company = card.companyZh || card.companyEn;
+  // The header now renders nameEn / role / company through CardInlineEdit
+  // directly from card.* — no need for derived display strings.
 
   // Anniversary chip — surfaces "認識 N 週年" only when today is the
   // anniversary of firstMetDate. Reuses the same pure fn the timeline
@@ -140,15 +140,45 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
         <main className={styles.main}>
           <header className={styles.header}>
             <p className={styles.kicker}>名片</p>
-            <h1 className={styles.name}>{primary}</h1>
-            {secondary && <p className={styles.nameEn}>{secondary}</p>}
-            {(role || company) && (
-              <p className={styles.subtitle}>
-                {role && <span>{role}</span>}
-                {role && company && <em className={styles.sep}>於</em>}
-                {company && <strong>{company}</strong>}
-              </p>
-            )}
+            <h1 className={styles.name}>
+              <CardInlineEdit
+                cardId={card.id}
+                field="nameZh"
+                value={card.nameZh}
+                placeholder="（中文姓名）"
+                ariaLabel="中文姓名"
+                maxLength={100}
+              />
+            </h1>
+            <p className={styles.nameEn}>
+              <CardInlineEdit
+                cardId={card.id}
+                field="nameEn"
+                value={card.nameEn}
+                placeholder="（English name）"
+                ariaLabel="英文姓名"
+                maxLength={100}
+              />
+            </p>
+            <p className={styles.subtitle}>
+              <CardInlineEdit
+                cardId={card.id}
+                field="jobTitleZh"
+                value={card.jobTitleZh}
+                placeholder="（職稱）"
+                ariaLabel="職稱（中文）"
+                maxLength={100}
+              />
+              <em className={styles.sep}>於</em>
+              <CardInlineEdit
+                cardId={card.id}
+                field="companyZh"
+                value={card.companyZh}
+                placeholder="（公司）"
+                ariaLabel="公司（中文）"
+                maxLength={100}
+              />
+            </p>
             {anniversaryYears !== null && (
               <p className={styles.anniversary} role="status">
                 🎉 {anniversaryYears} 年前的今天認識
@@ -156,12 +186,20 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             )}
           </header>
 
-          {card.whyRemember && (
-            <section className={styles.why}>
-              <p className={styles.whyLabel}>為什麼記得這個人</p>
-              <blockquote className={styles.whyBody}>{card.whyRemember}</blockquote>
-            </section>
-          )}
+          <section className={styles.why}>
+            <p className={styles.whyLabel}>為什麼記得這個人</p>
+            <blockquote className={styles.whyBody}>
+              <CardInlineEdit
+                cardId={card.id}
+                field="whyRemember"
+                value={card.whyRemember}
+                placeholder="（寫一句話：為什麼記得這個人）"
+                ariaLabel="為什麼記得這個人"
+                multiline
+                maxLength={500}
+              />
+            </blockquote>
+          </section>
 
           {(card.firstMetContext || card.firstMetDate || card.firstMetEventTag) && (
             <section className={styles.context}>
