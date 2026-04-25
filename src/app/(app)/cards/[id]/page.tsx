@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CardActions } from "@/components/cards/CardActions";
+import { CardChatBox } from "@/components/cards/CardChatBox";
 import { CardInlineEdit } from "@/components/cards/CardInlineEdit";
 import { CoachInsightSection } from "@/components/cards/CoachInsightSection";
 import { ContactEventList } from "@/components/cards/ContactEventList";
@@ -237,6 +238,10 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
               <h2 className={styles.sectionTitle}>備註</h2>
               <p className={styles.notesBody}>{card.notes}</p>
             </section>
+          )}
+
+          {isCoachConfigured() && (
+            <CardChatBox cardId={card.id} displayName={card.nameZh || card.nameEn} />
           )}
 
           <ContactEventList events={contactEvents} />

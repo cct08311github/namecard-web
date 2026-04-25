@@ -41,6 +41,7 @@ import { readIntrosCache, writeIntrosCache } from "@/lib/coach/intros-store";
 import { callCoachLlm, isCoachConfigured } from "@/lib/coach/llm";
 import { selectTodayPriorityCards, type PriorityCandidate } from "@/lib/coach/priority";
 import { suggestNextFollowupDate, type FollowupSuggestion } from "@/lib/coach/followup-suggest";
+import { callCardChatLlm } from "@/lib/coach/chat-llm";
 import { reengageCacheKey, type ReengageContext, type ReengageDrafts } from "@/lib/coach/reengage";
 import { callReengageLlm } from "@/lib/coach/reengage-llm";
 import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-store";
@@ -653,5 +654,37 @@ export const getFollowupSuggestionAction = authedAction
       const events = await listContactEventsForUser(card.id, ctx.user.uid, 10);
       const suggestion = suggestNextFollowupDate(card, events, new Date());
       return { ok: true, suggestion };
+    },
+  );
+
+/**
+ * 💬 Per-card AI Q&A — answer a free-form question about a contact
+ * grounded in their card + recent events. Single-shot (no multi-turn
+ * memory yet); cache disabled because questions are unique-per-call.
+ * The pure module enforces an anti-hallucination prompt; LLM is told
+ * to refuse when context is insufficient instead of guessing.
+ */
+export const askCardQuestionAction = authedAction
+  .inputSchema(
+    z.object({
+      cardId: z.string().min(1),
+      question: z.string().min(2).max(500),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      | { ok: true; answer: string }
+      | { ok: false; reason: "no-llm" | "card-not-found" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const card = await getCardForUser(ctx.user.uid, parsedInput.cardId);
+      if (!card || card.deletedAt) return { ok: false, reason: "card-not-found" };
+      const events = await listContactEventsForUser(card.id, ctx.user.uid, 10);
+      const answer = await callCardChatLlm({ card, events }, parsedInput.question);
+      if (!answer) return { ok: false, reason: "llm-failed" };
+      return { ok: true, answer };
     },
   );
