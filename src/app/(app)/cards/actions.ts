@@ -31,6 +31,9 @@ import {
 } from "@/lib/coach/insights";
 import { callCoachLlm, isCoachConfigured } from "@/lib/coach/llm";
 import { selectTodayPriorityCards, type PriorityCandidate } from "@/lib/coach/priority";
+import { reengageCacheKey, type ReengageContext, type ReengageDrafts } from "@/lib/coach/reengage";
+import { callReengageLlm } from "@/lib/coach/reengage-llm";
+import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-store";
 import { readCoachCache, writeCoachCache } from "@/lib/coach/store";
 import { pickCanonicalCompany } from "@/lib/companies/group";
 
@@ -350,6 +353,47 @@ export const getDailyBriefingAction = authedAction
         })
         .filter((x): x is { pick: BriefingPick; candidate: PriorityCandidate } => x !== null);
       return { ok: true, picks, cached: false };
+    },
+  );
+
+/**
+ * ✨ AI 重新聯絡訊息草稿 — for a single card, ask MiniMax to produce
+ * 3 ready-to-send drafts (LINE 短訊 / Email 正式 / 偶遇式 hook) given
+ * whyRemember + days-since-contact + recent events. Cached 12h per
+ * (cardId, contextHash with staleness bucket).
+ */
+export const getReengageDraftsAction = authedAction
+  .inputSchema(
+    z.object({
+      cardId: z.string().min(1),
+      force: z.boolean().optional().default(false),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      | { ok: true; drafts: ReengageDrafts; cached: boolean }
+      | { ok: false; reason: "no-llm" | "card-not-found" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const card = await getCardForUser(ctx.user.uid, parsedInput.cardId);
+      if (!card || card.deletedAt) return { ok: false, reason: "card-not-found" };
+
+      const recentEvents = await listContactEventsForUser(card.id, ctx.user.uid, 5);
+      const reengageCtx: ReengageContext = { card, recentEvents, now: new Date() };
+      const hash = reengageCacheKey(reengageCtx);
+
+      if (!parsedInput.force) {
+        const cached = await readReengageCache(ctx.user.uid, card.id, hash);
+        if (cached) return { ok: true, drafts: cached, cached: true };
+      }
+
+      const drafts = await callReengageLlm(reengageCtx);
+      if (!drafts) return { ok: false, reason: "llm-failed" };
+      await writeReengageCache(ctx.user.uid, card.id, hash, drafts);
+      return { ok: true, drafts, cached: false };
     },
   );
 
