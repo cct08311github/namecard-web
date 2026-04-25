@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CardActions } from "@/components/cards/CardActions";
 import { CardChatBox } from "@/components/cards/CardChatBox";
+import { CardImagePreview } from "@/components/cards/CardImagePreview";
 import { CardInlineEdit } from "@/components/cards/CardInlineEdit";
 import { CoachInsightSection } from "@/components/cards/CoachInsightSection";
 import { ContactEventList } from "@/components/cards/ContactEventList";
@@ -253,6 +254,10 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
         </main>
 
         <aside className={styles.sidebar} aria-label="Contact details">
+          <CardImagePreview
+            frontImagePath={card.frontImagePath}
+            backImagePath={card.backImagePath}
+          />
           <section className={styles.contactBlock}>
             <h2 className={styles.sidebarTitle}>聯絡</h2>
             <ul className={styles.contactList}>
