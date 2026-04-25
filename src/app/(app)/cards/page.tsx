@@ -7,6 +7,7 @@ import { ViewToggle } from "@/components/cards/ViewToggle";
 import { listCardsForUser, type CardSummary } from "@/db/cards";
 import { listTagsForUser } from "@/db/tags";
 import { readSession } from "@/lib/firebase/session";
+import { findDuplicateGroups } from "@/lib/cards/duplicates";
 import { applyTagFilter } from "@/lib/cards/filter";
 import { parseSortKey, sortCards } from "@/lib/cards/sort";
 import { getTypesenseClient } from "@/lib/search/client";
@@ -97,6 +98,12 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   // (or a tag-filtered list) we respect the segment control.
   if (!q) cards = sortCards(cards, sort);
 
+  // Surface a duplicate-count nudge in the header. Computed over the
+  // unfiltered list so the link is visible regardless of the current
+  // search/tag state — the actual /cards/duplicates page also runs
+  // its own independent scan, so this is just a notification.
+  const duplicateGroupCount = hasSearchState ? 0 : findDuplicateGroups(allCards).length;
+
   return (
     <article className={styles.article}>
       <header className={styles.header}>
@@ -120,6 +127,15 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
           </h1>
         </div>
         <div className={styles.controls}>
+          {duplicateGroupCount > 0 && (
+            <Link
+              href="/cards/duplicates"
+              className={styles.duplicatesLink}
+              title="有重複名片可合併"
+            >
+              {duplicateGroupCount} 組可合併
+            </Link>
+          )}
           <ViewToggle current={isGallery ? "gallery" : "list"} sort={sort} />
           {cards.length > 0 && (
             <ExportButton

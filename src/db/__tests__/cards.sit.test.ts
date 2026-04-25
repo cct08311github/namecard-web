@@ -557,4 +557,117 @@ describe("cards repository (SIT)", () => {
       expect(events).toEqual([]);
     });
   });
+
+  describe("mergeCardsForUser", () => {
+    it("unions phones / emails / tags from merged into keep (deduped)", async () => {
+      const keep = await repo.createCardForUser(
+        aCard({
+          phones: [{ label: "mobile", value: "0900-111-222" }],
+          emails: [{ label: "work", value: "k@x.com" }],
+          tagIds: ["t1"],
+          tagNames: ["客戶"],
+        }),
+        { uid: TEST_UID_ALICE },
+      );
+      const dup = await repo.createCardForUser(
+        aCard({
+          phones: [
+            { label: "mobile", value: "0900-111-222" }, // dup → drop
+            { label: "office", value: "02-1234-5678" }, // new → keep
+          ],
+          emails: [{ label: "personal", value: "k@y.com" }],
+          tagIds: ["t1", "t2"],
+          tagNames: ["VIP"],
+        }),
+        { uid: TEST_UID_ALICE },
+      );
+
+      const result = await repo.mergeCardsForUser(TEST_UID_ALICE, keep.id, [dup.id]);
+      expect(result.merged).toBe(1);
+
+      const after = (await repo.getCardForUser(TEST_UID_ALICE, keep.id))!;
+      expect(after.phones.map((p) => p.value).sort()).toEqual(
+        ["0900-111-222", "02-1234-5678"].sort(),
+      );
+      expect(after.emails.map((e) => e.value).sort()).toEqual(["k@x.com", "k@y.com"].sort());
+      expect(after.tagIds.sort()).toEqual(["t1", "t2"]);
+      expect(after.tagNames.sort()).toEqual(["VIP", "客戶"]);
+    });
+
+    it("appends provenance-tagged notes from merged cards", async () => {
+      const keep = await repo.createCardForUser(aCard({ notes: "原本的備註" }), {
+        uid: TEST_UID_ALICE,
+      });
+      const dup = await repo.createCardForUser(
+        aCard({
+          whyRemember: "Computex 偶遇",
+          notes: "想找他做合作",
+        }),
+        { uid: TEST_UID_ALICE },
+      );
+      await repo.mergeCardsForUser(TEST_UID_ALICE, keep.id, [dup.id]);
+      const after = (await repo.getCardForUser(TEST_UID_ALICE, keep.id))!;
+      expect(after.notes).toContain("原本的備註");
+      expect(after.notes).toContain("【併入：Computex 偶遇】");
+      expect(after.notes).toContain("想找他做合作");
+    });
+
+    it("takes max(lastContactedAt) across keep + merged", async () => {
+      const keep = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const dup = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+
+      // Touch dup more recently than keep.
+      await repo.touchLastContactedAt(keep.id, { uid: TEST_UID_ALICE });
+      await new Promise((r) => setTimeout(r, 50));
+      await repo.touchLastContactedAt(dup.id, { uid: TEST_UID_ALICE });
+
+      const dupCardBefore = (await repo.getCardForUser(TEST_UID_ALICE, dup.id))!;
+      const dupContactedAt = dupCardBefore.lastContactedAt!.getTime();
+
+      await repo.mergeCardsForUser(TEST_UID_ALICE, keep.id, [dup.id]);
+
+      const after = (await repo.getCardForUser(TEST_UID_ALICE, keep.id))!;
+      expect(after.lastContactedAt).not.toBeNull();
+      expect(after.lastContactedAt!.getTime()).toBe(dupContactedAt);
+    });
+
+    it("soft-deletes the merged cards (keep stays live)", async () => {
+      const keep = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const dup1 = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const dup2 = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+
+      await repo.mergeCardsForUser(TEST_UID_ALICE, keep.id, [dup1.id, dup2.id]);
+
+      const list = await repo.listCardsForUser(TEST_UID_ALICE);
+      const visibleIds = list.map((c) => c.id);
+      expect(visibleIds).toContain(keep.id);
+      expect(visibleIds).not.toContain(dup1.id);
+      expect(visibleIds).not.toContain(dup2.id);
+    });
+
+    it("refuses cross-user merges (throws when caller isn't a member)", async () => {
+      const aliceKeep = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const bobCard = await repo.createCardForUser(aCard(), { uid: TEST_UID_BOB });
+
+      await expect(
+        repo.mergeCardsForUser(TEST_UID_ALICE, aliceKeep.id, [bobCard.id]),
+      ).rejects.toThrow();
+      // Bob's card stays live in his workspace.
+      const bobList = await repo.listCardsForUser(TEST_UID_BOB);
+      expect(bobList.map((c) => c.id)).toContain(bobCard.id);
+    });
+
+    it("refuses when keepId appears in mergeIds", async () => {
+      const keep = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await expect(repo.mergeCardsForUser(TEST_UID_ALICE, keep.id, [keep.id])).rejects.toThrow(
+        /keepId cannot/,
+      );
+    });
+
+    it("noops on empty mergeIds", async () => {
+      const keep = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const result = await repo.mergeCardsForUser(TEST_UID_ALICE, keep.id, []);
+      expect(result.merged).toBe(0);
+    });
+  });
 });
