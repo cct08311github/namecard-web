@@ -7,6 +7,7 @@ import { extractCardFromTextAction } from "@/app/(app)/cards/actions";
 import type { ExtractedCard } from "@/lib/voice/extract";
 
 import styles from "./VoiceCardCapture.module.css";
+import { VoiceMicButton } from "./VoiceMicButton";
 
 const EXAMPLES = [
   "陳玉涵 PM 智威科技 在 2024 Computex 攤位上聊邊緣 AI 推論很投緣，提到他們公司在做 ML 加速器",
@@ -30,6 +31,7 @@ type Phase =
 export function VoiceCardCapture() {
   const router = useRouter();
   const [text, setText] = useState("");
+  const [interim, setInterim] = useState("");
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
   const [pending, startTransition] = useTransition();
 
@@ -86,6 +88,15 @@ export function VoiceCardCapture() {
         placeholder="例如：陳玉涵 PM 智威科技 在 Computex 攤位聊邊緣 AI 推論..."
         rows={5}
         maxLength={2000}
+        disabled={pending && phase.kind === "loading"}
+      />
+      {interim && <p className={styles.interim}>聆聽中：「{interim}」</p>}
+      <VoiceMicButton
+        onFinalTranscript={(t) => {
+          setText((prev) => (prev ? `${prev} ${t}` : t));
+          setInterim("");
+        }}
+        onInterimTranscript={setInterim}
         disabled={pending && phase.kind === "loading"}
       />
       <div className={styles.actions}>
