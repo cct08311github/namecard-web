@@ -36,6 +36,7 @@
 }
 
 .card {
+  position: relative;
   aspect-ratio: 3 / 2;
   padding: var(--space-lg);
   background: var(--color-bg-raised);
@@ -137,4 +138,42 @@
   letter-spacing: var(--tracking-wide);
   color: var(--color-accent);
   font-weight: 500;
+}
+
+.toggleBtn {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  padding: 0;
+}
+
+.checkbox {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-paper);
+  font-size: var(--text-caption);
+  color: var(--color-paper);
+}
+
+.checked {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.itemSelected .card {
+  box-shadow: 0 0 0 2px var(--color-ink);
 }

@@ -313,6 +313,93 @@ describe("cards repository (SIT)", () => {
     });
   });
 
+  describe("bulkUpdateCardsForUser", () => {
+    it("adds tags to many cards in one go (deduped)", async () => {
+      const a = await repo.createCardForUser(aCard({ tagIds: ["t1"] }), {
+        uid: TEST_UID_ALICE,
+      });
+      const b = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+
+      const result = await repo.bulkUpdateCardsForUser(TEST_UID_ALICE, [a.id, b.id], {
+        addTagIds: ["t1", "t2"],
+        addTagNames: ["客戶"],
+      });
+      expect(result.updated).toBe(2);
+
+      const aCardAfter = (await repo.getCardForUser(TEST_UID_ALICE, a.id))!;
+      const bCardAfter = (await repo.getCardForUser(TEST_UID_ALICE, b.id))!;
+      // a kept t1 (no dup) + got t2 + got "客戶"
+      expect(aCardAfter.tagIds.sort()).toEqual(["t1", "t2"]);
+      expect(aCardAfter.tagNames).toContain("客戶");
+      expect(bCardAfter.tagIds.sort()).toEqual(["t1", "t2"]);
+    });
+
+    it("sets firstMetEventTag and isPinned in one batch", async () => {
+      const a = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const b = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.bulkUpdateCardsForUser(TEST_UID_ALICE, [a.id, b.id], {
+        setEventTag: "2024 COMPUTEX",
+        setPinned: true,
+      });
+      for (const id of [a.id, b.id]) {
+        const card = (await repo.getCardForUser(TEST_UID_ALICE, id))!;
+        expect(card.firstMetEventTag).toBe("2024 COMPUTEX");
+        expect(card.isPinned).toBe(true);
+      }
+    });
+
+    it("skips cards the caller is not a member of (cross-user safety)", async () => {
+      const a = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const bobCard = await repo.createCardForUser(aCard(), { uid: TEST_UID_BOB });
+
+      const result = await repo.bulkUpdateCardsForUser(TEST_UID_ALICE, [a.id, bobCard.id], {
+        setPinned: true,
+      });
+      // bob's card should be invisible / unaffected — alice's reach is her workspace.
+      expect(result.updated).toBe(1);
+    });
+
+    it("skips soft-deleted cards", async () => {
+      const a = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const b = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.softDeleteCardForUser(b.id, { uid: TEST_UID_ALICE });
+
+      const result = await repo.bulkUpdateCardsForUser(TEST_UID_ALICE, [a.id, b.id], {
+        setPinned: true,
+      });
+      expect(result.updated).toBe(1);
+    });
+
+    it("noops on empty ids", async () => {
+      const result = await repo.bulkUpdateCardsForUser(TEST_UID_ALICE, [], { setPinned: true });
+      expect(result.updated).toBe(0);
+    });
+  });
+
+  describe("bulkSoftDeleteCardsForUser", () => {
+    it("soft-deletes the requested cards", async () => {
+      const a = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const b = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+
+      const result = await repo.bulkSoftDeleteCardsForUser(TEST_UID_ALICE, [a.id, b.id]);
+      expect(result.deleted).toBe(2);
+
+      const list = await repo.listCardsForUser(TEST_UID_ALICE);
+      expect(list.map((c) => c.id)).not.toContain(a.id);
+      expect(list.map((c) => c.id)).not.toContain(b.id);
+    });
+
+    it("does not affect cards owned by other users", async () => {
+      const aliceCard = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      const bobCard = await repo.createCardForUser(aCard(), { uid: TEST_UID_BOB });
+
+      await repo.bulkSoftDeleteCardsForUser(TEST_UID_ALICE, [aliceCard.id, bobCard.id]);
+
+      const bobList = await repo.listCardsForUser(TEST_UID_BOB);
+      expect(bobList.map((c) => c.id)).toContain(bobCard.id);
+    });
+  });
+
   describe("getCardsBySharedEvent", () => {
     it("returns other cards with the same firstMetEventTag, excluding self", async () => {
       const a = await repo.createCardForUser(
