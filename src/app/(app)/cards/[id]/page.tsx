@@ -5,6 +5,7 @@ import { CardActions } from "@/components/cards/CardActions";
 import { CardInlineEdit } from "@/components/cards/CardInlineEdit";
 import { CoachInsightSection } from "@/components/cards/CoachInsightSection";
 import { ContactEventList } from "@/components/cards/ContactEventList";
+import { PublicProfileToggle } from "@/components/cards/PublicProfileToggle";
 import { RelatedByEvent } from "@/components/cards/RelatedByEvent";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
 import {
@@ -298,6 +299,16 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             linkedinUrl={card.social?.linkedinUrl}
             isPinned={card.isPinned}
             followUpAt={card.followUpAt ? card.followUpAt.toISOString().slice(0, 10) : null}
+          />
+
+          <PublicProfileToggle
+            cardId={card.id}
+            currentSlug={card.publicSlug ?? null}
+            defaultSlugSuggestion={(card.nameEn || card.nameZh || "")
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-|-$/g, "")
+              .slice(0, 30)}
           />
 
           {card.firstMetEventTag && sharedEventCards.length > 0 && (

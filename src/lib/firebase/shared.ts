@@ -11,6 +11,12 @@ export const SESSION_COOKIE_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
 export const COLLECTION_WORKSPACES = "workspaces";
 export const SUB_COLLECTION_CARDS = "cards";
 export const SUB_COLLECTION_TAGS = "tags";
+/**
+ * Top-level reverse-lookup index for public profile slugs. Each doc id
+ * is the slug; doc body points back to {workspaceId, cardId} so the
+ * public page can resolve a slug → card without scanning all workspaces.
+ */
+export const COLLECTION_PUBLIC_SLUGS = "publicSlugs";
 
 /** Personal workspace id is exactly the user uid — see AGENTS.md invariant #1. */
 export function personalWorkspaceId(uid: string): string {
