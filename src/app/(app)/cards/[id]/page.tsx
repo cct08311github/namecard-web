@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 
 import { CardActions } from "@/components/cards/CardActions";
 import { ContactEventList } from "@/components/cards/ContactEventList";
+import { RelatedByEvent } from "@/components/cards/RelatedByEvent";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
-import { getCardForUser, listContactEventsForUser } from "@/db/cards";
+import { getCardForUser, getCardsBySharedEvent, listContactEventsForUser } from "@/db/cards";
 import type { CardCreateInput } from "@/db/schema";
 import { readSession } from "@/lib/firebase/session";
 
@@ -35,6 +36,9 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
   const card = await getCardForUser(user.uid, id);
   if (!card || card.deletedAt) notFound();
   const contactEvents = await listContactEventsForUser(id, user.uid, 30);
+  const sharedEventCards = card.firstMetEventTag
+    ? await getCardsBySharedEvent(user.uid, card.firstMetEventTag, card.id, 8)
+    : [];
 
   const primary = card.nameZh || card.nameEn || "（未命名）";
   const secondary = card.nameZh && card.nameEn ? card.nameEn : null;
@@ -203,6 +207,10 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             linkedinUrl={card.social?.linkedinUrl}
             isPinned={card.isPinned}
           />
+
+          {card.firstMetEventTag && sharedEventCards.length > 0 && (
+            <RelatedByEvent eventTag={card.firstMetEventTag} cards={sharedEventCards} />
+          )}
 
           <footer className={styles.timestamps}>
             {card.createdAt && (

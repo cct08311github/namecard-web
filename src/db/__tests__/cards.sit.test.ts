@@ -313,6 +313,84 @@ describe("cards repository (SIT)", () => {
     });
   });
 
+  describe("getCardsBySharedEvent", () => {
+    it("returns other cards with the same firstMetEventTag, excluding self", async () => {
+      const a = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "2024 COMPUTEX", whyRemember: "a" }),
+        { uid: TEST_UID_ALICE },
+      );
+      const b = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "2024 COMPUTEX", whyRemember: "b" }),
+        { uid: TEST_UID_ALICE },
+      );
+      const c = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "Other Event", whyRemember: "c" }),
+        { uid: TEST_UID_ALICE },
+      );
+
+      const others = await repo.getCardsBySharedEvent(TEST_UID_ALICE, "2024 COMPUTEX", a.id);
+      const ids = others.map((card) => card.id);
+      expect(ids).toContain(b.id);
+      expect(ids).not.toContain(a.id);
+      expect(ids).not.toContain(c.id);
+    });
+
+    it("respects the limit", async () => {
+      for (let i = 0; i < 5; i++) {
+        await repo.createCardForUser(
+          aCard({ firstMetEventTag: "Big Event", whyRemember: `c${i}` }),
+          { uid: TEST_UID_ALICE },
+        );
+      }
+      const seed = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "Big Event", whyRemember: "seed" }),
+        { uid: TEST_UID_ALICE },
+      );
+      const result = await repo.getCardsBySharedEvent(TEST_UID_ALICE, "Big Event", seed.id, 3);
+      expect(result).toHaveLength(3);
+    });
+
+    it("returns empty when eventTag is empty / whitespace", async () => {
+      const a = await repo.createCardForUser(aCard({ firstMetEventTag: "" }), {
+        uid: TEST_UID_ALICE,
+      });
+      expect(await repo.getCardsBySharedEvent(TEST_UID_ALICE, "", a.id)).toEqual([]);
+      expect(await repo.getCardsBySharedEvent(TEST_UID_ALICE, "   ", a.id)).toEqual([]);
+    });
+
+    it("does not leak across users (memberUids isolation)", async () => {
+      const aliceCard = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "Shared Event Name" }),
+        { uid: TEST_UID_ALICE },
+      );
+      const bobCard = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "Shared Event Name" }),
+        { uid: TEST_UID_BOB },
+      );
+
+      const aliceSees = await repo.getCardsBySharedEvent(
+        TEST_UID_ALICE,
+        "Shared Event Name",
+        aliceCard.id,
+      );
+      expect(aliceSees.map((c) => c.id)).not.toContain(bobCard.id);
+    });
+
+    it("excludes soft-deleted cards", async () => {
+      const a = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "Tag X", whyRemember: "a" }),
+        { uid: TEST_UID_ALICE },
+      );
+      const b = await repo.createCardForUser(
+        aCard({ firstMetEventTag: "Tag X", whyRemember: "b" }),
+        { uid: TEST_UID_ALICE },
+      );
+      await repo.softDeleteCardForUser(b.id, { uid: TEST_UID_ALICE });
+      const others = await repo.getCardsBySharedEvent(TEST_UID_ALICE, "Tag X", a.id);
+      expect(others.map((c) => c.id)).not.toContain(b.id);
+    });
+  });
+
   describe("setCardPinned", () => {
     it("flips isPinned on and off", async () => {
       const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
