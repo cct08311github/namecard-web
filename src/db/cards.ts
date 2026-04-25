@@ -53,6 +53,14 @@ export interface CardSummary {
    * CardActions already do).
    */
   isPinned?: boolean;
+  /**
+   * Future-action reminder timestamp. Set via setFollowUpForUser; auto-
+   * cleared on logContactEvent. null/undefined both mean no reminder
+   * pending — projection always normalizes to `Date | null`, but the
+   * type stays optional so old fixtures that never touched it stay
+   * valid (mirrors the isPinned backwards-compat pattern).
+   */
+  followUpAt?: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
   lastContactedAt: Date | null;
@@ -504,6 +512,51 @@ export async function setCardPinned(cardId: string, uid: string, pinned: boolean
   });
 }
 
+/**
+ * Set or clear a future follow-up reminder. `followUpAt` accepts a
+ * `YYYY-MM-DD` string (interpreted as midnight local time, then stored
+ * as a Date) or `null` to clear an existing reminder. logContactEvent
+ * auto-clears this — the assumption is that a logged interaction is
+ * the action you were reminding yourself to do.
+ *
+ * Reindexes Typesense afterwards so any list view sorting / filtering
+ * by followUpAt picks up the change immediately.
+ */
+export async function setFollowUpForUser(
+  cardId: string,
+  uid: string,
+  followUpAt: string | null,
+): Promise<void> {
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const ref = db.doc(`${cardsPath(wid)}/${cardId}`);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error("card not found");
+  const data = snap.data()!;
+  if (!data.memberUids?.includes(uid)) throw new Error("無權限修改此名片");
+
+  let value: Date | null = null;
+  if (followUpAt) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(followUpAt)) {
+      throw new Error("Invalid followUpAt format (expected YYYY-MM-DD)");
+    }
+    // Midnight local time so date inputs in any timezone round-trip
+    // to the same calendar day the user picked.
+    value = new Date(`${followUpAt}T00:00:00`);
+    if (Number.isNaN(value.getTime())) throw new Error("Invalid followUpAt date");
+  }
+
+  await ref.update({
+    followUpAt: value,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  const after = await ref.get();
+  if (after.exists && after.data()?.deletedAt === null) {
+    await syncWithFallback(wid, "upsert", cardId, toSummary(cardId, after.data()!));
+  }
+}
+
 // ==================== Contact events (append-only log) ====================
 
 export const SUB_COLLECTION_CONTACT_EVENTS = "contactEvents";
@@ -552,9 +605,13 @@ export async function logContactEvent(
     authorUid: uid,
     authorDisplay,
   });
+  // Auto-clear any pending follow-up reminder — the action you were
+  // reminding yourself to do has now happened. Idempotent: if there
+  // wasn't one set, the field stays at null.
   batch.update(cardRef, {
     lastContactedAt: now,
     updatedAt: now,
+    followUpAt: null,
   });
   await batch.commit();
 

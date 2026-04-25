@@ -558,6 +558,47 @@ describe("cards repository (SIT)", () => {
     });
   });
 
+  describe("setFollowUpForUser", () => {
+    it("persists a YYYY-MM-DD date as a Timestamp", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.setFollowUpForUser(id, TEST_UID_ALICE, "2026-05-01");
+      const card = (await repo.getCardForUser(TEST_UID_ALICE, id))!;
+      expect(card.followUpAt).toBeInstanceOf(Date);
+      expect(card.followUpAt!.toISOString().slice(0, 10)).toBe("2026-05-01");
+    });
+
+    it("clears the reminder when called with null", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.setFollowUpForUser(id, TEST_UID_ALICE, "2026-05-01");
+      await repo.setFollowUpForUser(id, TEST_UID_ALICE, null);
+      const card = (await repo.getCardForUser(TEST_UID_ALICE, id))!;
+      expect(card.followUpAt).toBeNull();
+    });
+
+    it("rejects malformed date strings", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await expect(repo.setFollowUpForUser(id, TEST_UID_ALICE, "not-a-date")).rejects.toThrow(
+        /Invalid followUpAt/,
+      );
+    });
+
+    it("refuses cross-user writes (caller must be in memberUids)", async () => {
+      const aliceCard = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await expect(
+        repo.setFollowUpForUser(aliceCard.id, TEST_UID_BOB, "2026-05-01"),
+      ).rejects.toThrow();
+    });
+
+    it("logContactEvent auto-clears followUpAt on the same card", async () => {
+      const { id } = await repo.createCardForUser(aCard(), { uid: TEST_UID_ALICE });
+      await repo.setFollowUpForUser(id, TEST_UID_ALICE, "2026-05-01");
+      await repo.logContactEvent(id, { uid: TEST_UID_ALICE, note: "called" });
+      const card = (await repo.getCardForUser(TEST_UID_ALICE, id))!;
+      expect(card.followUpAt).toBeNull();
+      expect(card.lastContactedAt).toBeInstanceOf(Date);
+    });
+  });
+
   describe("mergeCardsForUser", () => {
     it("unions phones / emails / tags from merged into keep (deduped)", async () => {
       const keep = await repo.createCardForUser(

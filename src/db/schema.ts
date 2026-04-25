@@ -109,6 +109,18 @@ const cardBaseShape = {
   // Pin — surfaced in Pinned section at the top of the timeline.
   // Optional for backwards-compat with existing card docs.
   isPinned: z.boolean().optional(),
+
+  // Future-action reminder. ISO date string ("YYYY-MM-DD") on the wire
+  // for the same reasons as firstMetDate (user-meaningful date, not an
+  // event time). Stored in Firestore as Timestamp at midnight UTC.
+  // Cleared automatically when logContactEvent fires (the action you
+  // were reminding yourself to do is done).
+  followUpAt: z
+    .string()
+    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), {
+      message: "Invalid date (YYYY-MM-DD)",
+    })
+    .optional(),
 };
 
 /** Payload shape when creating a card (client → server). */
