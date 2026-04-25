@@ -67,9 +67,11 @@ export function findAnniversariesToday(
 
   out.sort((a, b) => {
     if (a.years !== b.years) return b.years - a.years;
-    const an = (a.card.nameZh ?? a.card.nameEn ?? a.card.id).toString();
-    const bn = (b.card.nameZh ?? b.card.nameEn ?? b.card.id).toString();
-    return an.localeCompare(bn);
+    // Tiebreak on card.id (ASCII-safe, codepoint-stable). Avoids the
+    // platform-dependent localeCompare on Chinese names — macOS sorts
+    // by pinyin (李<張) while Linux falls back to codepoint (張<李),
+    // which would make CI tests flake.
+    return a.card.id < b.card.id ? -1 : a.card.id > b.card.id ? 1 : 0;
   });
   return out;
 }

@@ -53,12 +53,15 @@ describe("findAnniversariesToday", () => {
     expect(findAnniversariesToday([c], NOW)).toEqual([]);
   });
 
-  it("sorts by years desc (older milestones first), tiebreak on name asc", () => {
+  it("sorts by years desc (older milestones first), tiebreak on id asc", () => {
+    // Tiebreak is on id (ASCII-safe codepoint) rather than name —
+    // localeCompare on Chinese chars differs across platforms, which
+    // would otherwise flake on Linux CI vs macOS dev.
     const a = mk({ id: "a", nameZh: "張三", firstMetDate: "2024-04-25" });
     const b = mk({ id: "b", nameZh: "李四", firstMetDate: "2024-04-25" });
     const oldest = mk({ id: "oldest", nameZh: "王五", firstMetDate: "2020-04-25" });
     const result = findAnniversariesToday([a, b, oldest], NOW);
-    expect(result.map((r) => r.card.id)).toEqual(["oldest", "b", "a"]);
+    expect(result.map((r) => r.card.id)).toEqual(["oldest", "a", "b"]);
   });
 
   it("returns empty array on a day with no anniversaries", () => {
