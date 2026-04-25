@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { matchKeyEvent } from "@/lib/shortcuts/match";
 
 import styles from "./GlobalShortcuts.module.css";
+import { OPEN_SEARCH_EVENT } from "./MobileFab";
 import { QuickSearchPalette } from "./QuickSearchPalette";
 
 /**
@@ -87,8 +88,13 @@ export function GlobalShortcuts() {
     };
 
     window.addEventListener("keydown", handler);
+    // Bridge for the MobileFab "🔍 找人" action — lets the FAB open the
+    // palette without lifting palette state into AppShell.
+    const openSearch = () => setPaletteOpen(true);
+    window.addEventListener(OPEN_SEARCH_EVENT, openSearch);
     return () => {
       window.removeEventListener("keydown", handler);
+      window.removeEventListener(OPEN_SEARCH_EVENT, openSearch);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [helpOpen, paletteOpen, router]);

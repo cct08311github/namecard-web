@@ -6,6 +6,7 @@ import type { SessionUser } from "@/lib/firebase/session";
 
 import styles from "./AppShell.module.css";
 import { GlobalShortcuts } from "./GlobalShortcuts";
+import { MobileFab } from "./MobileFab";
 import { MobileNavWrapper } from "./MobileNavWrapper";
 
 interface NavItem {
@@ -88,6 +89,7 @@ export function AppShell({ user, children }: AppShellProps) {
         </aside>
       </MobileNavWrapper>
       <main className={styles.main}>{children}</main>
+      <MobileFab />
       <GlobalShortcuts />
     </div>
   );

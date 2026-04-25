@@ -1,0 +1,99 @@
+.root {
+  /* Mobile-only — desktop already has the rail. */
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .root {
+    display: block;
+  }
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: color-mix(in oklch, var(--color-ink) 25%, transparent);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sheet {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0) + 5.5rem);
+  right: calc(env(safe-area-inset-right, 0) + 1rem);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--color-paper);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 12rem;
+}
+
+.action {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.action:hover,
+.action:focus-visible {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-soft, var(--color-paper)) 35%,
+    var(--color-paper)
+  );
+  outline: none;
+}
+
+.fab,
+.fabOpen {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0) + 1rem);
+  right: calc(env(safe-area-inset-right, 0) + 1rem);
+  z-index: 80;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border: none;
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard);
+}
+
+.fab:hover,
+.fab:focus-visible,
+.fabOpen:hover,
+.fabOpen:focus-visible {
+  background: var(--color-accent-ink);
+  transform: scale(1.04);
+  outline: none;
+}
+
+.fabOpen {
+  background: var(--color-accent-ink);
+}
