@@ -8,6 +8,10 @@ import {
   bulkSoftDeleteCardsForUser,
   bulkUpdateCardsForUser,
   createCardForUser,
+  getCardForUser,
+  getCardsBySharedEvent,
+  listCardsForUser,
+  listContactEventsForUser,
   logContactEvent,
   mergeCardsForUser,
   setCardPinned,
@@ -16,6 +20,15 @@ import {
   updateCardForUser,
 } from "@/db/cards";
 import { cardCreateSchema, cardUpdateSchema } from "@/db/schema";
+import {
+  contextHash,
+  isEmptyInsight,
+  type CoachContext,
+  type CoachInsight,
+} from "@/lib/coach/insights";
+import { callCoachLlm, isCoachConfigured } from "@/lib/coach/llm";
+import { readCoachCache, writeCoachCache } from "@/lib/coach/store";
+import { pickCanonicalCompany } from "@/lib/companies/group";
 
 export const createCardAction = authedAction
   .inputSchema(cardCreateSchema)
@@ -196,6 +209,81 @@ export const setFollowUpAction = authedAction
     revalidatePath(`/cards/${parsedInput.id}`);
     return { ok: true as const, followUpAt: value };
   });
+
+/**
+ * AI 人脈教練 — assemble the card's full context (events + company
+ * mates + event mates + time-since-contact), call MiniMax, and return
+ * three buckets of actionable insight. Cached 24h per (cardId,
+ * contextHash) to keep the LLM bill small.
+ *
+ * Modes:
+ *   - `force=true` ignores cache (regenerate button)
+ *   - returns `{ ok: true, insight, cached }` on success
+ *   - returns `{ ok: false, reason: "no-llm" | "card-not-found" | "llm-failed" }` otherwise
+ */
+export const getCoachInsightsAction = authedAction
+  .inputSchema(
+    z.object({
+      cardId: z.string().min(1),
+      force: z.boolean().optional().default(false),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      | { ok: true; insight: CoachInsight; cached: boolean }
+      | { ok: false; reason: "no-llm" | "card-not-found" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const card = await getCardForUser(ctx.user.uid, parsedInput.cardId);
+      if (!card || card.deletedAt) return { ok: false, reason: "card-not-found" };
+
+      const [events, allCards, eventMatesRaw] = await Promise.all([
+        listContactEventsForUser(card.id, ctx.user.uid, 10),
+        listCardsForUser(ctx.user.uid, { limit: 500 }),
+        card.firstMetEventTag
+          ? getCardsBySharedEvent(ctx.user.uid, card.firstMetEventTag, card.id, 6).catch(() => [])
+          : Promise.resolve([]),
+      ]);
+
+      const canonicalCompany = pickCanonicalCompany(card).toLowerCase().trim();
+      const companyMates = canonicalCompany
+        ? allCards
+            .filter(
+              (c) =>
+                c.id !== card.id &&
+                !c.deletedAt &&
+                pickCanonicalCompany(c).toLowerCase().trim() === canonicalCompany,
+            )
+            .slice(0, 6)
+        : [];
+
+      const coachCtx: CoachContext = {
+        card,
+        events,
+        companyMates,
+        eventMates: eventMatesRaw,
+        now: new Date(),
+      };
+      const hash = contextHash(coachCtx);
+
+      if (!parsedInput.force) {
+        const cached = await readCoachCache(ctx.user.uid, card.id, hash);
+        if (cached && !isEmptyInsight(cached)) {
+          return { ok: true, insight: cached, cached: true };
+        }
+      }
+
+      const insight = await callCoachLlm(coachCtx);
+      if (!insight || isEmptyInsight(insight)) {
+        return { ok: false, reason: "llm-failed" };
+      }
+      await writeCoachCache(ctx.user.uid, card.id, hash, insight);
+      return { ok: true, insight, cached: false };
+    },
+  );
 
 /**
  * @deprecated Prefer `logContactAction`. Retained so any existing
