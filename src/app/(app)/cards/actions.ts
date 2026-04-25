@@ -9,6 +9,7 @@ import {
   bulkUpdateCardsForUser,
   createCardForUser,
   logContactEvent,
+  mergeCardsForUser,
   setCardPinned,
   softDeleteCardForUser,
   updateCardForUser,
@@ -144,6 +145,28 @@ export const toggleCardPinAction = authedAction
     revalidatePath("/cards");
     revalidatePath(`/cards/${parsedInput.id}`);
     return { ok: true as const, pinned: parsedInput.pinned };
+  });
+
+/**
+ * Merge N duplicate cards into a chosen "keep" card: union phones / emails /
+ * tags / social, append notes with provenance, take max(lastContactedAt),
+ * then soft-delete the merged ones. The /cards/duplicates page is the
+ * primary caller; surface refuses if keepId appears in mergeIds.
+ */
+export const mergeCardsAction = authedAction
+  .inputSchema(
+    z.object({
+      keepId: z.string().min(1),
+      mergeIds: z.array(z.string().min(1)).min(1).max(20),
+    }),
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const result = await mergeCardsForUser(ctx.user.uid, parsedInput.keepId, parsedInput.mergeIds);
+    revalidatePath("/");
+    revalidatePath("/cards");
+    revalidatePath("/cards/duplicates");
+    revalidatePath(`/cards/${parsedInput.keepId}`);
+    return { ok: true as const, ...result };
   });
 
 /**

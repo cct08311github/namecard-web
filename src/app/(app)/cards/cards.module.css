@@ -63,6 +63,26 @@
   color: var(--color-paper);
 }
 
+.duplicatesLink {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-xs) var(--space-md);
+  border: var(--border-hair) solid var(--color-accent-ink);
+  color: var(--color-accent-ink);
+  background: transparent;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.duplicatesLink:hover {
+  background: var(--color-accent-ink);
+  color: var(--color-paper);
+}
+
 .empty {
   padding: var(--space-2xl) var(--space-xl);
   text-align: center;

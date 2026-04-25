@@ -333,6 +333,130 @@ export async function bulkSoftDeleteCardsForUser(
 }
 
 /**
+ * Merge `mergeIds` cards into `keepId`:
+ *   - Union phones / emails (dedup by value), tagIds + tagNames
+ *   - Fill empty social fields from merged-in records
+ *   - Concatenate notes with provenance prefix per merged card
+ *   - lastContactedAt → max across all
+ *   - Soft-delete merged + Typesense delete
+ *
+ * Refuses if any id isn't accessible to the caller, the keep card
+ * is missing/deleted, or keepId appears in mergeIds.
+ */
+export async function mergeCardsForUser(
+  uid: string,
+  keepId: string,
+  mergeIds: readonly string[],
+): Promise<{ merged: number }> {
+  if (mergeIds.length === 0) return { merged: 0 };
+  if (mergeIds.includes(keepId)) {
+    throw new Error("keepId cannot also appear in mergeIds");
+  }
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const allIds = [keepId, ...mergeIds];
+  const refs = allIds.map((id) => db.doc(`${cardsPath(wid)}/${id}`));
+  const snaps = await db.getAll(...refs);
+  const docs = snaps.map((s, i) => ({ id: allIds[i], snap: s }));
+
+  const keep = docs.find((d) => d.id === keepId)!.snap;
+  if (!keep.exists) throw new Error("keep card not found");
+  const keepData = keep.data()!;
+  if (!keepData.memberUids?.includes(uid)) throw new Error("無權限合併此名片");
+  if (keepData.deletedAt) throw new Error("不能合併已刪除的名片");
+
+  const mergeData: FirebaseFirestore.DocumentData[] = [];
+  for (const m of docs) {
+    if (m.id === keepId) continue;
+    if (!m.snap.exists) throw new Error(`merge card ${m.id} not found`);
+    const data = m.snap.data()!;
+    if (!data.memberUids?.includes(uid)) throw new Error("無權限合併此名片");
+    if (data.deletedAt) continue;
+    mergeData.push(data);
+  }
+
+  // Phones — dedup by trimmed value (preserve original case).
+  const phoneByValue = new Map<string, { label: string; value: string; primary?: boolean }>();
+  for (const arr of [keepData.phones ?? [], ...mergeData.map((d) => d.phones ?? [])]) {
+    for (const p of arr) {
+      const key = (p.value ?? "").trim();
+      if (key && !phoneByValue.has(key)) phoneByValue.set(key, p);
+    }
+  }
+  const emailByValue = new Map<string, { label: string; value: string; primary?: boolean }>();
+  for (const arr of [keepData.emails ?? [], ...mergeData.map((d) => d.emails ?? [])]) {
+    for (const e of arr) {
+      const key = (e.value ?? "").trim().toLowerCase();
+      if (key && !emailByValue.has(key)) emailByValue.set(key, e);
+    }
+  }
+  const tagIds = mergeUnique<string>(
+    keepData.tagIds ?? [],
+    mergeData.flatMap((d) => d.tagIds ?? []),
+  );
+  const tagNames = mergeUnique<string>(
+    keepData.tagNames ?? [],
+    mergeData.flatMap((d) => d.tagNames ?? []),
+  );
+  const social: Record<string, string | undefined> = { ...(keepData.social ?? {}) };
+  for (const md of mergeData) {
+    const s = (md.social ?? {}) as Record<string, unknown>;
+    for (const [k, v] of Object.entries(s)) {
+      if (v && !social[k]) social[k] = String(v);
+    }
+  }
+
+  const notesParts: string[] = [];
+  if (keepData.notes) notesParts.push(String(keepData.notes));
+  for (const md of mergeData) {
+    const tag = md.whyRemember ? `【併入：${md.whyRemember}】` : "【併入】";
+    if (md.notes) notesParts.push(`${tag}\n${md.notes}`);
+    else notesParts.push(tag);
+  }
+  const notes = notesParts.join("\n\n").slice(0, 4000);
+
+  const lastContactedAtMs = Math.max(
+    keepData.lastContactedAt?.toMillis?.() ?? 0,
+    ...mergeData.map((d) => d.lastContactedAt?.toMillis?.() ?? 0),
+  );
+
+  const update: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData> = {
+    phones: Array.from(phoneByValue.values()).slice(0, 10),
+    emails: Array.from(emailByValue.values()).slice(0, 10),
+    tagIds: tagIds.slice(0, 30),
+    tagNames: tagNames.slice(0, 30),
+    social,
+    notes,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  if (lastContactedAtMs > 0) {
+    update.lastContactedAt = new Date(lastContactedAtMs);
+  }
+
+  const batch = db.batch();
+  batch.update(keep.ref, update);
+  for (const m of docs) {
+    if (m.id === keepId) continue;
+    if (!m.snap.exists || m.snap.data()?.deletedAt) continue;
+    batch.update(m.snap.ref, {
+      deletedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
+  await batch.commit();
+
+  const after = await keep.ref.get();
+  if (after.exists && after.data()?.deletedAt === null) {
+    await syncWithFallback(wid, "upsert", keepId, toSummary(keepId, after.data()!));
+  }
+  for (const m of docs) {
+    if (m.id === keepId) continue;
+    await syncWithFallback(wid, "delete", m.id, null);
+  }
+  return { merged: mergeData.length };
+}
+
+/**
  * Find other cards from the same event tag (e.g. "2024 COMPUTEX") so
  * the detail page can show 「同場合認識的人」. Filtered by memberUids
  * to honor the same access boundary as `listCardsForUser` and exclude
