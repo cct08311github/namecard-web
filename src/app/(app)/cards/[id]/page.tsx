@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CardActions } from "@/components/cards/CardActions";
 import { CardInlineEdit } from "@/components/cards/CardInlineEdit";
+import { CoachInsightSection } from "@/components/cards/CoachInsightSection";
 import { ContactEventList } from "@/components/cards/ContactEventList";
 import { RelatedByEvent } from "@/components/cards/RelatedByEvent";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
@@ -13,6 +14,7 @@ import {
   listContactEventsForUser,
 } from "@/db/cards";
 import type { CardCreateInput } from "@/db/schema";
+import { isCoachConfigured } from "@/lib/coach/llm";
 import { companySlug, pickCanonicalCompany } from "@/lib/companies/group";
 import { findAnniversariesToday } from "@/lib/timeline/anniversaries";
 import { readSession } from "@/lib/firebase/session";
@@ -200,6 +202,8 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
               />
             </blockquote>
           </section>
+
+          {isCoachConfigured() && <CoachInsightSection cardId={card.id} isPinned={card.isPinned} />}
 
           {(card.firstMetContext || card.firstMetDate || card.firstMetEventTag) && (
             <section className={styles.context}>
