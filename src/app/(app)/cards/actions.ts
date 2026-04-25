@@ -46,7 +46,7 @@ import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-stor
 import { readCoachCache, writeCoachCache } from "@/lib/coach/store";
 import { pickCanonicalCompany } from "@/lib/companies/group";
 import { encodePrefill, type ExtractedCard } from "@/lib/voice/extract";
-import { callExtractLlm } from "@/lib/voice/extract-llm";
+import { callExtractLlm, callExtractLlmMulti } from "@/lib/voice/extract-llm";
 
 export const createCardAction = authedAction
   .inputSchema(cardCreateSchema)
@@ -529,6 +529,68 @@ export const extractCardFromTextAction = authedAction
       const extracted = await callExtractLlm(parsedInput.text);
       if (!extracted) return { ok: false, reason: "llm-failed" };
       return { ok: true, extracted, prefillToken: encodePrefill(extracted) };
+    },
+  );
+
+/**
+ * 🎙️ Voice-to-card *multi*-extract — same MiniMax hop as single, but
+ * returns ALL cards the LLM detected. Networking event 後 user 一次說
+ * 「認識三個人：A 是…、B 是…、C 是…」會回 3 張卡。
+ */
+export const extractMultipleCardsAction = authedAction
+  .inputSchema(z.object({ text: z.string().min(3).max(4000) }))
+  .action(
+    async ({
+      parsedInput,
+    }): Promise<
+      { ok: true; extracted: ExtractedCard[] } | { ok: false; reason: "no-llm" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const cards = await callExtractLlmMulti(parsedInput.text);
+      if (cards.length === 0) return { ok: false, reason: "llm-failed" };
+      return { ok: true, extracted: cards };
+    },
+  );
+
+/**
+ * Batch-create N cards in one Server Action call. Used by the
+ * voice-multi flow after the user reviews the AI-extracted preview.
+ * Each card runs through the same `createCardForUser` so memberUids /
+ * Typesense reindex / etc. all behave identically to single create.
+ */
+export const createCardsBatchAction = authedAction
+  .inputSchema(
+    z.object({
+      cards: z.array(cardCreateSchema).min(1).max(20),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<{ ok: true; ids: string[] } | { ok: false; reason: string }> => {
+      const ids: string[] = [];
+      for (const card of parsedInput.cards) {
+        try {
+          const { id } = await createCardForUser(card, {
+            uid: ctx.user.uid,
+            displayName: ctx.user.displayName,
+          });
+          ids.push(id);
+        } catch (err) {
+          if (ids.length > 0) {
+            revalidatePath("/");
+            revalidatePath("/cards");
+          }
+          return {
+            ok: false,
+            reason: err instanceof Error ? err.message : "建立失敗",
+          };
+        }
+      }
+      revalidatePath("/");
+      revalidatePath("/cards");
+      return { ok: true, ids };
     },
   );
 

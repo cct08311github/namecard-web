@@ -5,6 +5,7 @@ import {
   decodePrefill,
   encodePrefill,
   parseExtractedCard,
+  parseMultipleExtractedCards,
   type ExtractedCard,
 } from "../extract";
 
@@ -90,6 +91,79 @@ describe("parseExtractedCard", () => {
     const raw = JSON.stringify({ nameZh: "  ", whyRemember: "x" });
     const result = parseExtractedCard(raw, "f");
     expect(result?.nameZh).toBeUndefined();
+  });
+});
+
+describe("parseMultipleExtractedCards", () => {
+  it("parses new {cards: [...]} schema with multiple entries", () => {
+    const raw = JSON.stringify({
+      cards: [
+        { nameZh: "陳玉涵", whyRemember: "Computex 邊緣 AI" },
+        { nameZh: "李大同", whyRemember: "Web Summit BD" },
+        { nameZh: "王秘書長", whyRemember: "AI 政策" },
+      ],
+    });
+    const result = parseMultipleExtractedCards(raw, "fallback");
+    expect(result).toHaveLength(3);
+    expect(result.map((c) => c.nameZh)).toEqual(["陳玉涵", "李大同", "王秘書長"]);
+  });
+
+  it("returns single-element array for legacy {...singleCard} shape", () => {
+    const raw = JSON.stringify({ nameZh: "陳玉涵", whyRemember: "x" });
+    const result = parseMultipleExtractedCards(raw, "fb");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.nameZh).toBe("陳玉涵");
+  });
+
+  it("returns [] for malformed JSON", () => {
+    expect(parseMultipleExtractedCards("not json", "fb")).toEqual([]);
+  });
+
+  it("returns [] for top-level array root", () => {
+    expect(parseMultipleExtractedCards("[1,2,3]", "fb")).toEqual([]);
+  });
+
+  it("drops invalid items inside cards array but keeps valid ones", () => {
+    const raw = JSON.stringify({
+      cards: [
+        null,
+        "string",
+        { nameZh: "Alice", whyRemember: "x" },
+        42,
+        { nameZh: "Bob", whyRemember: "y" },
+      ],
+    });
+    const result = parseMultipleExtractedCards(raw, "fb");
+    expect(result).toHaveLength(2);
+    expect(result.map((c) => c.nameZh)).toEqual(["Alice", "Bob"]);
+  });
+
+  it("falls back whyRemember per card when missing", () => {
+    const raw = JSON.stringify({
+      cards: [{ nameZh: "Alice" }, { nameZh: "Bob" }],
+    });
+    const result = parseMultipleExtractedCards(raw, "originals");
+    expect(result[0]!.whyRemember).toBe("originals");
+    expect(result[1]!.whyRemember).toBe("originals");
+  });
+});
+
+describe("parseExtractedCard backward-compat through multi parser", () => {
+  it("returns first card from new schema when single is requested", () => {
+    const raw = JSON.stringify({
+      cards: [
+        { nameZh: "First", whyRemember: "x" },
+        { nameZh: "Second", whyRemember: "y" },
+      ],
+    });
+    const result = parseExtractedCard(raw, "fb");
+    expect(result?.nameZh).toBe("First");
+  });
+
+  it("still parses legacy single-object payload", () => {
+    const raw = JSON.stringify({ nameZh: "陳玉涵", whyRemember: "legacy" });
+    const result = parseExtractedCard(raw, "fb");
+    expect(result?.nameZh).toBe("陳玉涵");
   });
 });
 
