@@ -12,6 +12,8 @@ interface CardGalleryProps {
   cards: CardSummary[];
   /** When provided, tiles toggle selection instead of navigating. */
   selection?: CardSelectionApi;
+  /** Optional cardId → signed-URL map for thumbnail rendering. */
+  imageUrls?: Record<string, string>;
 }
 
 function primaryName(card: CardSummary): string {
@@ -39,7 +41,7 @@ function tiltFor(id: string): number {
   return magnitude * 0.5;
 }
 
-export function CardGallery({ cards, selection }: CardGalleryProps) {
+export function CardGallery({ cards, selection, imageUrls }: CardGalleryProps) {
   const now = new Date();
   return (
     <ul className={styles.grid}>
@@ -49,6 +51,7 @@ export function CardGallery({ cards, selection }: CardGalleryProps) {
         const stale = shouldShowStaleBadge(card, now);
         const days = stale ? daysSinceContact(card, now) : null;
         const checked = selection?.isSelected(card.id) ?? false;
+        const thumbUrl = imageUrls?.[card.id];
         const inner = (
           <article className={styles.card}>
             {selection && (
@@ -58,6 +61,17 @@ export function CardGallery({ cards, selection }: CardGalleryProps) {
               >
                 {checked ? "✓" : ""}
               </span>
+            )}
+            {thumbUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumbUrl}
+                alt=""
+                className={styles.banner}
+                loading="lazy"
+                decoding="async"
+                aria-hidden="true"
+              />
             )}
             <header className={styles.cardHeader}>
               <h2 className={styles.name}>

@@ -22,6 +22,8 @@ interface CardsSelectionShellProps {
   cards: CardSummary[];
   view: View;
   tags: TagSummary[];
+  /** Optional cardId → signed-URL map for thumbnail rendering. */
+  imageUrls?: Record<string, string>;
 }
 
 /**
@@ -32,7 +34,7 @@ interface CardsSelectionShellProps {
  * (sort change / pagination) clears selection. Cross-page persistence
  * was deliberately scoped out; users have only one page of cards.
  */
-export function CardsSelectionShell({ cards, view, tags }: CardsSelectionShellProps) {
+export function CardsSelectionShell({ cards, view, tags, imageUrls }: CardsSelectionShellProps) {
   const router = useRouter();
   const [selectMode, setSelectMode] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -171,9 +173,17 @@ export function CardsSelectionShell({ cards, view, tags }: CardsSelectionShellPr
       </div>
 
       {view === "gallery" ? (
-        <CardGallery cards={cards} selection={selectMode ? selection : undefined} />
+        <CardGallery
+          cards={cards}
+          selection={selectMode ? selection : undefined}
+          imageUrls={imageUrls}
+        />
       ) : (
-        <CardList cards={cards} selection={selectMode ? selection : undefined} />
+        <CardList
+          cards={cards}
+          selection={selectMode ? selection : undefined}
+          imageUrls={imageUrls}
+        />
       )}
 
       {selectMode && selection.count > 0 && (

@@ -32,6 +32,22 @@
   }
 }
 
+.thumb {
+  width: 4rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--color-ink) 5%, var(--color-paper));
+  flex-shrink: 0;
+}
+
+.primaryRow {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  min-width: 0;
+}
+
 .link:hover {
   background: var(--color-accent-soft);
 }

@@ -12,6 +12,8 @@ interface CardListProps {
   cards: CardSummary[];
   /** When provided, rows render as toggles instead of navigation links. */
   selection?: CardSelectionApi;
+  /** Optional cardId → signed-URL map for thumbnail rendering. */
+  imageUrls?: Record<string, string>;
 }
 
 function primaryName(card: CardSummary): string {
@@ -26,7 +28,7 @@ function role(card: CardSummary): string | null {
   return card.jobTitleZh || card.jobTitleEn || null;
 }
 
-export function CardList({ cards, selection }: CardListProps) {
+export function CardList({ cards, selection, imageUrls }: CardListProps) {
   // Compute now once per render so staleness is stable across the list and
   // doesn't diverge between items rendered a few ms apart.
   const now = new Date();
@@ -37,6 +39,7 @@ export function CardList({ cards, selection }: CardListProps) {
         const days = stale ? daysSinceContact(card, now) : null;
         const checked = selection?.isSelected(card.id) ?? false;
         const temperature = computeTemperature(card, now);
+        const thumbUrl = imageUrls?.[card.id];
         const inner = (
           <>
             {selection && (
@@ -47,16 +50,29 @@ export function CardList({ cards, selection }: CardListProps) {
                 {checked ? "✓" : ""}
               </span>
             )}
-            <div className={styles.primary}>
-              {card.isPinned && (
-                <span className={styles.pinBadge} aria-label="重要聯絡人" title="重要聯絡人">
-                  📍
-                </span>
+            <div className={styles.primaryRow}>
+              {thumbUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={thumbUrl}
+                  alt=""
+                  className={styles.thumb}
+                  loading="lazy"
+                  decoding="async"
+                  aria-hidden="true"
+                />
               )}
-              <span className={styles.name}>{primaryName(card)}</span>
-              {role(card) && <span className={styles.role}>{role(card)}</span>}
-              {company(card) && <span className={styles.company}>{company(card)}</span>}
-              <TemperatureBadge temperature={temperature} compact />
+              <div className={styles.primary}>
+                {card.isPinned && (
+                  <span className={styles.pinBadge} aria-label="重要聯絡人" title="重要聯絡人">
+                    📍
+                  </span>
+                )}
+                <span className={styles.name}>{primaryName(card)}</span>
+                {role(card) && <span className={styles.role}>{role(card)}</span>}
+                {company(card) && <span className={styles.company}>{company(card)}</span>}
+                <TemperatureBadge temperature={temperature} compact />
+              </div>
             </div>
             <p className={styles.why}>{card.whyRemember}</p>
             <div className={styles.meta}>

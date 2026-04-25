@@ -8,6 +8,7 @@ import { ViewToggle } from "@/components/cards/ViewToggle";
 import { listCardsForUser, type CardSummary } from "@/db/cards";
 import { listTagsForUser } from "@/db/tags";
 import { readSession } from "@/lib/firebase/session";
+import { signedUrlsForBatch } from "@/lib/storage/card-images";
 import { findDuplicateGroups } from "@/lib/cards/duplicates";
 import { applyTagFilter, countByTemperature, filterByTemperature } from "@/lib/cards/filter";
 import type { TemperatureLevel } from "@/lib/cards/relationship-temp";
@@ -138,6 +139,19 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   // its own independent scan, so this is just a notification.
   const duplicateGroupCount = hasSearchState ? 0 : findDuplicateGroups(allCards).length;
 
+  // Mint signed URLs only for the visible cards' frontImagePath. Batched
+  // via Promise.allSettled so a stale/missing storage object doesn't
+  // bring down the whole list. Backed by the storage CDN behind a 15-min
+  // signed URL — adequate caching for the normal browse loop.
+  const imagePaths = cards.map((c) => c.frontImagePath).filter((p): p is string => Boolean(p));
+  const pathToUrl = await signedUrlsForBatch(imagePaths);
+  const imageUrls: Record<string, string> = {};
+  for (const c of cards) {
+    if (c.frontImagePath && pathToUrl[c.frontImagePath]) {
+      imageUrls[c.id] = pathToUrl[c.frontImagePath]!;
+    }
+  }
+
   return (
     <article className={styles.article}>
       <header className={styles.header}>
@@ -197,7 +211,12 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
           </Link>
         </div>
       ) : (
-        <CardsSelectionShell cards={cards} view={isGallery ? "gallery" : "list"} tags={allTags} />
+        <CardsSelectionShell
+          cards={cards}
+          view={isGallery ? "gallery" : "list"}
+          tags={allTags}
+          imageUrls={imageUrls}
+        />
       )}
     </article>
   );
