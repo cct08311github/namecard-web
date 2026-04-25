@@ -354,3 +354,42 @@ describe("vcardFilename", () => {
     expect(filename).toMatch(/^[A-Za-z0-9_\-]+\.vcf$/);
   });
 });
+
+describe("multi-card vcard concatenation", () => {
+  it("N concatenated cards yield exactly N BEGIN:VCARD blocks", () => {
+    const cards = [
+      makeCard({ nameZh: "陳玉涵", whyRemember: "first" }),
+      makeCard({ nameZh: "王小明", whyRemember: "second" }),
+      makeCard({ nameZh: "李大同", whyRemember: "third" }),
+    ];
+    const body = cards.map((c) => toVcard(c)).join("");
+    const beginCount = body.match(/BEGIN:VCARD/g)?.length ?? 0;
+    const endCount = body.match(/END:VCARD/g)?.length ?? 0;
+    expect(beginCount).toBe(3);
+    expect(endCount).toBe(3);
+    expect(body).toContain("first");
+    expect(body).toContain("second");
+    expect(body).toContain("third");
+  });
+
+  it("concatenated cards each end with CRLF so the next BEGIN is on a fresh line", () => {
+    const a = toVcard(makeCard({ nameZh: "A", whyRemember: "x" }));
+    const b = toVcard(makeCard({ nameZh: "B", whyRemember: "y" }));
+    expect(a.endsWith("\r\n")).toBe(true);
+    // After joining, the boundary is "END:VCARD\r\nBEGIN:VCARD" — no
+    // missing CRLF and no doubled blank line.
+    const combined = a + b;
+    expect(combined).toContain("END:VCARD\r\nBEGIN:VCARD");
+  });
+
+  it("each block stays self-contained (FN field unique to that card)", () => {
+    const cards = [
+      makeCard({ nameZh: "First", whyRemember: "x" }),
+      makeCard({ nameZh: "Second", whyRemember: "y" }),
+    ];
+    const body = cards.map((c) => toVcard(c)).join("");
+    // FN: lines should appear exactly once per card.
+    expect(body.match(/FN:First/g)?.length).toBe(1);
+    expect(body.match(/FN:Second/g)?.length).toBe(1);
+  });
+});

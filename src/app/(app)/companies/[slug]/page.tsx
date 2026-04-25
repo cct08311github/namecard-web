@@ -64,6 +64,15 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           {group.cards.length} 位聯絡人 · {totalContacted} 位有互動紀錄
           {sharedEvents.length > 0 && <> · 認識場合：{sharedEvents.join("、")}</>}
         </p>
+        <div className={styles.headerActions}>
+          <a
+            href={`/api/companies/${encodeURIComponent(group.slug)}/vcard`}
+            className={styles.exportBtn}
+            download
+          >
+            📤 匯出全部 {group.cards.length} 位 vCard
+          </a>
+        </div>
       </header>
 
       <ul className={styles.cardList}>
