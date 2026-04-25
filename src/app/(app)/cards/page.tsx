@@ -3,12 +3,14 @@ import Link from "next/link";
 import { CardsSelectionShell } from "@/components/cards/CardsSelectionShell";
 import { ExportButton } from "@/components/cards/ExportButton";
 import { TagFilterBar } from "@/components/cards/TagFilterBar";
+import { TemperatureFilterBar } from "@/components/cards/TemperatureFilterBar";
 import { ViewToggle } from "@/components/cards/ViewToggle";
 import { listCardsForUser, type CardSummary } from "@/db/cards";
 import { listTagsForUser } from "@/db/tags";
 import { readSession } from "@/lib/firebase/session";
 import { findDuplicateGroups } from "@/lib/cards/duplicates";
-import { applyTagFilter } from "@/lib/cards/filter";
+import { applyTagFilter, countByTemperature, filterByTemperature } from "@/lib/cards/filter";
+import type { TemperatureLevel } from "@/lib/cards/relationship-temp";
 import { parseSortKey, sortCards } from "@/lib/cards/sort";
 import { getTypesenseClient } from "@/lib/search/client";
 import { buildSearchParams } from "@/lib/search/query";
@@ -22,6 +24,28 @@ export const metadata = {
 };
 
 const MAX_CARDS = 500;
+
+const TEMP_LEVELS: ReadonlySet<TemperatureLevel> = new Set([
+  "hot",
+  "warm",
+  "active",
+  "quiet",
+  "cold",
+]);
+
+function parseTempParam(raw: string | string[] | undefined): TemperatureLevel[] {
+  if (!raw) return [];
+  const tokens = (Array.isArray(raw) ? raw.join(",") : raw).split(",").map((s) => s.trim());
+  const out: TemperatureLevel[] = [];
+  const seen = new Set<TemperatureLevel>();
+  for (const t of tokens) {
+    if (TEMP_LEVELS.has(t as TemperatureLevel) && !seen.has(t as TemperatureLevel)) {
+      seen.add(t as TemperatureLevel);
+      out.push(t as TemperatureLevel);
+    }
+  }
+  return out;
+}
 
 interface CardsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -98,6 +122,16 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   // (or a tag-filtered list) we respect the segment control.
   if (!q) cards = sortCards(cards, sort);
 
+  // Temperature filter applies last (after sort) so the URL state stays
+  // composable with all other filters and the chip counts reflect the
+  // tag-filtered universe, not the temperature-filtered one.
+  const now = new Date();
+  const selectedTempLevels = parseTempParam(raw.temp);
+  const tempCounts = countByTemperature(cards, now);
+  if (selectedTempLevels.length > 0) {
+    cards = filterByTemperature(cards, selectedTempLevels, now);
+  }
+
   // Surface a duplicate-count nudge in the header. Computed over the
   // unfiltered list so the link is visible regardless of the current
   // search/tag state — the actual /cards/duplicates page also runs
@@ -151,6 +185,7 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
       </header>
 
       <TagFilterBar tags={allTags} selectedIds={tag} tagMode={tagMode} />
+      <TemperatureFilterBar counts={tempCounts} selected={selectedTempLevels} />
 
       {cards.length === 0 ? (
         <div className={styles.empty}>
