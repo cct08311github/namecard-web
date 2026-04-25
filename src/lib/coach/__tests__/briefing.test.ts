@@ -84,6 +84,18 @@ describe("buildBriefingPrompt", () => {
     expect(prompt).toContain("已 30 天沒互動");
     expect(prompt).toContain("重要聯絡人");
   });
+
+  it("followup-due-today renders as 「提醒到期今天」", () => {
+    const c = mkCandidate({ reason: "followup-due-today", daysOffset: 0, score: 90 });
+    const prompt = buildBriefingPrompt([c], NOW);
+    expect(prompt).toContain("提醒到期今天");
+  });
+
+  it("uncontacted-long shows days-since-contact", () => {
+    const c = mkCandidate({ reason: "uncontacted-long", daysOffset: 90, score: 50 });
+    const prompt = buildBriefingPrompt([c], NOW);
+    expect(prompt).toContain("已 90 天沒互動");
+  });
 });
 
 describe("buildBriefingMessages", () => {

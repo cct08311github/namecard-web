@@ -30,6 +30,14 @@ import {
   type CoachContext,
   type CoachInsight,
 } from "@/lib/coach/insights";
+import {
+  introsCacheKey,
+  parseIntrosResponse,
+  selectIntroCandidates,
+  type IntroSuggestion,
+} from "@/lib/coach/intros";
+import { callIntrosLlm } from "@/lib/coach/intros-llm";
+import { readIntrosCache, writeIntrosCache } from "@/lib/coach/intros-store";
 import { callCoachLlm, isCoachConfigured } from "@/lib/coach/llm";
 import { selectTodayPriorityCards, type PriorityCandidate } from "@/lib/coach/priority";
 import { reengageCacheKey, type ReengageContext, type ReengageDrafts } from "@/lib/coach/reengage";
@@ -430,6 +438,74 @@ export const setPublicSlugAction = authedAction
       revalidatePath(`/cards/${parsedInput.cardId}`);
       if (desired) revalidatePath(`/u/${desired}`);
       return { ok: true, slug: desired };
+    },
+  );
+
+/**
+ * 🤝 AI 介紹建議 — assemble candidates → LLM picks 3-5 (cardA, cardB)
+ * pairs with reason + ready-to-send intro email. Cached weekly so
+ * suggestions feel like a "weekly digest" not a daily churn.
+ */
+export const getIntroSuggestionsAction = authedAction
+  .inputSchema(z.object({ force: z.boolean().optional().default(false) }))
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      | {
+          ok: true;
+          intros: Array<{
+            intro: IntroSuggestion;
+            cardA: PriorityCandidate["card"];
+            cardB: PriorityCandidate["card"];
+          }>;
+          cached: boolean;
+        }
+      | { ok: false; reason: "no-llm" | "too-few-cards" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const allCards = await listCardsForUser(ctx.user.uid, { limit: 500 });
+      const candidates = selectIntroCandidates(allCards);
+      if (candidates.length < 4) return { ok: false, reason: "too-few-cards" };
+
+      const cacheKey = introsCacheKey(
+        new Date(),
+        candidates.map((c) => c.id),
+      );
+      const candidateById = new Map(candidates.map((c) => [c.id, c]));
+
+      let intros = parsedInput.force ? null : await readIntrosCache(ctx.user.uid, cacheKey);
+      if (!intros) {
+        intros = await callIntrosLlm(candidates);
+        if (!intros || intros.length === 0) {
+          return { ok: false, reason: "llm-failed" };
+        }
+        await writeIntrosCache(ctx.user.uid, cacheKey, intros);
+      } else {
+        // Re-validate cached cardIds against current candidate set so a
+        // recently-merged / deleted card doesn't surface a dangling pair.
+        const validIds = new Set(candidates.map((c) => c.id));
+        intros = parseIntrosResponse(JSON.stringify({ intros }), validIds);
+      }
+
+      const paired = intros
+        .map((intro) => {
+          const cardA = candidateById.get(intro.cardAId);
+          const cardB = candidateById.get(intro.cardBId);
+          return cardA && cardB ? { intro, cardA, cardB } : null;
+        })
+        .filter(
+          (
+            x,
+          ): x is {
+            intro: IntroSuggestion;
+            cardA: PriorityCandidate["card"];
+            cardB: PriorityCandidate["card"];
+          } => x !== null,
+        );
+
+      return { ok: true, intros: paired, cached: !parsedInput.force && paired.length > 0 };
     },
   );
 
