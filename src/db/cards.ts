@@ -795,4 +795,43 @@ export async function listContactEventsForUser(
   });
 }
 
+/**
+ * Recent contact-events across all of the user's cards, newest first.
+ * Used by /recap (對話日誌). Avoids a collectionGroup index by riding
+ * the existing lastContactedAt-desc query — `logContactEvent` bumps
+ * that field, so cards-with-recent-events naturally cluster at the top.
+ *
+ * Bounded I/O: stops walking once a card's lastContactedAt is older
+ * than `sinceDays`. For a real user this is ~tens of cards/day, not
+ * the whole rolodex.
+ */
+export async function listRecentContactEventsForUser(
+  uid: string,
+  sinceDays = 14,
+  perCardLimit = 5,
+): Promise<Array<{ card: CardSummary; event: ContactEvent }>> {
+  const now = Date.now();
+  const sinceMs = sinceDays * 24 * 60 * 60 * 1000;
+  const cutoff = now - sinceMs;
+
+  const cards = await listCardsForUser(uid, {
+    orderBy: "lastContactedAt",
+    order: "desc",
+    limit: 200,
+  });
+
+  const items: Array<{ card: CardSummary; event: ContactEvent }> = [];
+  for (const card of cards) {
+    if (!card.lastContactedAt) continue;
+    if (card.lastContactedAt.getTime() < cutoff) break;
+    const events = await listContactEventsForUser(card.id, uid, perCardLimit);
+    for (const event of events) {
+      if (event.at.getTime() < cutoff) continue;
+      items.push({ card, event });
+    }
+  }
+  items.sort((a, b) => b.event.at.getTime() - a.event.at.getTime());
+  return items;
+}
+
 export { COLLECTION_WORKSPACES, SUB_COLLECTION_CARDS };
