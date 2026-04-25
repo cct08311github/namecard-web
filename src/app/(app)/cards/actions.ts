@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { authedAction } from "@/lib/auth/safe-action";
 import {
+  bulkSoftDeleteCardsForUser,
+  bulkUpdateCardsForUser,
   createCardForUser,
   logContactEvent,
   setCardPinned,
@@ -72,6 +74,62 @@ export const logContactAction = authedAction
     revalidatePath("/");
     revalidatePath(`/cards/${parsedInput.id}`);
     return { ok: true as const, eventId };
+  });
+
+const bulkPatchSchema = z
+  .object({
+    addTagIds: z.array(z.string().min(1).max(80)).max(30).optional(),
+    addTagNames: z.array(z.string().min(1).max(60)).max(30).optional(),
+    setEventTag: z.string().max(100).optional(),
+    setPinned: z.boolean().optional(),
+  })
+  .refine(
+    (p) =>
+      Boolean(
+        (p.addTagIds && p.addTagIds.length > 0) ||
+        (p.addTagNames && p.addTagNames.length > 0) ||
+        p.setEventTag !== undefined ||
+        p.setPinned !== undefined,
+      ),
+    { message: "patch must touch at least one field" },
+  );
+
+/**
+ * Apply the same patch to many cards at once. Skips cards the user
+ * is not a member of. Used by /cards multi-select toolbar to
+ * bulk-add tags / bulk-set event / bulk pin.
+ */
+export const bulkUpdateCardsAction = authedAction
+  .inputSchema(
+    z.object({
+      ids: z.array(z.string().min(1)).min(1).max(500),
+      patch: bulkPatchSchema,
+    }),
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const result = await bulkUpdateCardsForUser(ctx.user.uid, parsedInput.ids, parsedInput.patch);
+    revalidatePath("/");
+    revalidatePath("/cards");
+    revalidatePath("/followups");
+    return { ok: true as const, ...result };
+  });
+
+/**
+ * Bulk soft-delete (sets deletedAt + reindex). Mirrors the single
+ * deleteCardAction semantics across many ids.
+ */
+export const bulkSoftDeleteCardsAction = authedAction
+  .inputSchema(
+    z.object({
+      ids: z.array(z.string().min(1)).min(1).max(500),
+    }),
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const result = await bulkSoftDeleteCardsForUser(ctx.user.uid, parsedInput.ids);
+    revalidatePath("/");
+    revalidatePath("/cards");
+    revalidatePath("/followups");
+    return { ok: true as const, ...result };
   });
 
 /**

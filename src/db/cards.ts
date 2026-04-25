@@ -11,6 +11,7 @@ import {
 } from "@/lib/firebase/shared";
 import { syncWithFallback } from "@/lib/search/reconcile";
 
+import { chunkArray, runParallelLimited } from "./_utils";
 import type { CardCreateInput, CardUpdateInput } from "./schema";
 
 /**
@@ -193,6 +194,142 @@ export async function touchLastContactedAt(
   if (after.exists && after.data()?.deletedAt === null) {
     await syncWithFallback(wid, "upsert", cardId, toSummary(cardId, after.data()!));
   }
+}
+
+/**
+ * Patch shape for bulk operations. Optional fields:
+ *   - addTagIds / addTagNames: union into existing arrays (deduped)
+ *   - setEventTag: replace firstMetEventTag (empty string clears)
+ *   - setPinned: replace isPinned
+ *
+ * Combines the most-asked-for "scrub a stack of cards" actions while
+ * staying conservative — no overwrite of name / phone / email at the
+ * bulk layer (those need per-card review).
+ */
+export interface BulkPatch {
+  addTagIds?: string[];
+  addTagNames?: string[];
+  setEventTag?: string;
+  setPinned?: boolean;
+}
+
+const BULK_CHUNK = 400;
+
+function mergeUnique<T>(a: readonly T[], b: readonly T[]): T[] {
+  const set = new Set<T>(a);
+  for (const item of b) set.add(item);
+  return Array.from(set);
+}
+
+/**
+ * Apply `patch` to every card in `ids` that the caller is a member of.
+ * Skips ids the user can't access. Each chunk is one Firestore batch.
+ * Typesense reindex follows so search ranking stays in sync.
+ *
+ * Returns the count of cards actually mutated.
+ */
+export async function bulkUpdateCardsForUser(
+  uid: string,
+  ids: readonly string[],
+  patch: BulkPatch,
+): Promise<{ updated: number }> {
+  if (ids.length === 0) return { updated: 0 };
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const chunks = chunkArray(ids, BULK_CHUNK);
+  let updated = 0;
+  const updatedSummaries: CardSummary[] = [];
+
+  await runParallelLimited(chunks, 3, async (chunk) => {
+    const refs = chunk.map((id) => db.doc(`${cardsPath(wid)}/${id}`));
+    const snaps = await db.getAll(...refs);
+    const batch = db.batch();
+    let touched = 0;
+    for (const snap of snaps) {
+      if (!snap.exists) continue;
+      const data = snap.data()!;
+      if (!data.memberUids?.includes(uid)) continue;
+      if (data.deletedAt) continue;
+      const update: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData> = {
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      if (patch.addTagIds && patch.addTagIds.length > 0) {
+        update.tagIds = mergeUnique(data.tagIds ?? [], patch.addTagIds);
+      }
+      if (patch.addTagNames && patch.addTagNames.length > 0) {
+        update.tagNames = mergeUnique(data.tagNames ?? [], patch.addTagNames);
+      }
+      if (patch.setEventTag !== undefined) {
+        update.firstMetEventTag = patch.setEventTag;
+      }
+      if (patch.setPinned !== undefined) {
+        update.isPinned = patch.setPinned;
+      }
+      batch.update(snap.ref, update);
+      touched++;
+    }
+    if (touched > 0) {
+      await batch.commit();
+      updated += touched;
+      const refresh = await db.getAll(...refs);
+      for (const snap of refresh) {
+        if (!snap.exists) continue;
+        const data = snap.data()!;
+        if (!data.memberUids?.includes(uid) || data.deletedAt) continue;
+        updatedSummaries.push(toSummary(snap.id, data));
+      }
+    }
+  });
+
+  for (const card of updatedSummaries) {
+    await syncWithFallback(wid, "upsert", card.id, card);
+  }
+  return { updated };
+}
+
+/**
+ * Soft-delete every card in `ids` the caller can access. Mirrors
+ * single-card softDeleteCardForUser semantics (deletedAt + Typesense
+ * delete). Returns count actually deleted.
+ */
+export async function bulkSoftDeleteCardsForUser(
+  uid: string,
+  ids: readonly string[],
+): Promise<{ deleted: number }> {
+  if (ids.length === 0) return { deleted: 0 };
+  const wid = personalWorkspaceId(uid);
+  const db = getAdminFirestore();
+  const chunks = chunkArray(ids, BULK_CHUNK);
+  let deleted = 0;
+  const deletedIds: string[] = [];
+
+  await runParallelLimited(chunks, 3, async (chunk) => {
+    const refs = chunk.map((id) => db.doc(`${cardsPath(wid)}/${id}`));
+    const snaps = await db.getAll(...refs);
+    const batch = db.batch();
+    let touched = 0;
+    for (const snap of snaps) {
+      if (!snap.exists) continue;
+      const data = snap.data()!;
+      if (!data.memberUids?.includes(uid)) continue;
+      if (data.deletedAt) continue;
+      batch.update(snap.ref, {
+        deletedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      deletedIds.push(snap.id);
+      touched++;
+    }
+    if (touched > 0) {
+      await batch.commit();
+      deleted += touched;
+    }
+  });
+
+  for (const id of deletedIds) {
+    await syncWithFallback(wid, "delete", id, null);
+  }
+  return { deleted };
 }
 
 /**

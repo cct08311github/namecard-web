@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { CardGallery } from "@/components/cards/CardGallery";
-import { CardList } from "@/components/cards/CardList";
+import { CardsSelectionShell } from "@/components/cards/CardsSelectionShell";
 import { ExportButton } from "@/components/cards/ExportButton";
 import { TagFilterBar } from "@/components/cards/TagFilterBar";
 import { ViewToggle } from "@/components/cards/ViewToggle";
@@ -146,10 +145,8 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
             建立第一張名片
           </Link>
         </div>
-      ) : isGallery ? (
-        <CardGallery cards={cards} />
       ) : (
-        <CardList cards={cards} />
+        <CardsSelectionShell cards={cards} view={isGallery ? "gallery" : "list"} tags={allTags} />
       )}
     </article>
   );
