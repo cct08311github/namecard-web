@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { RecapList } from "@/components/recap/RecapList";
+import { RecapThemesSection } from "@/components/recap/RecapThemesSection";
 import { listRecentContactEventsForUser } from "@/db/cards";
+import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
 import { groupRecapByDay } from "@/lib/recap/group";
 
@@ -38,7 +40,10 @@ export default async function RecapPage() {
           </p>
         </section>
       ) : (
-        <RecapList groups={groups} />
+        <>
+          {isCoachConfigured() && items.length >= 2 && <RecapThemesSection />}
+          <RecapList groups={groups} />
+        </>
       )}
     </article>
   );
