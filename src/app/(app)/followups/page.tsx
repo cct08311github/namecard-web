@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ActionItemsSection } from "@/components/coach/ActionItemsSection";
 import { FollowupCardRow } from "@/components/followups/FollowupCardRow";
 import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
@@ -43,6 +44,8 @@ export default async function FollowupsPage() {
           按急迫度排序。點 <em>✅ 已聯絡</em> 會把這個人從清單裡拿掉。
         </p>
       </header>
+
+      {showAiDrafts && <ActionItemsSection />}
 
       {total === 0 ? (
         <section className={styles.empty}>
