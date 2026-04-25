@@ -25,6 +25,7 @@ const PRIMARY: NavItem[] = [
   { href: "/log", label: "🗣️ 對話速記", description: "講一句 log 進對方的卡" },
   { href: "/recap", label: "📓 對話日誌", description: "最近 14 天 log 過的對話" },
   { href: "/prep", label: "📅 會議準備", description: "貼上出席者，10 秒拿到 context" },
+  { href: "/stats", label: "📊 儀表板", description: "本週對話、新人脈、溫度、streak" },
   { href: "/companies", label: "公司", description: "同公司聯絡人聚合" },
   { href: "/events", label: "場合", description: "同場合認識的人" },
   { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
