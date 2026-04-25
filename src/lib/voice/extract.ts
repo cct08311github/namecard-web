@@ -2,10 +2,7 @@ import type { CardCreateInput } from "@/db/schema";
 
 export type ExtractedCard = Partial<CardCreateInput>;
 
-const SYSTEM_PROMPT =
-  "你是名片資訊抽取器。" +
-  "使用者剛 networking event 結束，用自然語言描述他剛遇到的人。" +
-  "把以下這段話抽出結構化欄位，用 JSON 回答：\n" +
+const FIELD_SCHEMA =
   "{\n" +
   '  "nameZh"?: string,        // 中文姓名\n' +
   '  "nameEn"?: string,        // 英文姓名\n' +
@@ -18,14 +15,26 @@ const SYSTEM_PROMPT =
   '  "firstMetContext"?: string,    // 認識的情境細節\n' +
   '  "whyRemember": string,    // 「為什麼記得這個人」(必填，沒有就用整段話的精華)\n' +
   '  "notes"?: string\n' +
-  "}\n" +
+  "}";
+
+const SYSTEM_PROMPT =
+  "你是名片資訊抽取器。" +
+  "使用者剛 networking event 結束，用自然語言描述他剛遇到的人。可能描述一個人，也可能一次描述好幾個人（「認識三個人：A 是…、B 是…、C 是…」）。" +
+  "把這段話抽出結構化欄位。\n" +
+  "回答必須是合法 JSON，schema：\n" +
+  '{ "cards": [ <Card>, <Card>, ... ] }\n' +
+  "其中 <Card> 是：\n" +
+  FIELD_SCHEMA +
+  "\n" +
   "規則：\n" +
   "- 只回傳 JSON，不要任何說明文字、不要 markdown 圍欄。\n" +
+  "- 「cards」 是 *array*。一個人就回 length=1 的 array，多個人就回多個元素。\n" +
   "- 沒提到的欄位就 omit，不要填空字串。\n" +
-  "- whyRemember 是 *必填*。沒有明確線索時，把整段話最有 hook 的一句當作 whyRemember。\n" +
+  "- whyRemember 每張卡都 *必填*。沒有明確線索時，把該人提到的最有 hook 的一句當作 whyRemember。\n" +
   "- 中英文混雜的內容：name、jobTitle、company 各填到對應的中/英欄位。\n" +
   "- whyRemember 一定用繁體中文。\n" +
-  "- 不要編造對方說過的具體事；只根據輸入推理。";
+  "- 不要編造對方說過的具體事；只根據輸入推理。\n" +
+  "- 共同 context（同個 event 場合）每張卡都帶上 firstMetEventTag。";
 
 export function buildExtractMessages(
   text: string,
@@ -47,27 +56,9 @@ function sanitizeStr(value: unknown, max: number): string | undefined {
   return trimmed.slice(0, max);
 }
 
-/**
- * Parse the LLM's JSON into a Partial<CardCreateInput>. Defensive:
- *   - strips markdown fences
- *   - drops non-string fields
- *   - clamps lengths
- *   - guarantees `whyRemember` is at least the truncated input if the
- *     LLM didn't pick one (the schema requires it; UI can edit before save)
- */
-export function parseExtractedCard(raw: string, fallbackText: string): ExtractedCard | null {
-  if (!raw) return null;
-  const trimmed = raw.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  const inner = fenced ? fenced[1]! : trimmed;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(inner);
-  } catch {
-    return null;
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-  const obj = parsed as Record<string, unknown>;
+function parseSingleCard(value: unknown, fallbackText: string): ExtractedCard | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const obj = value as Record<string, unknown>;
 
   const out: ExtractedCard = {};
   const nameZh = sanitizeStr(obj.nameZh, MAX_FIELD_LEN);
@@ -94,12 +85,65 @@ export function parseExtractedCard(raw: string, fallbackText: string): Extracted
   if (why) {
     out.whyRemember = why;
   } else {
-    // Schema requires whyRemember — fall back to truncated input so the
-    // form has *something* the user can refine.
     const fallback = fallbackText.trim().slice(0, MAX_WHY_LEN);
     out.whyRemember = fallback || "（剛認識）";
   }
   return out;
+}
+
+/**
+ * Parse the LLM's JSON into a Partial<CardCreateInput>. Defensive:
+ *   - strips markdown fences
+ *   - drops non-string fields
+ *   - clamps lengths
+ *   - guarantees `whyRemember` is at least the truncated input if the
+ *     LLM didn't pick one (the schema requires it; UI can edit before save)
+ *
+ * Backward-compat: if the LLM returns the new `{cards: [...]}` schema,
+ * returns the *first* card (Phase 1 callers expect a single result).
+ * Use `parseMultipleExtractedCards` for the multi-person flow.
+ */
+export function parseExtractedCard(raw: string, fallbackText: string): ExtractedCard | null {
+  const all = parseMultipleExtractedCards(raw, fallbackText);
+  return all.length > 0 ? all[0]! : null;
+}
+
+/**
+ * Parse one or more cards from the LLM JSON. Accepts:
+ *   - new shape: { cards: [...] }  (preferred — multi-card support)
+ *   - legacy shape: { ...singleCard } (backward-compat with Phase 1)
+ * Returns [] on malformed input or zero valid cards. Each card runs
+ * through parseSingleCard which guarantees whyRemember (falls back to
+ * truncated input).
+ */
+export function parseMultipleExtractedCards(raw: string, fallbackText: string): ExtractedCard[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const inner = fenced ? fenced[1]! : trimmed;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(inner);
+  } catch {
+    return [];
+  }
+  if (!parsed || typeof parsed !== "object") return [];
+
+  // New shape: {cards: [...]}
+  const root = parsed as { cards?: unknown };
+  if (Array.isArray(root.cards)) {
+    const out: ExtractedCard[] = [];
+    for (const item of root.cards) {
+      const card = parseSingleCard(item, fallbackText);
+      if (card) out.push(card);
+    }
+    return out;
+  }
+
+  // Legacy single-card shape: {...fields}
+  if (Array.isArray(parsed)) return [];
+  const single = parseSingleCard(parsed, fallbackText);
+  return single ? [single] : [];
 }
 
 /**
