@@ -5,7 +5,11 @@ import { useState, useTransition } from "react";
 
 import { CardGallery } from "@/components/cards/CardGallery";
 import { CardList } from "@/components/cards/CardList";
-import { bulkSoftDeleteCardsAction, bulkUpdateCardsAction } from "@/app/(app)/cards/actions";
+import {
+  bulkLogContactAction,
+  bulkSoftDeleteCardsAction,
+  bulkUpdateCardsAction,
+} from "@/app/(app)/cards/actions";
 import type { CardSummary } from "@/db/cards";
 import type { TagSummary } from "@/db/tags";
 
@@ -38,6 +42,8 @@ export function CardsSelectionShell({ cards, view, tags }: CardsSelectionShellPr
   const [tagDraft, setTagDraft] = useState("");
   const [showSetEvent, setShowSetEvent] = useState(false);
   const [eventDraft, setEventDraft] = useState("");
+  const [showBulkLog, setShowBulkLog] = useState(false);
+  const [bulkLogDraft, setBulkLogDraft] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const selection = useCardSelection();
@@ -49,6 +55,8 @@ export function CardsSelectionShell({ cards, view, tags }: CardsSelectionShellPr
     selection.clear();
     setShowAddTag(false);
     setShowSetEvent(false);
+    setShowBulkLog(false);
+    setBulkLogDraft("");
     setConfirmDelete(false);
     setError(null);
   }
@@ -91,6 +99,32 @@ export function CardsSelectionShell({ cards, view, tags }: CardsSelectionShellPr
 
   function handleSetPin(pinned: boolean) {
     applyBulk({ ids: selection.selectedIds, patch: { setPinned: pinned } });
+  }
+
+  function handleBulkLog() {
+    setError(null);
+    startTransition(async () => {
+      const res = await bulkLogContactAction({
+        ids: selection.selectedIds,
+        note: bulkLogDraft.trim(),
+      });
+      if (res?.serverError) {
+        setError(res.serverError);
+        return;
+      }
+      const data = res?.data;
+      if (!data) {
+        setError("送出失敗");
+        return;
+      }
+      if (data.ok) {
+        flashToast(`已記錄到 ${data.logged} 張`);
+        exitSelectMode();
+        router.refresh();
+      } else {
+        setError(`部分失敗：${data.reason}（已記錄 ${data.logged} 張）`);
+      }
+    });
   }
 
   function handleBulkDelete() {
@@ -179,6 +213,36 @@ export function CardsSelectionShell({ cards, view, tags }: CardsSelectionShellPr
                 取消
               </button>
             </div>
+          ) : showBulkLog ? (
+            <div className={styles.actionRow}>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="一筆 note，套用到 N 張卡（可留空只 mark 為已聯絡）"
+                value={bulkLogDraft}
+                onChange={(e) => setBulkLogDraft(e.target.value.slice(0, 500))}
+                maxLength={500}
+                autoFocus
+              />
+              <button
+                type="button"
+                className={styles.primary}
+                onClick={handleBulkLog}
+                disabled={pending}
+              >
+                記錄到 {selection.count} 張
+              </button>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => {
+                  setShowBulkLog(false);
+                  setBulkLogDraft("");
+                }}
+              >
+                取消
+              </button>
+            </div>
           ) : showSetEvent ? (
             <div className={styles.actionRow}>
               <input
@@ -210,6 +274,15 @@ export function CardsSelectionShell({ cards, view, tags }: CardsSelectionShellPr
             </div>
           ) : (
             <div className={styles.actionRow}>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => setShowBulkLog(true)}
+                disabled={pending}
+                title="把同一筆 note 記錄到所有選中的卡（適合「剛開完同場 event」）"
+              >
+                ✅ 記錄互動
+              </button>
               <button
                 type="button"
                 className={styles.secondary}
