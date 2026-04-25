@@ -94,6 +94,27 @@ export async function signedUrlFor(path: string): Promise<string> {
   return url;
 }
 
+/**
+ * Batch-mint signed URLs in parallel. Returns a path → url map; failed
+ * lookups are silently omitted so a stale or missing storage object
+ * doesn't bring down the whole list view.
+ *
+ * Used by /cards page to render thumbnails — all storage round-trips
+ * happen concurrently while the page already awaits its other data.
+ */
+export async function signedUrlsForBatch(
+  paths: readonly string[],
+): Promise<Record<string, string>> {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return {};
+  const settled = await Promise.allSettled(unique.map((p) => signedUrlFor(p)));
+  const out: Record<string, string> = {};
+  settled.forEach((res, i) => {
+    if (res.status === "fulfilled") out[unique[i]!] = res.value;
+  });
+  return out;
+}
+
 /** Delete an uploaded image. Safe to call for missing paths. */
 export async function deleteCardImage(path: string): Promise<void> {
   const bucket = getAdminStorage().bucket();

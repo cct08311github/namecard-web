@@ -58,6 +58,16 @@
   aspect-ratio: 3 / 1.3;
 }
 
+.banner {
+  width: calc(100% + 2 * var(--space-lg));
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) 0;
+  height: 5rem;
+  object-fit: cover;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: color-mix(in oklch, var(--color-ink) 5%, var(--color-paper));
+  display: block;
+}
+
 .cardHeader {
   display: flex;
   flex-direction: column;
