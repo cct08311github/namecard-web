@@ -37,6 +37,8 @@ import { callReengageLlm } from "@/lib/coach/reengage-llm";
 import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-store";
 import { readCoachCache, writeCoachCache } from "@/lib/coach/store";
 import { pickCanonicalCompany } from "@/lib/companies/group";
+import { encodePrefill, type ExtractedCard } from "@/lib/voice/extract";
+import { callExtractLlm } from "@/lib/voice/extract-llm";
 
 export const createCardAction = authedAction
   .inputSchema(cardCreateSchema)
@@ -428,6 +430,29 @@ export const setPublicSlugAction = authedAction
       revalidatePath(`/cards/${parsedInput.cardId}`);
       if (desired) revalidatePath(`/u/${desired}`);
       return { ok: true, slug: desired };
+    },
+  );
+
+/**
+ * 🎙️ Voice-to-card extract — take a free-form text describing the
+ * person the user just met (typed or transcribed from voice) and
+ * return a Partial<CardCreateInput> via MiniMax. The /cards/voice
+ * page calls this, then redirects to /cards/new?prefill=... so the
+ * user reviews + commits via the normal create flow.
+ */
+export const extractCardFromTextAction = authedAction
+  .inputSchema(z.object({ text: z.string().min(3).max(2000) }))
+  .action(
+    async ({
+      parsedInput,
+    }): Promise<
+      | { ok: true; extracted: ExtractedCard; prefillToken: string }
+      | { ok: false; reason: "no-llm" | "llm-failed" }
+    > => {
+      if (!isCoachConfigured()) return { ok: false, reason: "no-llm" };
+      const extracted = await callExtractLlm(parsedInput.text);
+      if (!extracted) return { ok: false, reason: "llm-failed" };
+      return { ok: true, extracted, prefillToken: encodePrefill(extracted) };
     },
   );
 

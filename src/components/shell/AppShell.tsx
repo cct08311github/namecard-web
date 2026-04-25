@@ -19,6 +19,7 @@ const PRIMARY: NavItem[] = [
   { href: "/followups", label: "追蹤", description: "誰該 ping 了" },
   { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
+  { href: "/cards/voice", label: "🎙️ 語音建卡", description: "講 30 秒讓 AI 解析" },
   { href: "/companies", label: "公司", description: "同公司聯絡人聚合" },
   { href: "/events", label: "場合", description: "同場合認識的人" },
   { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
