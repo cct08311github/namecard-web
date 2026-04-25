@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { CardSummary } from "@/db/cards";
+import { eventSlug } from "@/lib/events/group";
 
 import styles from "./RelatedByEvent.module.css";
 
@@ -16,12 +17,22 @@ interface RelatedByEventProps {
  */
 export function RelatedByEvent({ eventTag, cards }: RelatedByEventProps) {
   if (cards.length === 0) return null;
+  const slug = eventSlug(eventTag);
   return (
     <section className={styles.section} aria-label={`${eventTag} 認識的其他人`}>
       <header className={styles.header}>
         <p className={styles.kicker}>同場合認識</p>
-        <h3 className={styles.title}>{eventTag}</h3>
-        <p className={styles.count}>另外 {cards.length} 位</p>
+        <h3 className={styles.title}>
+          <Link href={`/events/${encodeURIComponent(slug)}`} className={styles.titleLink}>
+            {eventTag}
+          </Link>
+        </h3>
+        <p className={styles.count}>
+          另外 {cards.length} 位 ·{" "}
+          <Link href={`/events/${encodeURIComponent(slug)}`} className={styles.allLink}>
+            看全部 →
+          </Link>
+        </p>
       </header>
       <ul className={styles.list}>
         {cards.map((c) => {

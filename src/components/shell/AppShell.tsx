@@ -19,6 +19,7 @@ const PRIMARY: NavItem[] = [
   { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
   { href: "/companies", label: "公司", description: "同公司聯絡人聚合" },
+  { href: "/events", label: "場合", description: "同場合認識的人" },
   { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
   { href: "/import", label: "匯入", description: "vCard / CSV / LinkedIn" },
   { href: "/workspace/members", label: "成員", description: "邀請 · 權限" },
