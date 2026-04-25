@@ -1,11 +1,10 @@
 import Link from "next/link";
 
-import { RecapList } from "@/components/recap/RecapList";
+import { RecapBrowser } from "@/components/recap/RecapBrowser";
 import { RecapThemesSection } from "@/components/recap/RecapThemesSection";
 import { listRecentContactEventsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
-import { groupRecapByDay } from "@/lib/recap/group";
 
 import styles from "./recap.module.css";
 
@@ -18,7 +17,6 @@ export default async function RecapPage() {
   if (!user) return null;
 
   const items = await listRecentContactEventsForUser(user.uid, 14);
-  const groups = groupRecapByDay(items, new Date());
 
   return (
     <article className={styles.article}>
@@ -32,7 +30,7 @@ export default async function RecapPage() {
         </p>
       </header>
 
-      {groups.length === 0 ? (
+      {items.length === 0 ? (
         <section className={styles.empty}>
           <p className={styles.emptyLead}>
             還沒有任何對話記錄。剛跟人聊完？去
@@ -42,7 +40,7 @@ export default async function RecapPage() {
       ) : (
         <>
           {isCoachConfigured() && items.length >= 2 && <RecapThemesSection />}
-          <RecapList groups={groups} />
+          <RecapBrowser items={items} />
         </>
       )}
     </article>
