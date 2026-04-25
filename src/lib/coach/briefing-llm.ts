@@ -19,7 +19,7 @@ interface MiniMaxChatResponse {
 export async function callBriefingLlm(
   candidates: readonly PriorityCandidate[],
   today: Date,
-  options: { timeoutMs?: number } = {},
+  options: { timeoutMs?: number; recentNotes?: ReadonlyMap<string, string> } = {},
 ): Promise<BriefingPick[] | null> {
   const apiKey = process.env.MINIMAX_API_KEY ?? "";
   if (!apiKey) return null;
@@ -33,7 +33,7 @@ export async function callBriefingLlm(
     model,
     temperature: 0.4,
     max_tokens: 800,
-    messages: buildBriefingMessages(candidates, today),
+    messages: buildBriefingMessages(candidates, today, options.recentNotes),
   };
 
   const abort = new AbortController();

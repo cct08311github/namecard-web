@@ -42,8 +42,17 @@ function pickName(card: PriorityCandidate["card"]): string {
  * Build the prompt sent to the LLM. The candidates are pre-scored — the
  * LLM's job is to *narrow to 3* and *write the reason in human voice*,
  * not to do the prioritization math itself.
+ *
+ * Optional `recentNotes` lets callers feed in the latest contact-event
+ * note per candidate (logged via /log). When present, the LLM is told
+ * to use it as the hook for that pick — so recommendations move from
+ * "60 天沒聯絡" to "上次（60 天前）你聽她說公司在募 A 輪".
  */
-export function buildBriefingPrompt(candidates: readonly PriorityCandidate[], today: Date): string {
+export function buildBriefingPrompt(
+  candidates: readonly PriorityCandidate[],
+  today: Date,
+  recentNotes?: ReadonlyMap<string, string>,
+): string {
   const dateStr = today.toISOString().slice(0, 10);
   const lines: string[] = [];
   lines.push(`今天是 ${dateStr}。`);
@@ -69,6 +78,10 @@ export function buildBriefingPrompt(candidates: readonly PriorityCandidate[], to
     if (card.lastContactedAt) {
       lines.push(`上次互動: ${card.lastContactedAt.toISOString().slice(0, 10)}`);
     }
+    const note = recentNotes?.get(card.id);
+    if (note && note.trim()) {
+      lines.push(`最近一次對話內容: ${note.trim().slice(0, 280)}`);
+    }
   }
   return lines.join("\n");
 }
@@ -78,6 +91,8 @@ const SYSTEM_PROMPT =
   "從使用者提供的候選人中挑 3 位，根據他們的系統評分、為什麼記得、首次見面背景，" +
   "用一段 1-2 句的繁體中文 reason 解釋「今天為什麼該找他」，要具體、有 hook。" +
   "再給一個 suggestedAction（一個動詞開頭的具體動作，例如「寄一封 hello email + 問近況」）。\n" +
+  "如果某位候選人有「最近一次對話內容」，*優先用它當 hook* —— " +
+  "例如不要寫「60 天沒聯絡」而要寫「上次他提到公司在募 A 輪，問問進度」。\n" +
   "回答必須是合法 JSON，符合 schema：\n" +
   '{"picks": [{"cardId": string, "reason": string, "suggestedAction": string}]}\n' +
   "規則：\n" +
@@ -89,10 +104,11 @@ const SYSTEM_PROMPT =
 export function buildBriefingMessages(
   candidates: readonly PriorityCandidate[],
   today: Date,
+  recentNotes?: ReadonlyMap<string, string>,
 ): Array<{ role: "system" | "user"; content: string }> {
   return [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: buildBriefingPrompt(candidates, today) },
+    { role: "user", content: buildBriefingPrompt(candidates, today, recentNotes) },
   ];
 }
 
@@ -139,9 +155,22 @@ export function parseBriefingResponse(
   return out;
 }
 
-/** Cache key for the daily briefing — stable for same date + candidate set. */
-export function briefingCacheKey(date: Date, candidateIds: readonly string[]): string {
+/**
+ * Cache key for the daily briefing — stable for same date + candidate set.
+ *
+ * Optional `marker` invalidates the cache when context outside the
+ * candidate ID set changes — e.g. a new contact-event was logged for one
+ * of the candidates and we want the next briefing to incorporate it
+ * instead of returning the stale cached pick. Caller passes a stable
+ * fingerprint (typically based on lastContactedAt timestamps).
+ */
+export function briefingCacheKey(
+  date: Date,
+  candidateIds: readonly string[],
+  marker?: string,
+): string {
   const dateStr = date.toISOString().slice(0, 10);
   const sortedIds = [...candidateIds].sort().join(",");
-  return `${dateStr}::${sortedIds}`;
+  const suffix = marker ? `::${marker}` : "";
+  return `${dateStr}::${sortedIds}${suffix}`;
 }

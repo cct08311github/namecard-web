@@ -96,6 +96,37 @@ describe("buildBriefingPrompt", () => {
     const prompt = buildBriefingPrompt([c], NOW);
     expect(prompt).toContain("已 90 天沒互動");
   });
+
+  it("includes recent contact-event note when provided", () => {
+    const c = mkCandidate({ id: "c1", nameZh: "Karen" });
+    const notes = new Map([["c1", "她公司在募 A 輪、看 SaaS 估值"]]);
+    const prompt = buildBriefingPrompt([c], NOW, notes);
+    expect(prompt).toContain("最近一次對話內容");
+    expect(prompt).toContain("她公司在募 A 輪");
+  });
+
+  it("omits the recent-note line when map has no entry for the card", () => {
+    const c = mkCandidate({ id: "c1" });
+    const notes = new Map([["other-card", "irrelevant"]]);
+    const prompt = buildBriefingPrompt([c], NOW, notes);
+    expect(prompt).not.toContain("最近一次對話內容");
+  });
+
+  it("trims whitespace-only notes (does not render an empty line)", () => {
+    const c = mkCandidate({ id: "c1" });
+    const notes = new Map([["c1", "   "]]);
+    const prompt = buildBriefingPrompt([c], NOW, notes);
+    expect(prompt).not.toContain("最近一次對話內容");
+  });
+
+  it("clamps very long notes at 280 chars", () => {
+    const c = mkCandidate({ id: "c1" });
+    const long = "x".repeat(2000);
+    const notes = new Map([["c1", long]]);
+    const prompt = buildBriefingPrompt([c], NOW, notes);
+    const noteLine = prompt.split("\n").find((l) => l.startsWith("最近一次對話內容: "))!;
+    expect(noteLine.replace("最近一次對話內容: ", "").length).toBe(280);
+  });
 });
 
 describe("buildBriefingMessages", () => {
@@ -202,5 +233,23 @@ describe("briefingCacheKey", () => {
     const a = briefingCacheKey(NOW, ["c1", "c2"]);
     const b = briefingCacheKey(NOW, ["c1", "c2", "c3"]);
     expect(a).not.toBe(b);
+  });
+
+  it("changes when the optional marker changes", () => {
+    const a = briefingCacheKey(NOW, ["c1"], "v1");
+    const b = briefingCacheKey(NOW, ["c1"], "v2");
+    expect(a).not.toBe(b);
+  });
+
+  it("matches when the marker is the same", () => {
+    const a = briefingCacheKey(NOW, ["c1"], "abc");
+    const b = briefingCacheKey(NOW, ["c1"], "abc");
+    expect(a).toBe(b);
+  });
+
+  it("with marker differs from without marker", () => {
+    const without = briefingCacheKey(NOW, ["c1"]);
+    const withMarker = briefingCacheKey(NOW, ["c1"], "anything");
+    expect(without).not.toBe(withMarker);
   });
 });

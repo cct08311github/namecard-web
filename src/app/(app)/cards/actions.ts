@@ -332,9 +332,30 @@ export const getDailyBriefingAction = authedAction
       const candidates = selectTodayPriorityCards(allCards, { now });
       if (candidates.length === 0) return { ok: false, reason: "no-candidates" };
 
+      // Pull each candidate's most recent contact-event note to enrich
+      // the LLM prompt with conversational context (logged via /log).
+      // Sequential keeps the loop simple; N is bounded by selectToday-
+      // PriorityCards' max=5, so total round-trips stay negligible.
+      const recentNotes = new Map<string, string>();
+      for (const c of candidates) {
+        const events = await listContactEventsForUser(c.card.id, ctx.user.uid, 1);
+        const note = events[0]?.note?.trim();
+        if (note) recentNotes.set(c.card.id, note);
+      }
+
+      // Marker keeps the cache key sensitive to:
+      //   - lastContactedAt updates (an event was logged → bumps the field)
+      //   - the candidate set itself (already covered by sortedIds)
+      // Without this, logging a fresh event would silently re-serve the
+      // previous LLM pick that lacked the conversational hook.
+      const marker = candidates
+        .map((c) => `${c.card.id}:${c.card.lastContactedAt?.getTime() ?? 0}`)
+        .sort()
+        .join("|");
       const cacheKey = briefingCacheKey(
         now,
         candidates.map((c) => c.card.id),
+        marker,
       );
       const candidateById = new Map(candidates.map((c) => [c.card.id, c]));
 
@@ -351,7 +372,7 @@ export const getDailyBriefingAction = authedAction
         }
       }
 
-      const llmPicks = await callBriefingLlm(candidates, now);
+      const llmPicks = await callBriefingLlm(candidates, now, { recentNotes });
       if (!llmPicks || llmPicks.length === 0) {
         return { ok: false, reason: "llm-failed" };
       }
