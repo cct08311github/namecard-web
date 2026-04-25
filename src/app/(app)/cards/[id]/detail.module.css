@@ -248,6 +248,19 @@
   text-decoration: underline;
 }
 
+.anniversary {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  padding: 0.2em 0.7em;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-accent-ink);
+  background: var(--color-accent-soft, transparent);
+  border: var(--border-hair) solid var(--color-accent-ink);
+  border-radius: 999px;
+}
+
 .relatedCompany {
   padding: var(--space-sm) 0;
 }
