@@ -40,6 +40,22 @@
   gap: var(--space-sm);
 }
 
+.interim {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-caption);
+  color: var(--color-accent-ink);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--color-accent-ink);
+  background: color-mix(
+    in oklch,
+    var(--color-accent-soft, var(--color-paper)) 50%,
+    var(--color-paper)
+  );
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
 .primaryBtn {
   font-family: var(--font-sans);
   font-size: var(--text-body);
