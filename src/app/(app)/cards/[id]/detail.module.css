@@ -52,6 +52,14 @@
   margin: 0;
 }
 
+.kickerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
 .name {
   font-family: var(--font-display);
   font-size: var(--text-h1);

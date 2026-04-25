@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import type { CardSummary } from "@/db/cards";
+import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { daysSinceContact, shouldShowStaleBadge } from "@/lib/timeline/staleness";
 
 import styles from "./CardGallery.module.css";
+import { TemperatureBadge } from "./TemperatureBadge";
 import type { CardSelectionApi } from "./useCardSelection";
 
 interface CardGalleryProps {
@@ -77,6 +79,7 @@ export function CardGallery({ cards, selection }: CardGalleryProps) {
               ) : card.firstMetDate ? (
                 <span className={styles.eventTag}>{card.firstMetDate}</span>
               ) : null}
+              <TemperatureBadge temperature={computeTemperature(card, now)} compact />
               {stale && days !== null && <span className={styles.staleBadge}>{days} 天沒聯絡</span>}
             </footer>
           </article>
