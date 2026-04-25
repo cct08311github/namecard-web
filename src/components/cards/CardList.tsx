@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import type { CardSummary } from "@/db/cards";
+import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { daysSinceContact, shouldShowStaleBadge } from "@/lib/timeline/staleness";
 
 import styles from "./CardList.module.css";
+import { TemperatureBadge } from "./TemperatureBadge";
 import type { CardSelectionApi } from "./useCardSelection";
 
 interface CardListProps {
@@ -34,6 +36,7 @@ export function CardList({ cards, selection }: CardListProps) {
         const stale = shouldShowStaleBadge(card, now);
         const days = stale ? daysSinceContact(card, now) : null;
         const checked = selection?.isSelected(card.id) ?? false;
+        const temperature = computeTemperature(card, now);
         const inner = (
           <>
             {selection && (
@@ -53,6 +56,7 @@ export function CardList({ cards, selection }: CardListProps) {
               <span className={styles.name}>{primaryName(card)}</span>
               {role(card) && <span className={styles.role}>{role(card)}</span>}
               {company(card) && <span className={styles.company}>{company(card)}</span>}
+              <TemperatureBadge temperature={temperature} compact />
             </div>
             <p className={styles.why}>{card.whyRemember}</p>
             <div className={styles.meta}>

@@ -6,6 +6,7 @@ import { CardChatBox } from "@/components/cards/CardChatBox";
 import { CardInlineEdit } from "@/components/cards/CardInlineEdit";
 import { CoachInsightSection } from "@/components/cards/CoachInsightSection";
 import { ContactEventList } from "@/components/cards/ContactEventList";
+import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import { PublicProfileToggle } from "@/components/cards/PublicProfileToggle";
 import { RelatedByEvent } from "@/components/cards/RelatedByEvent";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
@@ -18,6 +19,7 @@ import {
 import type { CardCreateInput } from "@/db/schema";
 import { isCoachConfigured } from "@/lib/coach/llm";
 import { companySlug, pickCanonicalCompany } from "@/lib/companies/group";
+import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { findAnniversariesToday } from "@/lib/timeline/anniversaries";
 import { readSession } from "@/lib/firebase/session";
 
@@ -143,7 +145,10 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
       <div className={styles.layout}>
         <main className={styles.main}>
           <header className={styles.header}>
-            <p className={styles.kicker}>名片</p>
+            <div className={styles.kickerRow}>
+              <p className={styles.kicker}>名片</p>
+              <TemperatureBadge temperature={computeTemperature(card, new Date())} />
+            </div>
             <h1 className={styles.name}>
               <CardInlineEdit
                 cardId={card.id}
