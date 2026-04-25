@@ -1,0 +1,82 @@
+/* Toggle button — hidden on desktop, fixed top-right on mobile. */
+.toggle {
+  display: none;
+  position: fixed;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  z-index: 60;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-md);
+  border: var(--border-hair) solid var(--color-border);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-size: 1.2rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle:hover {
+  background: var(--color-accent-soft, var(--color-paper));
+}
+
+@media (max-width: 48rem) {
+  .toggle {
+    display: inline-flex;
+  }
+}
+
+/* Rail — passthrough on desktop, slide-in drawer on mobile. */
+.rail {
+  display: contents;
+}
+
+@media (max-width: 48rem) {
+  .rail {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 22rem);
+    z-index: 70;
+    background: var(--color-paper);
+    border-right: var(--border-hair) solid var(--color-border);
+    box-shadow: 6px 0 24px color-mix(in oklch, var(--color-ink) 22%, transparent);
+    transform: translateX(-100%);
+    transition: transform var(--duration-normal, 200ms) var(--ease-standard);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .rail[data-open="true"] {
+    transform: translateX(0);
+  }
+}
+
+/* Backdrop — only shown when drawer is open on mobile. */
+.overlay {
+  display: none;
+}
+
+@media (max-width: 48rem) {
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 65;
+    background: color-mix(in oklch, var(--color-ink) 38%, transparent);
+    backdrop-filter: blur(2px);
+    animation: mobileNavFade var(--duration-fast) var(--ease-standard);
+  }
+}
+
+@keyframes mobileNavFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
