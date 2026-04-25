@@ -56,6 +56,35 @@
   margin: var(--space-xs) 0 0;
 }
 
+.headerActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-xs) var(--space-md);
+  border: var(--border-hair) solid var(--color-accent-ink);
+  color: var(--color-accent-ink);
+  background: transparent;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.exportBtn:hover {
+  background: var(--color-accent-ink);
+  color: var(--color-paper);
+}
+
 .cardList {
   list-style: none;
   padding: 0;
