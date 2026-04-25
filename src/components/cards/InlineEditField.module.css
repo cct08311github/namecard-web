@@ -1,0 +1,95 @@
+.display {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0 0.2em;
+  margin: 0 -0.2em;
+  position: relative;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.display:hover,
+.display:focus-visible {
+  background: var(--color-accent-soft, color-mix(in oklch, var(--color-accent) 12%, transparent));
+  outline: none;
+}
+
+.display:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-accent-ink);
+}
+
+.displayEmpty {
+  color: var(--color-ink-muted);
+  font-style: italic;
+}
+
+.pencil {
+  font-size: 0.7em;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.display:hover .pencil,
+.display:focus-visible .pencil {
+  opacity: 0.6;
+}
+
+.editing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.input {
+  font: inherit;
+  color: inherit;
+  background: var(--color-paper);
+  border: var(--border-hair) solid var(--color-accent-ink);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.3em;
+  outline: none;
+  min-width: 8ch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-accent-ink) 35%, transparent);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+textarea.input {
+  resize: vertical;
+  min-height: 4em;
+}
+
+.spinner {
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent-ink);
+  border-radius: 50%;
+  animation: inlineSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes inlineSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-error, #b00020);
+  margin-left: 0.4em;
+}
