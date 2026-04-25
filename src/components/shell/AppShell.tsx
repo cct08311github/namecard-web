@@ -34,16 +34,18 @@ interface AppShellProps {
 export function AppShell({ user, children }: AppShellProps) {
   return (
     <div className={styles.shell}>
+      {/* SearchBox lives at the shell root so the trigger stays reachable
+          on mobile (where the rail is hidden behind the hamburger drawer)
+          and so its dialog overlays both rail and main. */}
+      <div className={styles.searchHost}>
+        <SearchBox />
+      </div>
       <MobileNavWrapper>
         <aside className={styles.rail} aria-label="Primary navigation">
           <Link href="/" className={styles.brand}>
             <span className={styles.brandGlyph}>N</span>
             <span className={styles.brandWord}>Namecard</span>
           </Link>
-
-          <div className={styles.searchHost}>
-            <SearchBox />
-          </div>
 
           <nav>
             <p className={styles.navLabel}>導覽</p>

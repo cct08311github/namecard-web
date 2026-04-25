@@ -46,7 +46,16 @@
 }
 
 .searchHost {
-  margin: var(--space-md) 0;
+  position: fixed;
+  top: var(--space-sm);
+  right: calc(var(--space-sm) + 3rem); /* leave room for the mobile hamburger */
+  z-index: 55;
+}
+
+@media (min-width: 48.01rem) {
+  .searchHost {
+    right: var(--space-sm);
+  }
 }
 
 .navLabel {
