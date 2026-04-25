@@ -36,9 +36,16 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
   const card = await getCardForUser(user.uid, id);
   if (!card || card.deletedAt) notFound();
   const contactEvents = await listContactEventsForUser(id, user.uid, 30);
-  const sharedEventCards = card.firstMetEventTag
-    ? await getCardsBySharedEvent(user.uid, card.firstMetEventTag, card.id, 8)
-    : [];
+  // Wrap in try/catch so a missing/CREATING composite index doesn't 500
+  // the whole detail page; the related sidebar simply doesn't render.
+  let sharedEventCards: Awaited<ReturnType<typeof getCardsBySharedEvent>> = [];
+  if (card.firstMetEventTag) {
+    try {
+      sharedEventCards = await getCardsBySharedEvent(user.uid, card.firstMetEventTag, card.id, 8);
+    } catch (err) {
+      console.error("[card detail] related-by-event failed:", err);
+    }
+  }
 
   const primary = card.nameZh || card.nameEn || "（未命名）";
   const secondary = card.nameZh && card.nameEn ? card.nameEn : null;
