@@ -7,7 +7,9 @@
 export type ShortcutAction =
   | { kind: "go"; href: string }
   | { kind: "show-help" }
-  | { kind: "close-help" };
+  | { kind: "close-help" }
+  | { kind: "open-palette" }
+  | { kind: "close-palette" };
 
 export interface KeyEventLike {
   key: string;
@@ -28,6 +30,8 @@ export interface ShortcutContext {
   prefix: "g" | null;
   /** True while the help overlay is open. Only Esc works then. */
   helpOpen: boolean;
+  /** True while the search palette is open. Only Esc closes it (text typing handled internally). */
+  paletteOpen?: boolean;
 }
 
 export interface MatchResult {
@@ -42,7 +46,21 @@ export interface MatchResult {
  * the actual state and timers.
  */
 export function matchKeyEvent(ctx: ShortcutContext, e: KeyEventLike): MatchResult {
-  // Never intercept text input.
+  // Cmd+K / Ctrl+K opens the palette from anywhere — including text
+  // inputs (so users can ⌘K out of the new-card form to find someone)
+  // — and once open, Esc closes it. Text input check happens *after*
+  // this so the palette key beats input-blanking.
+  if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+    return { action: { kind: "open-palette" }, nextPrefix: null };
+  }
+  if (ctx.paletteOpen) {
+    if (e.key === "Escape") return { action: { kind: "close-palette" }, nextPrefix: null };
+    // Don't process other shortcuts while palette is open — its own
+    // input handler owns arrows / Enter / typing.
+    return { action: null, nextPrefix: null };
+  }
+
+  // Never intercept text input for non-modifier shortcuts.
   if (isTextInput(e.target)) return { action: null, nextPrefix: null };
 
   // When the help overlay is open, only Esc does something.
@@ -51,7 +69,12 @@ export function matchKeyEvent(ctx: ShortcutContext, e: KeyEventLike): MatchResul
     return { action: null, nextPrefix: ctx.prefix };
   }
 
-  // Ignore modified keystrokes (let ⌘K etc. through).
+  // "/" opens the palette without modifiers — same as GitHub / Linear.
+  if (e.key === "/") {
+    return { action: { kind: "open-palette" }, nextPrefix: null };
+  }
+
+  // Ignore other modified keystrokes (let ⌘L etc. through).
   if (e.metaKey || e.ctrlKey || e.altKey) {
     return { action: null, nextPrefix: null };
   }

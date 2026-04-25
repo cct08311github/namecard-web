@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { matchKeyEvent } from "@/lib/shortcuts/match";
 
 import styles from "./GlobalShortcuts.module.css";
+import { QuickSearchPalette } from "./QuickSearchPalette";
 
 /**
  * Global keyboard shortcuts wired at AppShell level.
@@ -23,6 +24,7 @@ const PREFIX_TIMEOUT_MS = 1000;
 export function GlobalShortcuts() {
   const router = useRouter();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const prefixRef = useRef<"g" | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,7 +39,7 @@ export function GlobalShortcuts() {
 
     const handler = (e: KeyboardEvent) => {
       const result = matchKeyEvent(
-        { prefix: prefixRef.current, helpOpen },
+        { prefix: prefixRef.current, helpOpen, paletteOpen },
         {
           key: e.key,
           metaKey: e.metaKey,
@@ -61,6 +63,14 @@ export function GlobalShortcuts() {
             e.preventDefault();
             setHelpOpen(false);
             break;
+          case "open-palette":
+            e.preventDefault();
+            setPaletteOpen(true);
+            break;
+          case "close-palette":
+            e.preventDefault();
+            setPaletteOpen(false);
+            break;
         }
         clearPrefix();
         return;
@@ -81,27 +91,29 @@ export function GlobalShortcuts() {
       window.removeEventListener("keydown", handler);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [helpOpen, router]);
+  }, [helpOpen, paletteOpen, router]);
 
-  if (!helpOpen) return null;
+  return (
+    <>
+      <QuickSearchPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {helpOpen && <HelpOverlay onClose={() => setHelpOpen(false)} />}
+    </>
+  );
+}
 
+function HelpOverlay({ onClose }: { onClose: () => void }) {
   return (
     <div
       className={styles.overlay}
       role="dialog"
       aria-modal="true"
       aria-label="鍵盤快捷鍵"
-      onClick={() => setHelpOpen(false)}
+      onClick={onClose}
     >
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
         <header className={styles.header}>
           <h2 className={styles.title}>鍵盤快捷鍵</h2>
-          <button
-            type="button"
-            className={styles.close}
-            aria-label="關閉"
-            onClick={() => setHelpOpen(false)}
-          >
+          <button type="button" className={styles.close} aria-label="關閉" onClick={onClose}>
             ✕
           </button>
         </header>

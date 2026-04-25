@@ -78,10 +78,47 @@ describe("matchKeyEvent — guards", () => {
     expect(r.action).toBeNull();
   });
 
-  it("ignores modified keystrokes so ⌘K still works", () => {
-    expect(matchKeyEvent(noPrefix, key("k", { metaKey: true })).action).toBeNull();
+  it("ignores modified non-palette keystrokes so OS shortcuts pass through", () => {
     expect(matchKeyEvent(noPrefix, key("c", { ctrlKey: true })).action).toBeNull();
     expect(matchKeyEvent(noPrefix, key("?", { altKey: true })).action).toBeNull();
+    expect(matchKeyEvent(noPrefix, key("l", { metaKey: true })).action).toBeNull();
+  });
+});
+
+describe("matchKeyEvent — search palette", () => {
+  it("⌘K opens the palette from anywhere (incl text inputs)", () => {
+    expect(matchKeyEvent(noPrefix, key("k", { metaKey: true })).action).toEqual({
+      kind: "open-palette",
+    });
+    // Even when focus is in a text input — users can ⌘K out of the
+    // new-card form to look someone up.
+    expect(
+      matchKeyEvent(noPrefix, key("k", { metaKey: true, target: { tagName: "INPUT" } })).action,
+    ).toEqual({ kind: "open-palette" });
+  });
+
+  it("Ctrl+K also opens the palette (Windows / Linux)", () => {
+    expect(matchKeyEvent(noPrefix, key("k", { ctrlKey: true })).action).toEqual({
+      kind: "open-palette",
+    });
+    expect(matchKeyEvent(noPrefix, key("K", { ctrlKey: true })).action).toEqual({
+      kind: "open-palette",
+    });
+  });
+
+  it("/ opens the palette without modifiers", () => {
+    expect(matchKeyEvent(noPrefix, key("/")).action).toEqual({ kind: "open-palette" });
+  });
+
+  it("Escape closes the palette when open", () => {
+    const ctx: ShortcutContext = { prefix: null, helpOpen: false, paletteOpen: true };
+    expect(matchKeyEvent(ctx, key("Escape")).action).toEqual({ kind: "close-palette" });
+  });
+
+  it("other keys do nothing when palette is open (the input owns them)", () => {
+    const ctx: ShortcutContext = { prefix: null, helpOpen: false, paletteOpen: true };
+    expect(matchKeyEvent(ctx, key("c")).action).toBeNull();
+    expect(matchKeyEvent(ctx, key("g")).action).toBeNull();
   });
 });
 
