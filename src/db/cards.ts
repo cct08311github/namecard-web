@@ -196,6 +196,33 @@ export async function touchLastContactedAt(
 }
 
 /**
+ * Find other cards from the same event tag (e.g. "2024 COMPUTEX") so
+ * the detail page can show 「同場合認識的人」. Filtered by memberUids
+ * to honor the same access boundary as `listCardsForUser` and exclude
+ * the card we're viewing. Returns at most `limit` results, sorted by
+ * createdAt desc so newer additions surface first.
+ */
+export async function getCardsBySharedEvent(
+  uid: string,
+  eventTag: string,
+  excludeCardId: string,
+  limit = 8,
+): Promise<CardSummary[]> {
+  if (!eventTag.trim()) return [];
+  const db = getAdminFirestore();
+  const snap = await db
+    .collectionGroup(SUB_COLLECTION_CARDS)
+    .where("memberUids", "array-contains", uid)
+    .where("firstMetEventTag", "==", eventTag)
+    .limit(limit + 1) // +1 so we can drop the current card and still hit the cap
+    .get();
+  return snap.docs
+    .map((doc) => toSummary(doc.id, doc.data()))
+    .filter((card) => card.id !== excludeCardId && card.deletedAt === null)
+    .slice(0, limit);
+}
+
+/**
  * Toggle the pin flag on a card. Pinned cards surface in the Timeline
  * "Pinned" section at the top and are excluded from "uncontacted"
  * so core contacts aren't shame-nudged. Pin state does not affect
