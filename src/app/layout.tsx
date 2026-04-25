@@ -26,6 +26,10 @@ const inter = Inter({
   display: "swap",
 });
 
+// Same basePath the manifest itself reads — links here must resolve
+// under the deploy prefix or installed PWAs land on the wrong host.
+const BASE = process.env.NAMECARD_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: {
     default: "Namecard Web",
@@ -34,7 +38,7 @@ export const metadata: Metadata = {
   description: "個人工作名片管理網站 — 以關係脈絡為核心",
   applicationName: "Namecard Web",
   authors: [{ name: "cct08311github" }],
-  manifest: "/manifest.webmanifest",
+  manifest: `${BASE}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
     title: "Namecard",
