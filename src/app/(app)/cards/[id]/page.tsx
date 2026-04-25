@@ -9,6 +9,7 @@ import { CoachInsightSection } from "@/components/cards/CoachInsightSection";
 import { ContactEventList } from "@/components/cards/ContactEventList";
 import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import { PublicProfileToggle } from "@/components/cards/PublicProfileToggle";
+import { RelatedByCompany } from "@/components/cards/RelatedByCompany";
 import { RelatedByEvent } from "@/components/cards/RelatedByEvent";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
 import {
@@ -16,6 +17,7 @@ import {
   getCardsBySharedEvent,
   listCardsForUser,
   listContactEventsForUser,
+  type CardSummary,
 } from "@/db/cards";
 import type { CardCreateInput } from "@/db/schema";
 import { isCoachConfigured } from "@/lib/coach/llm";
@@ -75,21 +77,36 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
   );
   const anniversaryYears = anniversaryEntry?.years ?? null;
 
-  // Count siblings at the same company so we can offer a link to the
-  // /companies/[slug] hub. Wrapped in try/catch — a flaky list query
-  // should not 500 the whole detail page; the link just won't render.
+  // Count + sample siblings at the same company so we can render an
+  // inline mini-list (RelatedByCompany) and a link to /companies/[slug].
+  // Wrapped in try/catch — a flaky list query should not 500 the whole
+  // detail page; the block just won't render.
   let companySiblingCount = 0;
   let companyHrefSlug: string | null = null;
+  let companySiblings: CardSummary[] = [];
   const canonicalCompany = pickCanonicalCompany(card);
   if (canonicalCompany) {
     try {
       const all = await listCardsForUser(user.uid, { limit: 500 });
       const wantedKey = canonicalCompany.toLowerCase().trim();
-      companySiblingCount = all.filter((c) => {
+      const siblings = all.filter((c) => {
         if (c.id === card.id || c.deletedAt) return false;
         const co = pickCanonicalCompany(c).toLowerCase().trim();
         return co === wantedKey;
-      }).length;
+      });
+      companySiblingCount = siblings.length;
+      // lastContactedAt desc, then createdAt desc as tiebreaker — recent
+      // colleagues surface first since those are the most actionable
+      // contacts for "who else have I talked to at $company lately?".
+      siblings.sort((a, b) => {
+        const aLast = a.lastContactedAt?.getTime() ?? 0;
+        const bLast = b.lastContactedAt?.getTime() ?? 0;
+        if (bLast !== aLast) return bLast - aLast;
+        const aCreated = a.createdAt?.getTime() ?? 0;
+        const bCreated = b.createdAt?.getTime() ?? 0;
+        return bCreated - aCreated;
+      });
+      companySiblings = siblings.slice(0, 5);
       if (companySiblingCount > 0) companyHrefSlug = companySlug(canonicalCompany);
     } catch (err) {
       console.error("[card detail] company-sibling count failed:", err);
@@ -330,15 +347,13 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             <RelatedByEvent eventTag={card.firstMetEventTag} cards={sharedEventCards} />
           )}
 
-          {companyHrefSlug && companySiblingCount > 0 && (
-            <section className={styles.relatedCompany} aria-label="同公司聯絡人">
-              <Link
-                href={`/companies/${encodeURIComponent(companyHrefSlug)}`}
-                className={styles.relatedCompanyLink}
-              >
-                同公司還有 {companySiblingCount} 位 →
-              </Link>
-            </section>
+          {companyHrefSlug && canonicalCompany && companySiblings.length > 0 && (
+            <RelatedByCompany
+              companyName={canonicalCompany}
+              companySlug={companyHrefSlug}
+              cards={companySiblings}
+              totalSiblings={companySiblingCount}
+            />
           )}
 
           <footer className={styles.timestamps}>
