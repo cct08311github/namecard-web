@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import {
   deleteCardAction,
+  getFollowupSuggestionAction,
   logContactAction,
   setFollowUpAction,
   toggleCardPinAction,
@@ -75,6 +76,20 @@ export function CardActions({
   const [noteDraft, setNoteDraft] = useState("");
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [followUpDraft, setFollowUpDraft] = useState(followUpAt ?? "");
+  const [suggestionHint, setSuggestionHint] = useState<string | null>(null);
+
+  const requestFollowupSuggestion = () => {
+    setSuggestionHint(null);
+    startTransition(async () => {
+      const res = await getFollowupSuggestionAction({ cardId });
+      if (!res?.data || !res.data.ok) {
+        setSuggestionHint("無法取得建議");
+        return;
+      }
+      setFollowUpDraft(res.data.suggestion.isoDate);
+      setSuggestionHint(res.data.suggestion.reasonZh);
+    });
+  };
 
   useEffect(() => {
     if (!toast) return;
@@ -353,6 +368,15 @@ export function CardActions({
               <button
                 type="button"
                 className={styles.secondary}
+                onClick={requestFollowupSuggestion}
+                disabled={pending}
+                title="根據對話節奏 AI 建議下次聯絡日"
+              >
+                ✨ AI 建議
+              </button>
+              <button
+                type="button"
+                className={styles.secondary}
                 onClick={() => submitFollowUp(followUpDraft || null)}
                 disabled={pending || !followUpDraft}
               >
@@ -369,6 +393,7 @@ export function CardActions({
                 </button>
               )}
             </div>
+            {suggestionHint && <p className={styles.hint}>{suggestionHint}</p>}
           </div>
         )}
         <button

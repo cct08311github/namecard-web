@@ -40,6 +40,7 @@ import { callIntrosLlm } from "@/lib/coach/intros-llm";
 import { readIntrosCache, writeIntrosCache } from "@/lib/coach/intros-store";
 import { callCoachLlm, isCoachConfigured } from "@/lib/coach/llm";
 import { selectTodayPriorityCards, type PriorityCandidate } from "@/lib/coach/priority";
+import { suggestNextFollowupDate, type FollowupSuggestion } from "@/lib/coach/followup-suggest";
 import { reengageCacheKey, type ReengageContext, type ReengageDrafts } from "@/lib/coach/reengage";
 import { callReengageLlm } from "@/lib/coach/reengage-llm";
 import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-store";
@@ -631,3 +632,26 @@ export const touchCardAction = authedAction
     revalidatePath(`/cards/${parsedInput.id}`);
     return { ok: true as const };
   });
+
+/**
+ * ✨ Smart followup suggest — returns a date for the next ping based on
+ * the user's actual conversation cadence with this card. No LLM call;
+ * pure math over recent contact-events. Falls back to a default 30 days
+ * when there's not enough history to compute a rhythm.
+ */
+export const getFollowupSuggestionAction = authedAction
+  .inputSchema(z.object({ cardId: z.string().min(1) }))
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<
+      { ok: true; suggestion: FollowupSuggestion } | { ok: false; reason: "card-not-found" }
+    > => {
+      const card = await getCardForUser(ctx.user.uid, parsedInput.cardId);
+      if (!card || card.deletedAt) return { ok: false, reason: "card-not-found" };
+      const events = await listContactEventsForUser(card.id, ctx.user.uid, 10);
+      const suggestion = suggestNextFollowupDate(card, events, new Date());
+      return { ok: true, suggestion };
+    },
+  );

@@ -176,6 +176,14 @@
   padding: var(--space-xs) var(--space-sm);
 }
 
+.hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-style: italic;
+  color: var(--color-ink-muted);
+  margin: var(--space-xs) 0 0;
+}
+
 .pickerWrap {
   position: relative;
   display: inline-block;
