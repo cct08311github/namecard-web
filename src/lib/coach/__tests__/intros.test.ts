@@ -187,6 +187,39 @@ describe("parseIntrosResponse", () => {
   it("returns empty on malformed JSON", () => {
     expect(parseIntrosResponse("not json", validIds)).toEqual([]);
   });
+
+  it("returns empty on empty string", () => {
+    expect(parseIntrosResponse("", validIds)).toEqual([]);
+  });
+
+  it("returns empty on null/non-object root", () => {
+    expect(parseIntrosResponse("null", validIds)).toEqual([]);
+    expect(parseIntrosResponse('"a string"', validIds)).toEqual([]);
+  });
+
+  it("returns empty when intros field is missing or not an array", () => {
+    expect(parseIntrosResponse(JSON.stringify({}), validIds)).toEqual([]);
+    expect(parseIntrosResponse(JSON.stringify({ intros: "not-array" }), validIds)).toEqual([]);
+  });
+
+  it("drops null / non-object items inside intros array", () => {
+    const raw = JSON.stringify({
+      intros: [null, "string", 42, { cardAId: "a", cardBId: "b", reason: "x", draftEmail: "y" }],
+    });
+    expect(parseIntrosResponse(raw, validIds)).toHaveLength(1);
+  });
+
+  it("drops items where cardAId / cardBId is missing or non-string", () => {
+    const raw = JSON.stringify({
+      intros: [
+        { cardAId: "", cardBId: "b", reason: "x", draftEmail: "y" },
+        { cardAId: "a", cardBId: "", reason: "x", draftEmail: "y" },
+        { cardAId: 42, cardBId: "b", reason: "x", draftEmail: "y" },
+        { cardAId: "a", cardBId: "c", reason: "x", draftEmail: "y" },
+      ],
+    });
+    expect(parseIntrosResponse(raw, validIds)).toHaveLength(1);
+  });
 });
 
 describe("introsCacheKey", () => {
