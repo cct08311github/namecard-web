@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import { deleteCardAction, logContactAction, toggleCardPinAction } from "@/app/(app)/cards/actions";
+import {
+  deleteCardAction,
+  logContactAction,
+  setFollowUpAction,
+  toggleCardPinAction,
+} from "@/app/(app)/cards/actions";
 import { shareCardVcard } from "@/lib/share/card-share";
 
 import styles from "./CardActions.module.css";
@@ -34,6 +39,8 @@ interface CardActionsProps {
   lineId?: string;
   linkedinUrl?: string;
   isPinned?: boolean;
+  /** Existing follow-up reminder, if any. ISO YYYY-MM-DD string for input parity. */
+  followUpAt?: string | null;
 }
 
 export function CardActions({
@@ -46,6 +53,7 @@ export function CardActions({
   lineId,
   linkedinUrl,
   isPinned = false,
+  followUpAt = null,
 }: CardActionsProps) {
   // Normalize: prefer the full list when given, else wrap the single
   // primary into a 1-item list. Empty when there's nothing to show.
@@ -65,6 +73,8 @@ export function CardActions({
   const [toast, setToast] = useState<string | null>(null);
   const [logNoteOpen, setLogNoteOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [followUpDraft, setFollowUpDraft] = useState(followUpAt ?? "");
 
   useEffect(() => {
     if (!toast) return;
@@ -108,6 +118,26 @@ export function CardActions({
       if (result?.serverError) setError(result.serverError);
       else router.push("/cards");
     });
+  };
+
+  const submitFollowUp = (date: string | null) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await setFollowUpAction({ id: cardId, followUpAt: date });
+      if (result?.serverError) setError(result.serverError);
+      else {
+        setToast(date ? `已排提醒：${date}` : "已取消提醒");
+        setFollowUpOpen(false);
+        setFollowUpDraft(date ?? "");
+        router.refresh();
+      }
+    });
+  };
+
+  const quickOffsetDays = (days: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
   };
 
   const handleTogglePin = () => {
@@ -276,6 +306,71 @@ export function CardActions({
       )}
 
       <div className={styles.stack}>
+        <button
+          type="button"
+          className={styles.secondary}
+          onClick={() => setFollowUpOpen((v) => !v)}
+          disabled={pending}
+          aria-expanded={followUpOpen}
+        >
+          {followUpAt ? `📅 下次聯絡：${followUpAt}` : "📅 設定下次聯絡"}
+        </button>
+        {followUpOpen && (
+          <div className={styles.noteBox}>
+            <input
+              type="date"
+              className={styles.noteInput}
+              value={followUpDraft}
+              onChange={(e) => setFollowUpDraft(e.target.value)}
+              aria-label="下次聯絡日期"
+              min={new Date().toISOString().slice(0, 10)}
+            />
+            <div className={styles.noteActions}>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => submitFollowUp(quickOffsetDays(3))}
+                disabled={pending}
+              >
+                +3 天
+              </button>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => submitFollowUp(quickOffsetDays(7))}
+                disabled={pending}
+              >
+                +7 天
+              </button>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => submitFollowUp(quickOffsetDays(14))}
+                disabled={pending}
+              >
+                +14 天
+              </button>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => submitFollowUp(followUpDraft || null)}
+                disabled={pending || !followUpDraft}
+              >
+                確認日期
+              </button>
+              {followUpAt && (
+                <button
+                  type="button"
+                  className={styles.secondary}
+                  onClick={() => submitFollowUp(null)}
+                  disabled={pending}
+                >
+                  取消提醒
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <button
           type="button"
           className={styles.secondary}

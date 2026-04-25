@@ -11,6 +11,7 @@ import {
   logContactEvent,
   mergeCardsForUser,
   setCardPinned,
+  setFollowUpForUser,
   softDeleteCardForUser,
   updateCardForUser,
 } from "@/db/cards";
@@ -167,6 +168,33 @@ export const mergeCardsAction = authedAction
     revalidatePath("/cards/duplicates");
     revalidatePath(`/cards/${parsedInput.keepId}`);
     return { ok: true as const, ...result };
+  });
+
+/**
+ * Set or clear a follow-up reminder. `followUpAt` accepts a YYYY-MM-DD
+ * date string or null. Empty string is treated as null (clear). Server
+ * Action surface for the CardActions disclosure + 快捷鍵.
+ */
+export const setFollowUpAction = authedAction
+  .inputSchema(
+    z.object({
+      id: z.string().min(1),
+      followUpAt: z
+        .string()
+        .refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v), {
+          message: "Invalid date (expected YYYY-MM-DD or empty)",
+        })
+        .nullable(),
+    }),
+  )
+  .action(async ({ parsedInput, ctx }) => {
+    const value =
+      parsedInput.followUpAt && parsedInput.followUpAt !== "" ? parsedInput.followUpAt : null;
+    await setFollowUpForUser(parsedInput.id, ctx.user.uid, value);
+    revalidatePath("/");
+    revalidatePath("/cards");
+    revalidatePath(`/cards/${parsedInput.id}`);
+    return { ok: true as const, followUpAt: value };
   });
 
 /**

@@ -20,6 +20,7 @@ function card(overrides: Partial<CardSummary> = {}): CardSummary {
     emails: [],
     social: {},
     isPinned: false,
+    followUpAt: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-01T00:00:00Z"),
     lastContactedAt: null,
@@ -29,9 +30,10 @@ function card(overrides: Partial<CardSummary> = {}): CardSummary {
 }
 
 describe("categorizeTimeline", () => {
-  it("returns 4 sections in fixed order (pinned first)", () => {
+  it("returns 5 sections in fixed order (due-today first)", () => {
     const sections = categorizeTimeline([], { now: NOW });
     expect(sections.map((s) => s.id)).toEqual([
+      "due-today",
       "pinned",
       "newly-added",
       "met-this-month",
@@ -70,14 +72,14 @@ describe("categorizeTimeline", () => {
 
   it("classifies firstMetDate in current month as met-this-month", () => {
     const c = card({ firstMetDate: "2026-04-10" });
-    const [, , met] = categorizeTimeline([c], { now: NOW });
+    const [, , , met] = categorizeTimeline([c], { now: NOW });
     expect(met.cards).toHaveLength(1);
     expect(met.cards[0]).toBe(c);
   });
 
   it("classifies firstMetDate last month as NOT met-this-month", () => {
     const c = card({ firstMetDate: "2026-03-10" });
-    const [, newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, , newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
     expect(met.cards).toHaveLength(0);
     // createdAt is 2026-01-01 so not newly-added; last contact null → uncontacted
     expect(newly.cards).toHaveLength(0);
@@ -89,7 +91,7 @@ describe("categorizeTimeline", () => {
       id: "new",
       createdAt: new Date("2026-04-15T00:00:00Z"),
     });
-    const [, newly] = categorizeTimeline([c], { now: NOW });
+    const [, , newly] = categorizeTimeline([c], { now: NOW });
     expect(newly.cards.map((card) => card.id)).toContain("new");
   });
 
@@ -99,7 +101,7 @@ describe("categorizeTimeline", () => {
       createdAt: new Date("2025-01-01T00:00:00Z"),
       lastContactedAt: new Date("2026-02-01T00:00:00Z"), // > 30 days before NOW
     });
-    const [, , , uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, , , , uncontacted] = categorizeTimeline([c], { now: NOW });
     expect(uncontacted.cards.map((card) => card.id)).toContain("stale");
   });
 
@@ -109,7 +111,7 @@ describe("categorizeTimeline", () => {
       createdAt: new Date("2025-01-01T00:00:00Z"),
       lastContactedAt: new Date("2026-04-15T00:00:00Z"), // 3 days before NOW
     });
-    const [, newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, , newly, met, uncontacted] = categorizeTimeline([c], { now: NOW });
     expect([...newly.cards, ...met.cards, ...uncontacted.cards]).toHaveLength(0);
   });
 
@@ -137,7 +139,7 @@ describe("categorizeTimeline", () => {
       id: "newer",
       createdAt: new Date("2026-04-17T00:00:00Z"),
     });
-    const [, newly] = categorizeTimeline([older, newer], { now: NOW });
+    const [, , newly] = categorizeTimeline([older, newer], { now: NOW });
     expect(newly.cards.map((c) => c.id)).toEqual(["newer", "older"]);
   });
 
@@ -152,7 +154,7 @@ describe("categorizeTimeline", () => {
       createdAt: new Date("2025-01-01T00:00:00Z"),
       lastContactedAt: new Date("2026-01-01T00:00:00Z"),
     });
-    const [, , , uncontacted] = categorizeTimeline([b, a], { now: NOW });
+    const [, , , , uncontacted] = categorizeTimeline([b, a], { now: NOW });
     expect(uncontacted.cards.map((c) => c.id)).toEqual(["a", "b"]);
   });
 
@@ -186,7 +188,7 @@ describe("categorizeTimeline", () => {
       firstMetDate: "04/10/2026" as unknown as string,
       createdAt: new Date("2025-01-01T00:00:00Z"),
     });
-    const [, , met, uncontacted] = categorizeTimeline([c], { now: NOW });
+    const [, , , met, uncontacted] = categorizeTimeline([c], { now: NOW });
     expect(met.cards).toHaveLength(0);
     expect(uncontacted.cards).toHaveLength(1);
   });
@@ -194,7 +196,7 @@ describe("categorizeTimeline", () => {
   it("sorts met-this-month by firstMetDate desc", () => {
     const early = card({ id: "early", firstMetDate: "2026-04-03" });
     const late = card({ id: "late", firstMetDate: "2026-04-17" });
-    const [, , met] = categorizeTimeline([early, late], { now: NOW });
+    const [, , , met] = categorizeTimeline([early, late], { now: NOW });
     expect(met.cards.map((c) => c.id)).toEqual(["late", "early"]);
   });
 
@@ -202,7 +204,7 @@ describe("categorizeTimeline", () => {
     const good = card({ id: "good", firstMetDate: "2026-04-15" });
     // broken date never enters met-this-month, but guard the sort fallback
     // via a card with firstMetDate set to a valid current-month date only once.
-    const [, , met] = categorizeTimeline([good], { now: NOW });
+    const [, , , met] = categorizeTimeline([good], { now: NOW });
     expect(met.cards).toHaveLength(1);
   });
 
@@ -232,5 +234,66 @@ describe("categorizeTimeline", () => {
     const sections = categorizeTimeline([c], { now: NOW, uncontactedDays: 5 });
     const uncontacted = sections.find((s) => s.id === "uncontacted")!;
     expect(uncontacted.cards.map((card) => card.id)).toContain("recent");
+  });
+
+  describe("due-today section", () => {
+    it("classifies cards with followUpAt <= today into due-today", () => {
+      const overdue = card({
+        id: "overdue",
+        followUpAt: new Date("2026-04-10T00:00:00"),
+      });
+      const today = card({
+        id: "today",
+        followUpAt: new Date("2026-04-18T00:00:00"),
+      });
+      const future = card({
+        id: "future",
+        followUpAt: new Date("2026-04-25T00:00:00"),
+      });
+      const [due] = categorizeTimeline([future, today, overdue], { now: NOW });
+      expect(due.cards.map((c) => c.id)).toEqual(["overdue", "today"]);
+    });
+
+    it("due-today wins over pinned (committed action beats standing pin)", () => {
+      const pinnedAndDue = card({
+        id: "p+d",
+        isPinned: true,
+        followUpAt: new Date("2026-04-15T00:00:00"),
+      });
+      const sections = categorizeTimeline([pinnedAndDue], { now: NOW });
+      const due = sections.find((s) => s.id === "due-today")!;
+      const pinned = sections.find((s) => s.id === "pinned")!;
+      expect(due.cards.map((c) => c.id)).toEqual(["p+d"]);
+      expect(pinned.cards).toHaveLength(0);
+    });
+
+    it("due-today is not capped (every reminder must be visible)", () => {
+      const many = Array.from({ length: 15 }, (_, i) =>
+        card({
+          id: `d${i}`,
+          followUpAt: new Date(`2026-04-${String((i % 17) + 1).padStart(2, "0")}T00:00:00`),
+        }),
+      );
+      const sections = categorizeTimeline(many, { now: NOW, maxPerSection: 5 });
+      const due = sections.find((s) => s.id === "due-today")!;
+      expect(due.cards).toHaveLength(15);
+    });
+
+    it("does not include cards whose followUpAt is in the future", () => {
+      const future = card({
+        id: "future",
+        followUpAt: new Date("2026-04-25T00:00:00"),
+      });
+      const sections = categorizeTimeline([future], { now: NOW });
+      const due = sections.find((s) => s.id === "due-today")!;
+      expect(due.cards).toHaveLength(0);
+    });
+
+    it("treats null/undefined followUpAt as no reminder", () => {
+      const noReminder = card({ id: "nr", followUpAt: null });
+      const sections = categorizeTimeline([noReminder], { now: NOW });
+      const due = sections.find((s) => s.id === "due-today")!;
+      expect(due.cards).toHaveLength(0);
+    });
   });
 });

@@ -1,7 +1,7 @@
 import type { CardSummary } from "@/db/cards";
 
 export interface TimelineSection {
-  id: "pinned" | "uncontacted" | "met-this-month" | "newly-added";
+  id: "due-today" | "pinned" | "uncontacted" | "met-this-month" | "newly-added";
   title: string;
   description: string;
   cards: CardSummary[];
@@ -30,20 +30,20 @@ function parseFirstMetDate(raw: string | undefined): Date | null {
 }
 
 /**
- * Categorize cards into the 4 timeline sections.
- * Priority: pinned > met-this-month > newly-added > uncontacted.
- * A pinned card shows only in the Pinned section — it's
- * intentionally never duplicated as "最近沒聯絡" because core
- * contacts shouldn't be shame-nudged.
+ * Categorize cards into the 5 timeline sections.
+ * Priority: due-today > pinned > met-this-month > newly-added > uncontacted.
+ * A card shows in only one section. due-today wins over pinned because
+ * the user *committed to acting today* — that beats the standing pin.
  *
  * Rules:
- *  - pinned: card.isPinned === true
+ *  - due-today: followUpAt is set AND <= end of `now` calendar day
+ *  - pinned: card.isPinned === true (and not due-today)
  *  - met-this-month: firstMetDate within the given "now" month.
  *  - newly-added: createdAt within newlyAddedDays (default 7). Excluded from uncontacted.
  *  - uncontacted:
  *      - lastContactedAt older than uncontactedDays (default 30), OR
  *      - lastContactedAt is null AND createdAt older than uncontactedDays
- *      - excludes cards already pinned / met-this-month / newly-added
+ *      - excludes cards already in another section
  *  - Each section capped by maxPerSection (default 5), sorted deterministically.
  */
 export function categorizeTimeline(
@@ -52,6 +52,12 @@ export function categorizeTimeline(
 ): TimelineSection[] {
   const { now, uncontactedDays = 30, newlyAddedDays = 7, maxPerSection = 5 } = options;
 
+  // End-of-day: include reminders set for *today* even if their stored
+  // midnight is technically already past at the time of read.
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  const dueToday: CardSummary[] = [];
   const pinned: CardSummary[] = [];
   const metThisMonth: CardSummary[] = [];
   const newlyAdded: CardSummary[] = [];
@@ -59,6 +65,10 @@ export function categorizeTimeline(
 
   for (const card of cards) {
     if (card.deletedAt) continue;
+    if (card.followUpAt && card.followUpAt.getTime() <= endOfToday.getTime()) {
+      dueToday.push(card);
+      continue;
+    }
     if (card.isPinned) {
       pinned.push(card);
       continue;
@@ -108,7 +118,23 @@ export function categorizeTimeline(
     return tb - ta;
   });
 
+  // Due-today sorted by overdue-most-first so the most pressing reminders
+  // surface first.
+  dueToday.sort((a, b) => {
+    const ta = a.followUpAt?.getTime() ?? 0;
+    const tb = b.followUpAt?.getTime() ?? 0;
+    return ta - tb;
+  });
+
   return [
+    {
+      id: "due-today",
+      title: "今天該聯絡",
+      description: "你之前設定提醒到期了，趁今天打通電話 / 寄個訊息。",
+      // Not capped — every due reminder must be visible, otherwise the
+      // whole feature loses trust.
+      cards: dueToday,
+    },
     {
       id: "pinned",
       title: "重要聯絡人",

@@ -213,6 +213,7 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             lineId={card.social?.lineId}
             linkedinUrl={card.social?.linkedinUrl}
             isPinned={card.isPinned}
+            followUpAt={card.followUpAt ? card.followUpAt.toISOString().slice(0, 10) : null}
           />
 
           {card.firstMetEventTag && sharedEventCards.length > 0 && (

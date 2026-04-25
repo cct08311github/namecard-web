@@ -9,6 +9,11 @@ vi.mock("@/app/(app)/cards/actions", () => ({
   deleteCardAction: vi.fn(),
   logContactAction: vi.fn().mockResolvedValue({ ok: true, eventId: "ev1" }),
   toggleCardPinAction: vi.fn().mockResolvedValue({ ok: true, pinned: true }),
+  setFollowUpAction: vi
+    .fn()
+    .mockImplementation(async ({ followUpAt }: { followUpAt: string | null }) => ({
+      data: { ok: true as const, followUpAt },
+    })),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
@@ -147,6 +152,56 @@ describe("CardActions quick CTA row", () => {
       render(<CardActions cardId="abc" primaryPhone="0900111222" />);
       const link = screen.getByLabelText(/0900111222/) as HTMLAnchorElement;
       expect(link.href).toBe("tel:0900111222");
+    });
+  });
+
+  describe("follow-up reminder disclosure", () => {
+    it("shows 設定下次聯絡 when no reminder set, and reveals date input on click", () => {
+      render(<CardActions cardId="abc" />);
+      const trigger = screen.getByRole("button", { name: /設定下次聯絡/ });
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(trigger);
+      expect(screen.getByLabelText(/下次聯絡日期/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /\+3 天/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /\+7 天/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /\+14 天/ })).toBeInTheDocument();
+    });
+
+    it("shows existing reminder date in the trigger label and offers 取消提醒", () => {
+      render(<CardActions cardId="abc" followUpAt="2026-05-01" />);
+      expect(screen.getByRole("button", { name: /下次聯絡：2026-05-01/ })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /下次聯絡：2026-05-01/ }));
+      expect(screen.getByRole("button", { name: /取消提醒/ })).toBeInTheDocument();
+    });
+
+    it("clicking +7 天 fires setFollowUpAction with 7-day-out date", async () => {
+      const { setFollowUpAction } = await import("@/app/(app)/cards/actions");
+      const mocked = vi.mocked(setFollowUpAction);
+      mocked.mockClear();
+      render(<CardActions cardId="abc" />);
+      fireEvent.click(screen.getByRole("button", { name: /設定下次聯絡/ }));
+      fireEvent.click(screen.getByRole("button", { name: /\+7 天/ }));
+      await vi.waitFor(() => {
+        expect(mocked).toHaveBeenCalledTimes(1);
+      });
+      const call = mocked.mock.calls[0]![0]!;
+      // Check it's an ISO date 7 days out (allow 1-day skew across timezones).
+      const target = new Date();
+      target.setDate(target.getDate() + 7);
+      const expected = target.toISOString().slice(0, 10);
+      expect(call.followUpAt).toBe(expected);
+    });
+
+    it("clicking 取消提醒 fires setFollowUpAction with null", async () => {
+      const { setFollowUpAction } = await import("@/app/(app)/cards/actions");
+      const mocked = vi.mocked(setFollowUpAction);
+      mocked.mockClear();
+      render(<CardActions cardId="abc" followUpAt="2026-05-01" />);
+      fireEvent.click(screen.getByRole("button", { name: /下次聯絡：2026-05-01/ }));
+      fireEvent.click(screen.getByRole("button", { name: /取消提醒/ }));
+      await vi.waitFor(() => {
+        expect(mocked).toHaveBeenCalledWith({ id: "abc", followUpAt: null });
+      });
     });
   });
 
