@@ -14,6 +14,7 @@ import {
 import { shareCardVcard } from "@/lib/share/card-share";
 
 import styles from "./CardActions.module.css";
+import { VoiceMicButton } from "./VoiceMicButton";
 
 interface PhoneEntry {
   label: string;
@@ -267,6 +268,12 @@ export function CardActions({
             rows={2}
             autoFocus
             aria-label="互動備註（500 字以內）"
+          />
+          <VoiceMicButton
+            onFinalTranscript={(t) =>
+              setNoteDraft((prev) => (prev ? `${prev}${t}` : t).slice(0, 500))
+            }
+            disabled={pending}
           />
           <div className={styles.noteActions}>
             <button
