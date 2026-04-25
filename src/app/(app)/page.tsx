@@ -1,7 +1,9 @@
 import Link from "next/link";
 
+import { DailyBriefingSection } from "@/components/coach/DailyBriefingSection";
 import { TimelineSection } from "@/components/timeline/TimelineSection";
 import { listCardsForUser } from "@/db/cards";
+import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
 import { categorizeTimeline } from "@/lib/timeline/categorize";
 
@@ -54,11 +56,14 @@ export default async function HomePage() {
           </p>
         </div>
       ) : (
-        <div className={styles.sections}>
-          {sections.map((section) => (
-            <TimelineSection key={section.id} section={section} />
-          ))}
-        </div>
+        <>
+          {isCoachConfigured() && cards.length >= 3 && <DailyBriefingSection />}
+          <div className={styles.sections}>
+            {sections.map((section) => (
+              <TimelineSection key={section.id} section={section} />
+            ))}
+          </div>
+        </>
       )}
     </article>
   );
