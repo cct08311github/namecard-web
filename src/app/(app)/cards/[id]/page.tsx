@@ -5,8 +5,14 @@ import { CardActions } from "@/components/cards/CardActions";
 import { ContactEventList } from "@/components/cards/ContactEventList";
 import { RelatedByEvent } from "@/components/cards/RelatedByEvent";
 import { TagSuggestionsBanner } from "@/components/tags/TagSuggestionsBanner";
-import { getCardForUser, getCardsBySharedEvent, listContactEventsForUser } from "@/db/cards";
+import {
+  getCardForUser,
+  getCardsBySharedEvent,
+  listCardsForUser,
+  listContactEventsForUser,
+} from "@/db/cards";
 import type { CardCreateInput } from "@/db/schema";
+import { companySlug, pickCanonicalCompany } from "@/lib/companies/group";
 import { readSession } from "@/lib/firebase/session";
 
 import styles from "./detail.module.css";
@@ -51,6 +57,27 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
   const secondary = card.nameZh && card.nameEn ? card.nameEn : null;
   const role = card.jobTitleZh || card.jobTitleEn;
   const company = card.companyZh || card.companyEn;
+
+  // Count siblings at the same company so we can offer a link to the
+  // /companies/[slug] hub. Wrapped in try/catch — a flaky list query
+  // should not 500 the whole detail page; the link just won't render.
+  let companySiblingCount = 0;
+  let companyHrefSlug: string | null = null;
+  const canonicalCompany = pickCanonicalCompany(card);
+  if (canonicalCompany) {
+    try {
+      const all = await listCardsForUser(user.uid, { limit: 500 });
+      const wantedKey = canonicalCompany.toLowerCase().trim();
+      companySiblingCount = all.filter((c) => {
+        if (c.id === card.id || c.deletedAt) return false;
+        const co = pickCanonicalCompany(c).toLowerCase().trim();
+        return co === wantedKey;
+      }).length;
+      if (companySiblingCount > 0) companyHrefSlug = companySlug(canonicalCompany);
+    } catch (err) {
+      console.error("[card detail] company-sibling count failed:", err);
+    }
+  }
   const primaryPhone = card.phones.find((p) => p.primary) ?? card.phones[0];
   const primaryEmail = card.emails.find((e) => e.primary) ?? card.emails[0];
 
@@ -218,6 +245,17 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
 
           {card.firstMetEventTag && sharedEventCards.length > 0 && (
             <RelatedByEvent eventTag={card.firstMetEventTag} cards={sharedEventCards} />
+          )}
+
+          {companyHrefSlug && companySiblingCount > 0 && (
+            <section className={styles.relatedCompany} aria-label="同公司聯絡人">
+              <Link
+                href={`/companies/${encodeURIComponent(companyHrefSlug)}`}
+                className={styles.relatedCompanyLink}
+              >
+                同公司還有 {companySiblingCount} 位 →
+              </Link>
+            </section>
           )}
 
           <footer className={styles.timestamps}>

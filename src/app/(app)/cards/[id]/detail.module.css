@@ -248,6 +248,26 @@
   text-decoration: underline;
 }
 
+.relatedCompany {
+  padding: var(--space-sm) 0;
+}
+
+.relatedCompanyLink {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-accent-ink);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--color-accent-ink);
+  padding-bottom: 0.1em;
+}
+
+.relatedCompanyLink:hover {
+  color: var(--color-ink);
+  border-bottom-style: solid;
+}
+
 .timestamps {
   display: flex;
   flex-direction: column;
