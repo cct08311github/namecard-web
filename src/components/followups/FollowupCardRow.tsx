@@ -6,7 +6,9 @@ import { useState, useTransition } from "react";
 
 import { logContactAction } from "@/app/(app)/cards/actions";
 import { ReengageDraftsButton } from "@/components/coach/ReengageDraftsButton";
+import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import type { CardSummary } from "@/db/cards";
+import { computeTemperature } from "@/lib/cards/relationship-temp";
 
 import styles from "./FollowupCardRow.module.css";
 
@@ -54,6 +56,7 @@ export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCa
           <div className={styles.primary}>
             {card.isPinned && <span className={styles.pin}>📍</span>}
             <span className={styles.name}>{primary}</span>
+            <TemperatureBadge temperature={computeTemperature(card, new Date())} compact />
             {secondary && <span className={styles.secondary}>{secondary}</span>}
           </div>
           <span className={styles.days}>{days} 天</span>

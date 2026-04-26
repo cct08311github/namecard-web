@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import { listCardsForUser } from "@/db/cards";
+import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { findEventBySlug } from "@/lib/events/group";
 import { readSession } from "@/lib/firebase/session";
 
@@ -84,6 +86,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                   {card.whyRemember && <p className={styles.why}>{card.whyRemember}</p>}
                 </div>
                 <div className={styles.cardSide}>
+                  <TemperatureBadge temperature={computeTemperature(card, new Date())} compact />
                   <span className={styles.metDate}>見面日：{formatYmd(card.firstMetDate)}</span>
                   {card.firstMetContext && (
                     <span className={styles.context}>{card.firstMetContext}</span>
