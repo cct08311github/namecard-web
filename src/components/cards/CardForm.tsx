@@ -15,10 +15,23 @@ import styles from "./CardForm.module.css";
 /** RHF form values use the Zod INPUT type (fields with .default() can be undefined). */
 type CardFormValues = z.input<typeof cardCreateSchema>;
 
+export interface CardFormSuggestions {
+  /** Existing zh + en company names from the workspace, deduped. */
+  companies?: string[];
+  /** Existing zh + en job titles. */
+  jobTitles?: string[];
+  /** Existing departments. */
+  departments?: string[];
+  /** Existing firstMetEventTag values. */
+  events?: string[];
+}
+
 interface CardFormProps {
   mode: "create" | "edit";
   cardId?: string;
   defaults?: Partial<CardFormValues>;
+  /** Optional prior values shown as <datalist> hints to encourage consistency. */
+  suggestions?: CardFormSuggestions;
 }
 
 const EMPTY_DEFAULTS: CardFormValues = {
@@ -62,7 +75,7 @@ function mergeDefaults(partial?: Partial<CardFormValues>): CardFormValues {
   };
 }
 
-export function CardForm({ mode, cardId, defaults }: CardFormProps) {
+export function CardForm({ mode, cardId, defaults, suggestions }: CardFormProps) {
   const router = useRouter();
   const [submitting, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -139,26 +152,26 @@ export function CardForm({ mode, cardId, defaults }: CardFormProps) {
         <div className={styles.row}>
           <label className={styles.field}>
             <span className={styles.label}>職稱 (中)</span>
-            <input className={styles.input} {...register("jobTitleZh")} />
+            <input className={styles.input} {...register("jobTitleZh")} list="cardform-jobtitles" />
           </label>
           <label className={styles.field}>
             <span className={styles.label}>職稱 (英)</span>
-            <input className={styles.input} {...register("jobTitleEn")} />
+            <input className={styles.input} {...register("jobTitleEn")} list="cardform-jobtitles" />
           </label>
         </div>
         <div className={styles.row}>
           <label className={styles.field}>
             <span className={styles.label}>公司 (中)</span>
-            <input className={styles.input} {...register("companyZh")} />
+            <input className={styles.input} {...register("companyZh")} list="cardform-companies" />
           </label>
           <label className={styles.field}>
             <span className={styles.label}>公司 (英)</span>
-            <input className={styles.input} {...register("companyEn")} />
+            <input className={styles.input} {...register("companyEn")} list="cardform-companies" />
           </label>
         </div>
         <label className={styles.field}>
           <span className={styles.label}>部門</span>
-          <input className={styles.input} {...register("department")} />
+          <input className={styles.input} {...register("department")} list="cardform-departments" />
         </label>
       </fieldset>
 
@@ -293,6 +306,7 @@ export function CardForm({ mode, cardId, defaults }: CardFormProps) {
             <input
               className={styles.input}
               placeholder="COMPUTEX 2024"
+              list="cardform-events"
               {...register("firstMetEventTag")}
             />
           </label>
@@ -345,6 +359,38 @@ export function CardForm({ mode, cardId, defaults }: CardFormProps) {
           {submitting ? "儲存中…" : mode === "create" ? "儲存名片" : "更新名片"}
         </button>
       </div>
+
+      {/* Native datalist autocompletion sourced from existing card values.
+          One <datalist> per field type — companyZh + companyEn share the
+          same list to encourage cross-language consistency. */}
+      {suggestions?.companies && suggestions.companies.length > 0 && (
+        <datalist id="cardform-companies">
+          {suggestions.companies.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+      )}
+      {suggestions?.jobTitles && suggestions.jobTitles.length > 0 && (
+        <datalist id="cardform-jobtitles">
+          {suggestions.jobTitles.map((t) => (
+            <option key={t} value={t} />
+          ))}
+        </datalist>
+      )}
+      {suggestions?.departments && suggestions.departments.length > 0 && (
+        <datalist id="cardform-departments">
+          {suggestions.departments.map((d) => (
+            <option key={d} value={d} />
+          ))}
+        </datalist>
+      )}
+      {suggestions?.events && suggestions.events.length > 0 && (
+        <datalist id="cardform-events">
+          {suggestions.events.map((e) => (
+            <option key={e} value={e} />
+          ))}
+        </datalist>
+      )}
     </form>
   );
 }

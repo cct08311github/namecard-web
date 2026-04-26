@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 
 import { CardForm } from "@/components/cards/CardForm";
 import { OcrRescanPanel } from "@/components/scan/OcrRescanPanel";
-import { getCardForUser } from "@/db/cards";
+import { getCardForUser, listCardsForUser } from "@/db/cards";
+import { collectFormSuggestions } from "@/lib/cards/form-suggestions";
 import { readSession } from "@/lib/firebase/session";
 
 import styles from "./edit.module.css";
@@ -21,6 +22,16 @@ export default async function EditCardPage({ params }: EditPageProps) {
   if (!user) return null;
   const card = await getCardForUser(user.uid, id);
   if (!card || card.deletedAt) notFound();
+
+  // Hint datalist values from sibling cards. Best-effort; failure just
+  // means no hints.
+  let suggestions: ReturnType<typeof collectFormSuggestions> | undefined;
+  try {
+    const all = await listCardsForUser(user.uid, { limit: 500 });
+    suggestions = collectFormSuggestions(all.filter((c) => c.id !== id));
+  } catch (err) {
+    console.error("[cards/[id]/edit] form suggestions failed:", err);
+  }
 
   const defaults = {
     nameZh: card.nameZh,
@@ -71,7 +82,7 @@ export default async function EditCardPage({ params }: EditPageProps) {
           social: card.social ?? {},
         }}
       />
-      <CardForm mode="edit" cardId={id} defaults={defaults} />
+      <CardForm mode="edit" cardId={id} defaults={defaults} suggestions={suggestions} />
     </article>
   );
 }

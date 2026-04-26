@@ -1,5 +1,8 @@
 import { CardForm } from "@/components/cards/CardForm";
+import { listCardsForUser } from "@/db/cards";
 import type { CardCreateInput } from "@/db/schema";
+import { collectFormSuggestions } from "@/lib/cards/form-suggestions";
+import { readSession } from "@/lib/firebase/session";
 import { decodePrefill } from "@/lib/voice/extract";
 
 import styles from "./new.module.css";
@@ -18,6 +21,20 @@ export default async function NewCardPage({ searchParams }: NewCardPageProps) {
   const prefill = prefillRaw ? decodePrefill(prefillRaw) : null;
   const defaults: Partial<CardCreateInput> | undefined = prefill ?? undefined;
 
+  // Hydrate the form's autocompletion datalists from the user's existing
+  // workspace cards. Best-effort: a missing session or read failure just
+  // means no hints appear (form still works).
+  let suggestions: ReturnType<typeof collectFormSuggestions> | undefined;
+  try {
+    const user = await readSession();
+    if (user) {
+      const cards = await listCardsForUser(user.uid, { limit: 500 });
+      suggestions = collectFormSuggestions(cards);
+    }
+  } catch (err) {
+    console.error("[cards/new] form suggestions failed:", err);
+  }
+
   return (
     <article className={styles.article}>
       <header className={styles.header}>
@@ -33,7 +50,7 @@ export default async function NewCardPage({ searchParams }: NewCardPageProps) {
           )}
         </p>
       </header>
-      <CardForm mode="create" defaults={defaults} />
+      <CardForm mode="create" defaults={defaults} suggestions={suggestions} />
     </article>
   );
 }
