@@ -32,9 +32,56 @@ describe("parseSortKey", () => {
   });
 
   it("passes known keys through", () => {
-    for (const k of ["newest", "oldest", "contacted", "name"] as const) {
+    for (const k of ["newest", "oldest", "contacted", "name", "tempHot", "tempCold"] as const) {
       expect(parseSortKey(k)).toBe(k);
     }
+  });
+});
+
+describe("sortCards: temperature sorts", () => {
+  function dayOffset(days: number): Date {
+    return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  }
+  // Build cards spanning all 5 tiers via lastContactedAt:
+  //   3d → hot, 20d → warm, 60d → active, 120d → quiet, 365d → cold, null → cold
+  const hot = mk({ id: "h", lastContactedAt: dayOffset(3) });
+  const warm = mk({ id: "w", lastContactedAt: dayOffset(20) });
+  const active = mk({ id: "a", lastContactedAt: dayOffset(60) });
+  const quiet = mk({ id: "q", lastContactedAt: dayOffset(120) });
+  const cold = mk({ id: "c", lastContactedAt: dayOffset(365) });
+  const never = mk({ id: "n" });
+
+  it("tempHot orders hot → cold", () => {
+    const out = sortCards([cold, never, active, hot, warm, quiet], "tempHot").map((c) => c.id);
+    expect(out.slice(0, 4)).toEqual(["h", "w", "a", "q"]);
+    expect(out.slice(4).sort()).toEqual(["c", "n"]);
+  });
+
+  it("tempCold orders cold → hot", () => {
+    const out = sortCards([cold, never, active, hot, warm, quiet], "tempCold").map((c) => c.id);
+    // cold tier first (cold + never both rank 0); then quiet, active, warm, hot
+    expect(out.slice(2)).toEqual(["q", "a", "w", "h"]);
+  });
+
+  it("within the same tier, recency wins as tiebreaker", () => {
+    const recent = mk({ id: "recent", lastContactedAt: dayOffset(2) });
+    const older = mk({ id: "older", lastContactedAt: dayOffset(5) });
+    const out = sortCards([older, recent], "tempHot").map((c) => c.id);
+    expect(out).toEqual(["recent", "older"]);
+  });
+
+  it("pinned card with stale contact still ranks as warm (not quiet/cold)", () => {
+    const pinnedStale = mk({ id: "pin", lastContactedAt: dayOffset(200), isPinned: true });
+    const unpinnedActive = mk({ id: "act", lastContactedAt: dayOffset(60) });
+    // tempHot: pinned-stale (warm=3) > active (rank 2)
+    const out = sortCards([unpinnedActive, pinnedStale], "tempHot").map((c) => c.id);
+    expect(out).toEqual(["pin", "act"]);
+  });
+
+  it("returns a new array (doesn't mutate)", () => {
+    const input = [hot, cold];
+    const out = sortCards(input, "tempHot");
+    expect(out).not.toBe(input);
   });
 });
 

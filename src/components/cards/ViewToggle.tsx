@@ -13,6 +13,8 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string; title: string }> = [
   { key: "newest", label: "最新建立", title: "最近新增的名片在前" },
   { key: "contacted", label: "最近聯絡", title: "最近互動過的在前；從未聯絡的排最後" },
   { key: "name", label: "姓名", title: "依中文筆畫 / 字母排序" },
+  { key: "tempHot", label: "🔥 熱→冷", title: "最 active 關係在前" },
+  { key: "tempCold", label: "💤 冷→熱", title: "最 stale 在前 — 該 rekindle 誰一目了然" },
 ];
 
 export function ViewToggle({ current, sort }: ViewToggleProps) {
