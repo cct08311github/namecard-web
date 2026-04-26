@@ -74,6 +74,13 @@
   gap: 0.1rem;
 }
 
+.nameRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
 .name {
   font-family: var(--font-display);
   font-size: var(--text-h4);
