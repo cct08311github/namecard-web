@@ -1,0 +1,122 @@
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.filter {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.filter:focus {
+  outline: none;
+  border-color: var(--color-accent-ink);
+}
+
+.filterCount {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+
+.empty {
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+  font-family: var(--font-sans);
+  color: var(--color-ink-muted);
+}
+
+.companyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.companyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-paper);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard);
+}
+
+.companyRow:hover {
+  border-color: var(--color-accent-ink);
+  background: var(--color-accent-soft, var(--color-paper));
+}
+
+.companyMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.companyName {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.followupBadge {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  background: var(--color-accent);
+  color: var(--color-paper);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.companyMeta {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+  margin: 0.2em 0 0;
+}
+
+.headPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 0.15em;
+  min-width: 0;
+}
+
+.headName {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.headRole {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro, 0.72rem);
+  color: var(--color-ink-muted);
+  letter-spacing: var(--tracking-wide);
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CompanyList, type CompanyListItem } from "@/components/companies/CompanyList";
 import { listCardsForUser } from "@/db/cards";
 import { groupCardsByCompany } from "@/lib/companies/group";
 import { readSession } from "@/lib/firebase/session";
@@ -34,16 +35,28 @@ export default async function CompaniesPage() {
   const rawGroups = groupCardsByCompany(cards);
   const now = new Date();
 
-  // Decorate with follow-up count, then hybrid-sort: groups that need
-  // attention bubble to the top (by count desc), and the calm-tail
-  // keeps the original mostRecentTouch ordering.
-  const groups = rawGroups
+  // Decorate, sort (urgency first then recency), and project to the
+  // serializable shape the client list component consumes.
+  const items: CompanyListItem[] = rawGroups
     .map((g) => ({ group: g, followupCount: countFollowupsInCards(g.cards, now) }))
     .sort((a, b) => {
       if (a.followupCount !== b.followupCount) return b.followupCount - a.followupCount;
       const aTouch = a.group.mostRecentTouch?.getTime() ?? 0;
       const bTouch = b.group.mostRecentTouch?.getTime() ?? 0;
       return bTouch - aTouch;
+    })
+    .map(({ group, followupCount }) => {
+      const head = group.cards[0];
+      const headRole = head?.jobTitleZh || head?.jobTitleEn;
+      return {
+        slug: group.slug,
+        displayName: group.displayName,
+        count: group.cards.length,
+        mostRecentTouchYmd: formatYmd(group.mostRecentTouch),
+        headName: head ? cardName(head) : undefined,
+        headRole,
+        followupCount,
+      };
     });
 
   return (
@@ -57,9 +70,9 @@ export default async function CompaniesPage() {
       <header className={styles.header}>
         <p className={styles.kicker}>公司視角</p>
         <h1 className={styles.title}>
-          <em>{groups.length}</em> 家公司
+          <em>{items.length}</em> 家公司
         </h1>
-        {groups.length > 0 ? (
+        {items.length > 0 ? (
           <p className={styles.lead}>
             該追蹤的公司排前面，其他按最近互動排序。點進去看同公司的所有人、彼此職位、互動歷史。
           </p>
@@ -70,50 +83,14 @@ export default async function CompaniesPage() {
         )}
       </header>
 
-      {groups.length === 0 ? (
+      {items.length === 0 ? (
         <section className={styles.empty}>
           <Link href="/cards/new" className={styles.backLink}>
             建立第一張名片 →
           </Link>
         </section>
       ) : (
-        <ul className={styles.companyList}>
-          {groups.map(({ group, followupCount }) => {
-            const head = group.cards[0];
-            const headRole = head?.jobTitleZh || head?.jobTitleEn;
-            return (
-              <li key={group.slug}>
-                <Link
-                  href={`/companies/${encodeURIComponent(group.slug)}`}
-                  className={styles.companyRow}
-                >
-                  <div className={styles.companyMain}>
-                    <h2 className={styles.companyName}>
-                      {group.displayName}
-                      {followupCount > 0 && (
-                        <span
-                          className={styles.followupBadge}
-                          aria-label={`${followupCount} 個人該 ping 了`}
-                        >
-                          ⏰ {followupCount}
-                        </span>
-                      )}
-                    </h2>
-                    <p className={styles.companyMeta}>
-                      {group.cards.length} 位 · 最近：{formatYmd(group.mostRecentTouch)}
-                    </p>
-                  </div>
-                  {head && (
-                    <div className={styles.headPreview}>
-                      <span className={styles.headName}>{cardName(head)}</span>
-                      {headRole && <span className={styles.headRole}>{headRole}</span>}
-                    </div>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <CompanyList items={items} />
       )}
     </article>
   );
