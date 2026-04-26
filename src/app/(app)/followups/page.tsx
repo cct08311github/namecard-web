@@ -9,6 +9,7 @@ import {
   bucketFollowups,
   dueRemindersToday,
   totalFollowups,
+  upcomingRemindersThisWeek,
   type FollowupBucket,
 } from "@/lib/timeline/followups";
 
@@ -33,6 +34,10 @@ export default async function FollowupsPage() {
   // separate from staleness, so they get their own top section instead of
   // being merged into one of the existing buckets.
   const reminders = dueRemindersToday(cards, now);
+  // Upcoming-week reminders are visibility-only (not added to the
+  // urgency total) — they're scheduled future commitments, not action
+  // items overdue today.
+  const upcoming = upcomingRemindersThisWeek(cards, now);
   const total = totalFollowups(groups) + reminders.length;
   const showAiDrafts = isCoachConfigured();
 
@@ -74,7 +79,24 @@ export default async function FollowupsPage() {
         </section>
       )}
 
-      {total === 0 ? (
+      {upcoming.length > 0 && (
+        <section className={styles.bucket} aria-label="下週提醒">
+          <header className={styles.bucketHeader}>
+            <h2 className={styles.bucketTitle}>
+              下週提醒
+              <span className={styles.bucketCount}>{upcoming.length}</span>
+            </h2>
+            <p className={styles.bucketDesc}>未來 7 天內到期的提醒，先看一眼。</p>
+          </header>
+          <ol className={styles.list}>
+            {upcoming.map(({ card, days }) => (
+              <FollowupCardRow key={card.id} card={card} days={days} showAiDrafts={showAiDrafts} />
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {total === 0 && upcoming.length === 0 ? (
         <section className={styles.empty}>
           <p className={styles.emptyBody}>
             沒有人在排隊等你追蹤。想提前找點人接觸？到
@@ -85,7 +107,7 @@ export default async function FollowupsPage() {
             切「最近聯絡」排序看看。
           </p>
         </section>
-      ) : (
+      ) : total === 0 ? null : (
         ordered
           .filter((b) => b.cards.length > 0)
           .map((bucket) => (
