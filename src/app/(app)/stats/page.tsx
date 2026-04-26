@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { StatCard } from "@/components/stats/StatCard";
+import { WeeklyDigestSection } from "@/components/stats/WeeklyDigestSection";
 import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import { listCardsForUser, listRecentContactEventsForUser } from "@/db/cards";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
+import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
 import { aggregateStats } from "@/lib/stats/aggregate";
 
@@ -35,6 +37,10 @@ export default async function StatsPage() {
           本週對話、新人脈、溫度分布、連續 streak。資料來自 /log 累積的對話紀錄。
         </p>
       </header>
+
+      {isCoachConfigured() && (stats.totalCards > 0 || stats.thisMonth.logCount > 0) && (
+        <WeeklyDigestSection />
+      )}
 
       <section aria-label="本週" className={styles.statBlock}>
         <h2 className={styles.blockTitle}>本週</h2>
