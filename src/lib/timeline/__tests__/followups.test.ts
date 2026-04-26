@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CardSummary } from "@/db/cards";
 
-import { bucketFollowups, totalFollowups } from "../followups";
+import { bucketFollowups, dueRemindersToday, totalFollowups } from "../followups";
 
 const NOW = new Date("2026-04-24T00:00:00Z");
 
@@ -113,5 +113,46 @@ describe("totalFollowups", () => {
 
   it("is 0 for an empty or all-fresh corpus", () => {
     expect(totalFollowups(bucketFollowups([], NOW))).toBe(0);
+  });
+});
+
+describe("dueRemindersToday", () => {
+  it("includes a card with followUpAt today", () => {
+    const todayMidnight = new Date(NOW);
+    todayMidnight.setHours(0, 0, 0, 0);
+    const c = mk({ id: "a", followUpAt: todayMidnight });
+    const out = dueRemindersToday([c], NOW);
+    expect(out).toHaveLength(1);
+    expect(out[0].card.id).toBe("a");
+  });
+
+  it("includes a card with followUpAt in the past", () => {
+    const lastWeek = daysAgo(7);
+    const c = mk({ id: "p", followUpAt: lastWeek });
+    expect(dueRemindersToday([c], NOW)).toHaveLength(1);
+  });
+
+  it("excludes a card with followUpAt in the future", () => {
+    const tomorrow = new Date(NOW.getTime() + 36 * 60 * 60 * 1000);
+    const c = mk({ id: "f", followUpAt: tomorrow });
+    expect(dueRemindersToday([c], NOW)).toHaveLength(0);
+  });
+
+  it("excludes a card with no followUpAt", () => {
+    const c = mk({ id: "n", lastContactedAt: daysAgo(45) });
+    expect(dueRemindersToday([c], NOW)).toHaveLength(0);
+  });
+
+  it("excludes soft-deleted cards", () => {
+    const c = mk({ id: "d", followUpAt: daysAgo(2), deletedAt: daysAgo(1) });
+    expect(dueRemindersToday([c], NOW)).toHaveLength(0);
+  });
+
+  it("orders most-overdue reminder first; id tiebreak is deterministic", () => {
+    const a = mk({ id: "a", followUpAt: daysAgo(1) });
+    const b = mk({ id: "b", followUpAt: daysAgo(5) });
+    const c = mk({ id: "c", followUpAt: daysAgo(1) });
+    const out = dueRemindersToday([a, b, c], NOW);
+    expect(out.map((x) => x.card.id)).toEqual(["b", "a", "c"]);
   });
 });

@@ -8,7 +8,7 @@ import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
 import { categorizeTimeline } from "@/lib/timeline/categorize";
-import { bucketFollowups, totalFollowups } from "@/lib/timeline/followups";
+import { bucketFollowups, dueRemindersToday, totalFollowups } from "@/lib/timeline/followups";
 
 import styles from "./home.module.css";
 
@@ -28,9 +28,11 @@ export default async function HomePage() {
   const now = new Date();
   const sections = categorizeTimeline(cards, { now });
   const totalInSections = sections.reduce((sum, section) => sum + section.cards.length, 0);
-  // Follow-up urgency chip — same data path the dedicated /followups page
-  // uses, just summarized into a count for the home header.
-  const followupsTotal = totalFollowups(bucketFollowups(cards, now));
+  // Follow-up urgency chip — staleness buckets PLUS user-scheduled
+  // reminders due today. Same data path the dedicated /followups page
+  // uses, summarized into a count for the home header.
+  const followupsTotal =
+    totalFollowups(bucketFollowups(cards, now)) + dueRemindersToday(cards, now).length;
   const firstName = user.displayName?.split(" ")[0] ?? "";
 
   return (

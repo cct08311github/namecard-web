@@ -5,7 +5,12 @@ import { FollowupCardRow } from "@/components/followups/FollowupCardRow";
 import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
-import { bucketFollowups, totalFollowups, type FollowupBucket } from "@/lib/timeline/followups";
+import {
+  bucketFollowups,
+  dueRemindersToday,
+  totalFollowups,
+  type FollowupBucket,
+} from "@/lib/timeline/followups";
 
 import styles from "./followups.module.css";
 
@@ -22,8 +27,13 @@ export default async function FollowupsPage() {
     orderBy: "createdAt",
     order: "desc",
   });
-  const groups = bucketFollowups(cards, new Date());
-  const total = totalFollowups(groups);
+  const now = new Date();
+  const groups = bucketFollowups(cards, now);
+  // Explicit reminders the user committed to with the picker. Conceptually
+  // separate from staleness, so they get their own top section instead of
+  // being merged into one of the existing buckets.
+  const reminders = dueRemindersToday(cards, now);
+  const total = totalFollowups(groups) + reminders.length;
   const showAiDrafts = isCoachConfigured();
 
   const ordered: FollowupBucket[] = [
@@ -46,6 +56,23 @@ export default async function FollowupsPage() {
       </header>
 
       {showAiDrafts && <ActionItemsSection />}
+
+      {reminders.length > 0 && (
+        <section className={styles.bucket} aria-label="今日提醒">
+          <header className={styles.bucketHeader}>
+            <h2 className={styles.bucketTitle}>
+              今日提醒
+              <span className={styles.bucketCount}>{reminders.length}</span>
+            </h2>
+            <p className={styles.bucketDesc}>你預先排好的聯絡日已到。</p>
+          </header>
+          <ol className={styles.list}>
+            {reminders.map(({ card, days }) => (
+              <FollowupCardRow key={card.id} card={card} days={days} showAiDrafts={showAiDrafts} />
+            ))}
+          </ol>
+        </section>
+      )}
 
       {total === 0 ? (
         <section className={styles.empty}>
