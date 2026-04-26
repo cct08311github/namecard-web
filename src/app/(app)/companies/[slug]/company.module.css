@@ -75,6 +75,10 @@
   text-decoration: underline;
 }
 
+.tempStripRow {
+  margin: var(--space-xs) 0 0;
+}
+
 .headerActions {
   display: flex;
   gap: var(--space-sm);

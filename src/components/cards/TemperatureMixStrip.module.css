@@ -1,0 +1,15 @@
+.strip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-fg-muted);
+}
+
+.entry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}

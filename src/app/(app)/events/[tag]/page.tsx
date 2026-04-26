@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
+import { TemperatureMixStrip } from "@/components/cards/TemperatureMixStrip";
 import { listCardsForUser } from "@/db/cards";
+import { countByTemperature } from "@/lib/cards/filter";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { companySlug } from "@/lib/companies/group";
 import { findEventBySlug } from "@/lib/events/group";
@@ -53,7 +55,9 @@ export default async function EventDetailPage({ params }: PageProps) {
       group.cards.map((c) => c.companyZh || c.companyEn || "").filter((s) => s.trim().length > 0),
     ),
   );
-  const followupCount = countFollowupsInCards(group.cards, new Date());
+  const now = new Date();
+  const followupCount = countFollowupsInCards(group.cards, now);
+  const tempCounts = countByTemperature(group.cards, now);
 
   return (
     <article className={styles.article}>
@@ -94,6 +98,9 @@ export default async function EventDetailPage({ params }: PageProps) {
               ))}
             </>
           )}
+        </p>
+        <p className={styles.tempStripRow}>
+          <TemperatureMixStrip counts={tempCounts} />
         </p>
       </header>
 
