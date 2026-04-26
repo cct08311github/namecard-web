@@ -27,8 +27,20 @@ export default async function EventsPage() {
     orderBy: "createdAt",
     order: "desc",
   });
-  const groups = groupCardsByEvent(cards);
+  const rawGroups = groupCardsByEvent(cards);
   const now = new Date();
+
+  // Decorate with follow-up count and hybrid-sort: groups that need
+  // attention come first (by count desc), the rest keep mostRecentMet
+  // ordering. Same pattern as /companies.
+  const groups = rawGroups
+    .map((g) => ({ group: g, followupCount: countFollowupsInCards(g.cards, now) }))
+    .sort((a, b) => {
+      if (a.followupCount !== b.followupCount) return b.followupCount - a.followupCount;
+      const aTouch = a.group.mostRecentMet?.getTime() ?? 0;
+      const bTouch = b.group.mostRecentMet?.getTime() ?? 0;
+      return bTouch - aTouch;
+    });
 
   return (
     <article className={styles.article}>
@@ -44,7 +56,9 @@ export default async function EventsPage() {
           <em>{groups.length}</em> 個場合
         </h1>
         {groups.length > 0 ? (
-          <p className={styles.lead}>按最近見面排序。點進去看那場見過誰、職位、為什麼記得。</p>
+          <p className={styles.lead}>
+            該追蹤的場合排前面，其他按最近見面排序。點進去看那場見過誰、職位、為什麼記得。
+          </p>
         ) : (
           <p className={styles.lead}>
             還沒有名片標註「第一次見面場合」。建立或編輯名片時填入場合，這裡會自動聚合。
@@ -60,8 +74,7 @@ export default async function EventsPage() {
         </section>
       ) : (
         <ul className={styles.eventList}>
-          {groups.map((group) => {
-            const followupCount = countFollowupsInCards(group.cards, now);
+          {groups.map(({ group, followupCount }) => {
             return (
               <li key={group.slug}>
                 <Link
