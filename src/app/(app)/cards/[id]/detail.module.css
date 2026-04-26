@@ -60,6 +60,20 @@
   flex-wrap: wrap;
 }
 
+.kickerMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.lastSeen {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-fg-muted);
+  letter-spacing: var(--tracking-wide);
+}
+
 .name {
   font-family: var(--font-display);
   font-size: var(--text-h1);

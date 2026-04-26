@@ -166,7 +166,21 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
           <header className={styles.header}>
             <div className={styles.kickerRow}>
               <p className={styles.kicker}>名片</p>
-              <TemperatureBadge temperature={computeTemperature(card, new Date())} />
+              {(() => {
+                const temp = computeTemperature(card, new Date());
+                const lastSeen =
+                  temp.daysSince === null
+                    ? "從未聯絡"
+                    : temp.daysSince === 0
+                      ? "今天聯絡過"
+                      : `上次互動 ${temp.daysSince} 天前`;
+                return (
+                  <span className={styles.kickerMeta}>
+                    <TemperatureBadge temperature={temp} />
+                    <span className={styles.lastSeen}>{lastSeen}</span>
+                  </span>
+                );
+              })()}
             </div>
             <h1 className={styles.name}>
               <CardInlineEdit
