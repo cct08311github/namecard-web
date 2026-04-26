@@ -6,6 +6,7 @@ import { listCardsForUser } from "@/db/cards";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { findEventBySlug } from "@/lib/events/group";
 import { readSession } from "@/lib/firebase/session";
+import { countFollowupsInCards } from "@/lib/timeline/followups";
 
 import styles from "./event.module.css";
 
@@ -51,6 +52,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       group.cards.map((c) => c.companyZh || c.companyEn || "").filter((s) => s.trim().length > 0),
     ),
   );
+  const followupCount = countFollowupsInCards(group.cards, new Date());
 
   return (
     <article className={styles.article}>
@@ -67,6 +69,14 @@ export default async function EventDetailPage({ params }: PageProps) {
         <h1 className={styles.title}>{group.displayName}</h1>
         <p className={styles.lead}>
           {group.cards.length} 位聯絡人
+          {followupCount > 0 && (
+            <>
+              {" · "}
+              <Link href="/followups" className={styles.urgency}>
+                ⏰ {followupCount} 該追蹤
+              </Link>
+            </>
+          )}
           {companies.length > 0 && <> · 公司：{companies.join("、")}</>}
         </p>
       </header>
