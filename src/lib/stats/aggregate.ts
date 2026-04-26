@@ -25,6 +25,15 @@ export interface TopCompany {
   distinctPeople: number;
 }
 
+export interface TopEvent {
+  /** firstMetEventTag value as it appears on the card. */
+  eventTag: string;
+  /** Total log events with people first met at this event in the window. */
+  logCount: number;
+  /** Distinct people from this event logged with in the window. */
+  distinctPeople: number;
+}
+
 export interface Streak {
   /** Consecutive days back-to-back from today with ≥1 log. */
   current: number;
@@ -41,6 +50,8 @@ export interface AggregatedStats {
   topPeople: TopPerson[];
   /** Top 3 most-logged-with companies in last 30 days. */
   topCompanies: TopCompany[];
+  /** Top 3 events whose people we've talked to most in last 30 days. */
+  topEvents: TopEvent[];
   /** Total live (non-deleted) cards in the workspace. */
   totalCards: number;
 }
@@ -199,6 +210,43 @@ function computeTopCompanies(items: readonly RecapItem[], cutoff: Date, limit = 
   }));
 }
 
+function computeTopEvents(items: readonly RecapItem[], cutoff: Date, limit = 3): TopEvent[] {
+  const counts = new Map<
+    string,
+    { eventTag: string; logCount: number; people: Set<string>; lastAt: number }
+  >();
+  for (const item of items) {
+    if (!item.event.at || item.event.at.getTime() < cutoff.getTime()) continue;
+    const eventTag = (item.card.firstMetEventTag || "").trim();
+    if (!eventTag) continue; // skip events whose card has no firstMetEventTag
+    const cur = counts.get(eventTag);
+    if (cur) {
+      cur.logCount++;
+      cur.people.add(item.card.id);
+      cur.lastAt = Math.max(cur.lastAt, item.event.at.getTime());
+    } else {
+      counts.set(eventTag, {
+        eventTag,
+        logCount: 1,
+        people: new Set([item.card.id]),
+        lastAt: item.event.at.getTime(),
+      });
+    }
+  }
+  const list = [...counts.values()];
+  list.sort((a, b) => {
+    if (b.logCount !== a.logCount) return b.logCount - a.logCount;
+    if (b.people.size !== a.people.size) return b.people.size - a.people.size;
+    if (b.lastAt !== a.lastAt) return b.lastAt - a.lastAt;
+    return a.eventTag < b.eventTag ? -1 : 1;
+  });
+  return list.slice(0, limit).map((x) => ({
+    eventTag: x.eventTag,
+    logCount: x.logCount,
+    distinctPeople: x.people.size,
+  }));
+}
+
 function computeTopPeople(items: readonly RecapItem[], cutoff: Date, limit = 3): TopPerson[] {
   const counts = new Map<string, { card: CardSummary; logCount: number; lastAt: number }>();
   for (const item of items) {
@@ -245,6 +293,7 @@ export function aggregateStats(
     streak: computeStreak(events, now),
     topPeople: computeTopPeople(events, monthCutoff, 3),
     topCompanies: computeTopCompanies(events, monthCutoff, 3),
+    topEvents: computeTopEvents(events, monthCutoff, 3),
     totalCards: live.length,
   };
 }

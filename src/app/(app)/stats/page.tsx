@@ -128,6 +128,26 @@ export default async function StatsPage() {
         </section>
       )}
 
+      {stats.topEvents.length > 0 && (
+        <section aria-label="本月最常聊到的場合" className={styles.statBlock}>
+          <h2 className={styles.blockTitle}>本月最常聊到的場合</h2>
+          <ol className={styles.topList}>
+            {stats.topEvents.map((e) => (
+              <li key={e.eventTag} className={styles.topItem}>
+                <Link href={`/events/${encodeURIComponent(e.eventTag)}`} className={styles.topName}>
+                  {e.eventTag}
+                </Link>
+                <span className={styles.topMeta}>
+                  <span className={styles.topCount}>
+                    {e.logCount} 次 · {e.distinctPeople} 人
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
       {stats.thisMonth.logCount === 0 && (
         <section className={styles.empty}>
           <p>
