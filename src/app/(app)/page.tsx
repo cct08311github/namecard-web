@@ -41,8 +41,17 @@ export default async function HomePage() {
       <header className={styles.header}>
         <p className={styles.kicker}>今日</p>
         <h1 className={styles.title}>
-          {firstName ? `${firstName}，` : ""}
-          <em>今天</em>該問候誰？
+          {cards.length > 0 && followupsTotal === 0 ? (
+            <>
+              ✨ {firstName ? `${firstName}，` : ""}
+              <em>今天</em>可以喘口氣
+            </>
+          ) : (
+            <>
+              {firstName ? `${firstName}，` : ""}
+              <em>今天</em>該問候誰？
+            </>
+          )}
         </h1>
         <p className={styles.lead}>
           把「關係脈絡」放在第一位—— 這裡不是名片列表，是你的人脈節奏表。
