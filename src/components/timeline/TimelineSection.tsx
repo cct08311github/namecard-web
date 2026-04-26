@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import type { CardSummary } from "@/db/cards";
+import { computeTemperature } from "@/lib/cards/relationship-temp";
 import type { TimelineSection as TimelineSectionData } from "@/lib/timeline/categorize";
 
 import styles from "./TimelineSection.module.css";
@@ -51,6 +53,10 @@ function sectionMeta(section: TimelineSectionData, card: CardSummary): string | 
 
 export function TimelineSection({ section }: TimelineSectionProps) {
   if (section.cards.length === 0) return null;
+  // Compute `now` once per render so all rows share the same reference
+  // moment (otherwise tens of microsecond drifts between calls could
+  // straddle a daysSince boundary).
+  const now = new Date();
   return (
     <section className={styles.section} aria-labelledby={`section-${section.id}`}>
       <header className={styles.header}>
@@ -64,7 +70,10 @@ export function TimelineSection({ section }: TimelineSectionProps) {
           <li key={card.id}>
             <Link href={`/cards/${card.id}`} className={styles.row}>
               <div className={styles.who}>
-                <span className={styles.name}>{primaryName(card)}</span>
+                <span className={styles.nameRow}>
+                  <span className={styles.name}>{primaryName(card)}</span>
+                  <TemperatureBadge temperature={computeTemperature(card, now)} compact />
+                </span>
                 {subline(card) && <span className={styles.sub}>{subline(card)}</span>}
               </div>
               <p className={styles.why}>{card.whyRemember}</p>
