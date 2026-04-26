@@ -24,6 +24,13 @@ export function TagsClient({ tags }: TagsClientProps) {
   const [pending, startTransition] = useTransition();
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR);
+  const [filter, setFilter] = useState("");
+
+  const filteredTags = (() => {
+    const lower = filter.trim().toLowerCase();
+    if (!lower) return tags;
+    return tags.filter((t) => t.name.toLowerCase().includes(lower));
+  })();
 
   function runWithRefresh(fn: () => Promise<void>) {
     startTransition(async () => {
@@ -47,11 +54,32 @@ export function TagsClient({ tags }: TagsClientProps) {
       {tags.length === 0 ? (
         <p className={styles.empty}>還沒有標籤。先新增一個吧。</p>
       ) : (
-        <ul className={styles.list}>
-          {tags.map((tag) => (
-            <TagRow key={tag.id} tag={tag} disabled={pending} onDone={() => router.refresh()} />
-          ))}
-        </ul>
+        <>
+          <div className={styles.filterRow}>
+            <input
+              type="search"
+              className={styles.filterInput}
+              placeholder="搜尋標籤…"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              aria-label="搜尋標籤"
+            />
+            {filter && (
+              <span className={styles.filterCount}>
+                {filteredTags.length} / {tags.length}
+              </span>
+            )}
+          </div>
+          {filteredTags.length === 0 ? (
+            <p className={styles.empty}>沒有符合「{filter}」的標籤</p>
+          ) : (
+            <ul className={styles.list}>
+              {filteredTags.map((tag) => (
+                <TagRow key={tag.id} tag={tag} disabled={pending} onDone={() => router.refresh()} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       <div className={styles.createRow}>
