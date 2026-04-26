@@ -55,6 +55,10 @@ export function FollowupCardRow({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [stage, setStage] = useState<"idle" | "picking">("idle");
+  // Optional capture-while-fresh note. We avoid revealing the textarea
+  // by default — most triage clicks are sub-2-second and would resent
+  // the visual noise.
+  const [note, setNote] = useState("");
 
   const primary = card.nameZh || card.nameEn || "（未命名）";
   const secondary = [card.jobTitleZh || card.jobTitleEn, card.companyZh || card.companyEn]
@@ -68,7 +72,7 @@ export function FollowupCardRow({
 
   function handleMark() {
     startTransition(async () => {
-      const result = await logContactAction({ id: card.id, note: "" });
+      const result = await logContactAction({ id: card.id, note: note.trim() });
       if (result?.serverError) return;
       // Stay in the row and offer the next-contact picker — this is the
       // moment the user is most likely to commit to a reminder.
@@ -141,6 +145,20 @@ export function FollowupCardRow({
           </button>
         </div>
       </div>
+      {stage === "idle" && (
+        <details className={styles.noteDisclosure}>
+          <summary className={styles.noteSummary}>+ 加備註</summary>
+          <textarea
+            className={styles.noteTextarea}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="例：談 Q3 計畫，下週二再聯絡"
+            rows={2}
+            maxLength={500}
+            aria-label={`備註 ${primary}`}
+          />
+        </details>
+      )}
       {stage === "picking" && (
         <div className={styles.nextPicker} aria-label={`下次聯絡 ${primary}`}>
           <span className={styles.nextLabel}>下次聯絡：</span>
