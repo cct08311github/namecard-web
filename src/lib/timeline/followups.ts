@@ -101,3 +101,38 @@ export function totalFollowups(groups: FollowupGroups): number {
     groups.pinnedStale.cards.length
   );
 }
+
+/**
+ * Cards with an explicit followUpAt scheduled for today or earlier.
+ * This is conceptually distinct from staleness-based buckets — these
+ * are reminders the user committed to. Not soft-deleted; "today" =
+ * end-of-day in the caller-supplied `now`'s local representation, so
+ * a midnight-stored Date for the current calendar day still counts.
+ *
+ * Days = days-since-last-contact (so the row UX is consistent with the
+ * other buckets, which all show "N 天" of staleness).
+ */
+export function dueRemindersToday(
+  cards: CardSummary[],
+  now: Date,
+): Array<{ card: CardSummary; days: number }> {
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const out: Array<{ card: CardSummary; days: number }> = [];
+  for (const card of cards) {
+    if (card.deletedAt) continue;
+    if (!card.followUpAt) continue;
+    if (card.followUpAt.getTime() > endOfToday.getTime()) continue;
+    // Use staleness if available, fall back to 0 so a never-contacted
+    // scheduled reminder still renders sensibly.
+    const days = daysSinceContact(card, now) ?? 0;
+    out.push({ card, days });
+  }
+  // Most-overdue reminder first, then deterministic id tiebreak.
+  out.sort(
+    (a, b) =>
+      (a.card.followUpAt?.getTime() ?? 0) - (b.card.followUpAt?.getTime() ?? 0) ||
+      a.card.id.localeCompare(b.card.id),
+  );
+  return out;
+}
