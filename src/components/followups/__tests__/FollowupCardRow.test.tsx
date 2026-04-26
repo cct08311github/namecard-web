@@ -79,6 +79,27 @@ describe("FollowupCardRow quick contact links", () => {
   });
 });
 
+describe("FollowupCardRow inline note disclosure", () => {
+  it("renders the '+ 加備註' disclosure in idle stage", () => {
+    render(<FollowupCardRow card={makeCard()} days={42} />);
+    expect(screen.getByText("+ 加備註")).toBeInTheDocument();
+  });
+
+  it("textarea is reachable via aria-label and accepts max 500 chars", () => {
+    render(<FollowupCardRow card={makeCard()} days={42} />);
+    const textarea = screen.getByLabelText(/備註 王大明/) as HTMLTextAreaElement;
+    expect(textarea.tagName).toBe("TEXTAREA");
+    expect(textarea.maxLength).toBe(500);
+  });
+
+  it("textarea reflects typed value via React state", () => {
+    render(<FollowupCardRow card={makeCard()} days={42} />);
+    const textarea = screen.getByLabelText(/備註 王大明/) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "下週二再聯絡" } });
+    expect(textarea.value).toBe("下週二再聯絡");
+  });
+});
+
 describe("FollowupCardRow next-pick flow", () => {
   it("shows the picker after marking contacted, with all 5 options", async () => {
     render(<FollowupCardRow card={makeCard()} days={42} />);

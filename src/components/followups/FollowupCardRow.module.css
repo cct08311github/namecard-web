@@ -110,6 +110,50 @@
   cursor: default;
 }
 
+.noteDisclosure {
+  margin: 0;
+  padding: 0;
+}
+
+.noteSummary {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  padding: var(--space-xs) 0;
+  list-style: none;
+  user-select: none;
+}
+
+.noteSummary::-webkit-details-marker {
+  display: none;
+}
+
+.noteSummary:hover {
+  color: var(--color-fg);
+}
+
+.noteTextarea {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+  padding: var(--space-sm);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  color: var(--color-fg);
+  resize: vertical;
+  min-height: 3rem;
+  margin-top: var(--space-xs);
+}
+
+.noteTextarea:focus {
+  outline: none;
+  border-color: var(--color-accent-ink);
+}
+
 .nextPicker {
   display: flex;
   flex-wrap: wrap;
