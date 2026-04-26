@@ -14,6 +14,10 @@ const EXAMPLES = [
   "陳玉涵 PM 智威科技 在 2024 Computex 攤位上聊邊緣 AI 推論很投緣，提到他們公司在做 ML 加速器",
   "李大同 沛理科技業務 BD 上週 Web Summit Lisbon 認識，欠他一個 referral 給 NVIDIA 的 contact",
   "今天 Demo Day 認識三個人：A 是 GreenLeaf 共同創辦人 Sarah Wang 在做永續供應鏈，B 是 Pixel 的 PM Tom Chen 在開發 AR 眼鏡，C 是創投 Mike 在找早期 hardware 案",
+  // Email signature paste — typical desktop use case. Same prompt
+  // handles it because the LLM extracts structured fields from any
+  // freeform text containing name + role + company.
+  "Karen Chen\nProduct Manager | GreenLeaf Tech\n+1-555-1234 · karen@greenleaf.com\nlinkedin.com/in/karenchen — 上週 SaaStr 認識的，她們在做 climate analytics",
 ];
 
 type Phase =
