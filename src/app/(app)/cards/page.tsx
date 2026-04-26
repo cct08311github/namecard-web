@@ -17,7 +17,7 @@ import { getTypesenseClient } from "@/lib/search/client";
 import { buildSearchParams } from "@/lib/search/query";
 import { CARDS_COLLECTION_NAME } from "@/lib/search/schema";
 import { parseSearchParams } from "@/lib/search/url";
-import { bucketFollowups, dueRemindersToday, totalFollowups } from "@/lib/timeline/followups";
+import { countFollowupsInCards } from "@/lib/timeline/followups";
 
 import styles from "./cards.module.css";
 
@@ -140,12 +140,10 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   // its own independent scan, so this is just a notification.
   const duplicateGroupCount = hasSearchState ? 0 : findDuplicateGroups(allCards).length;
 
-  // Follow-up urgency chip — staleness + scheduled reminders, identical
-  // to the home chip. Always computed against the full corpus (not the
-  // currently-filtered view) so users can't lose sight of pending
-  // action items by accidentally filtering them out.
-  const followupsTotal =
-    totalFollowups(bucketFollowups(allCards, now)) + dueRemindersToday(allCards, now).length;
+  // Follow-up urgency chip — always computed against the full corpus
+  // (not the currently-filtered view) so users can't lose sight of
+  // pending action items by accidentally filtering them out.
+  const followupsTotal = countFollowupsInCards(allCards, now);
 
   // Mint signed URLs only for the visible cards' frontImagePath. Batched
   // via Promise.allSettled so a stale/missing storage object doesn't

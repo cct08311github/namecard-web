@@ -13,6 +13,8 @@ import {
   upcomingRemindersThisWeek,
   type FollowupBucket,
 } from "@/lib/timeline/followups";
+// /followups uses bucketFollowups+dueRemindersToday directly (it
+// renders each bucket separately), not the count-only helper.
 
 import styles from "./followups.module.css";
 

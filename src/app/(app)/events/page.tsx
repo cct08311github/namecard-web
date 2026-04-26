@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listCardsForUser } from "@/db/cards";
 import { groupCardsByEvent } from "@/lib/events/group";
 import { readSession } from "@/lib/firebase/session";
+import { countFollowupsInCards } from "@/lib/timeline/followups";
 
 import styles from "./events.module.css";
 
@@ -27,6 +28,7 @@ export default async function EventsPage() {
     order: "desc",
   });
   const groups = groupCardsByEvent(cards);
+  const now = new Date();
 
   return (
     <article className={styles.article}>
@@ -58,21 +60,37 @@ export default async function EventsPage() {
         </section>
       ) : (
         <ul className={styles.eventList}>
-          {groups.map((group) => (
-            <li key={group.slug}>
-              <Link href={`/events/${encodeURIComponent(group.slug)}`} className={styles.eventRow}>
-                <div className={styles.eventMain}>
-                  <h2 className={styles.eventName}>{group.displayName}</h2>
-                  <p className={styles.eventMeta}>
-                    {group.cards.length} 位 · 最近見面：{formatYmd(group.mostRecentMet)}
-                  </p>
-                </div>
-                <span className={styles.chevron} aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            </li>
-          ))}
+          {groups.map((group) => {
+            const followupCount = countFollowupsInCards(group.cards, now);
+            return (
+              <li key={group.slug}>
+                <Link
+                  href={`/events/${encodeURIComponent(group.slug)}`}
+                  className={styles.eventRow}
+                >
+                  <div className={styles.eventMain}>
+                    <h2 className={styles.eventName}>
+                      {group.displayName}
+                      {followupCount > 0 && (
+                        <span
+                          className={styles.followupBadge}
+                          aria-label={`${followupCount} 個人該 ping 了`}
+                        >
+                          ⏰ {followupCount}
+                        </span>
+                      )}
+                    </h2>
+                    <p className={styles.eventMeta}>
+                      {group.cards.length} 位 · 最近見面：{formatYmd(group.mostRecentMet)}
+                    </p>
+                  </div>
+                  <span className={styles.chevron} aria-hidden="true">
+                    →
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </article>

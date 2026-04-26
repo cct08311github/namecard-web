@@ -4,6 +4,7 @@ import type { CardSummary } from "@/db/cards";
 
 import {
   bucketFollowups,
+  countFollowupsInCards,
   dueRemindersToday,
   totalFollowups,
   upcomingRemindersThisWeek,
@@ -206,5 +207,27 @@ describe("upcomingRemindersThisWeek", () => {
     const c = mk({ id: "f", followUpAt: daysAhead(20) });
     expect(upcomingRemindersThisWeek([c], NOW, 30)).toHaveLength(1);
     expect(upcomingRemindersThisWeek([c], NOW, 7)).toHaveLength(0);
+  });
+});
+
+describe("countFollowupsInCards", () => {
+  it("sums staleness buckets and todays scheduled reminders", () => {
+    const todayMid = new Date(NOW);
+    todayMid.setHours(12, 0, 0, 0);
+    const cards = [
+      mk({ id: "stale", lastContactedAt: daysAgo(45) }), // due bucket
+      mk({ id: "older", lastContactedAt: daysAgo(95) }), // critical bucket
+      mk({ id: "rem-today", followUpAt: todayMid }), // due today
+    ];
+    expect(countFollowupsInCards(cards, NOW)).toBe(3);
+  });
+
+  it("returns 0 for an empty corpus", () => {
+    expect(countFollowupsInCards([], NOW)).toBe(0);
+  });
+
+  it("ignores soft-deleted cards", () => {
+    const c = mk({ id: "d", lastContactedAt: daysAgo(100), deletedAt: daysAgo(1) });
+    expect(countFollowupsInCards([c], NOW)).toBe(0);
   });
 });

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listCardsForUser } from "@/db/cards";
 import { groupCardsByCompany } from "@/lib/companies/group";
 import { readSession } from "@/lib/firebase/session";
+import { countFollowupsInCards } from "@/lib/timeline/followups";
 
 import styles from "./companies.module.css";
 
@@ -31,6 +32,7 @@ export default async function CompaniesPage() {
     order: "desc",
   });
   const groups = groupCardsByCompany(cards);
+  const now = new Date();
 
   return (
     <article className={styles.article}>
@@ -67,6 +69,7 @@ export default async function CompaniesPage() {
           {groups.map((group) => {
             const head = group.cards[0];
             const headRole = head?.jobTitleZh || head?.jobTitleEn;
+            const followupCount = countFollowupsInCards(group.cards, now);
             return (
               <li key={group.slug}>
                 <Link
@@ -74,7 +77,17 @@ export default async function CompaniesPage() {
                   className={styles.companyRow}
                 >
                   <div className={styles.companyMain}>
-                    <h2 className={styles.companyName}>{group.displayName}</h2>
+                    <h2 className={styles.companyName}>
+                      {group.displayName}
+                      {followupCount > 0 && (
+                        <span
+                          className={styles.followupBadge}
+                          aria-label={`${followupCount} 個人該 ping 了`}
+                        >
+                          ⏰ {followupCount}
+                        </span>
+                      )}
+                    </h2>
                     <p className={styles.companyMeta}>
                       {group.cards.length} 位 · 最近：{formatYmd(group.mostRecentTouch)}
                     </p>

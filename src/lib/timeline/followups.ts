@@ -138,6 +138,16 @@ export function dueRemindersToday(
 }
 
 /**
+ * Composite count: staleness buckets + scheduled reminders due today.
+ * Used by the home/cards/AppShell urgency chips and per-group badges
+ * on /companies and /events. Single source of truth for "how many
+ * action items does this slice of cards represent right now?".
+ */
+export function countFollowupsInCards(cards: CardSummary[], now: Date): number {
+  return totalFollowups(bucketFollowups(cards, now)) + dueRemindersToday(cards, now).length;
+}
+
+/**
  * Cards with followUpAt strictly after end-of-today and within
  * `windowDays` (default 7) inclusive. Used for /followups 「下週提醒」 —
  * gives business users a glance at their upcoming week without

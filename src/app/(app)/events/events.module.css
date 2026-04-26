@@ -120,6 +120,20 @@
   font-weight: 600;
   margin: 0;
   color: var(--color-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.followupBadge {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  background: var(--color-accent);
+  color: var(--color-paper);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
 }
 
 .eventMeta {
