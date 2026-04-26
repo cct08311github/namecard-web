@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EventList, type EventListItem } from "@/components/events/EventList";
 import { listCardsForUser } from "@/db/cards";
 import { groupCardsByEvent } from "@/lib/events/group";
 import { readSession } from "@/lib/firebase/session";
@@ -30,17 +31,23 @@ export default async function EventsPage() {
   const rawGroups = groupCardsByEvent(cards);
   const now = new Date();
 
-  // Decorate with follow-up count and hybrid-sort: groups that need
-  // attention come first (by count desc), the rest keep mostRecentMet
-  // ordering. Same pattern as /companies.
-  const groups = rawGroups
+  // Decorate, sort (urgency first then recency), and project to the
+  // serializable shape the client list component consumes.
+  const items: EventListItem[] = rawGroups
     .map((g) => ({ group: g, followupCount: countFollowupsInCards(g.cards, now) }))
     .sort((a, b) => {
       if (a.followupCount !== b.followupCount) return b.followupCount - a.followupCount;
       const aTouch = a.group.mostRecentMet?.getTime() ?? 0;
       const bTouch = b.group.mostRecentMet?.getTime() ?? 0;
       return bTouch - aTouch;
-    });
+    })
+    .map(({ group, followupCount }) => ({
+      slug: group.slug,
+      displayName: group.displayName,
+      count: group.cards.length,
+      mostRecentMetYmd: formatYmd(group.mostRecentMet),
+      followupCount,
+    }));
 
   return (
     <article className={styles.article}>
@@ -53,9 +60,9 @@ export default async function EventsPage() {
       <header className={styles.header}>
         <p className={styles.kicker}>場合視角</p>
         <h1 className={styles.title}>
-          <em>{groups.length}</em> 個場合
+          <em>{items.length}</em> 個場合
         </h1>
-        {groups.length > 0 ? (
+        {items.length > 0 ? (
           <p className={styles.lead}>
             該追蹤的場合排前面，其他按最近見面排序。點進去看那場見過誰、職位、為什麼記得。
           </p>
@@ -66,45 +73,14 @@ export default async function EventsPage() {
         )}
       </header>
 
-      {groups.length === 0 ? (
+      {items.length === 0 ? (
         <section className={styles.empty}>
           <Link href="/cards/new" className={styles.backLink}>
             建立第一張名片 →
           </Link>
         </section>
       ) : (
-        <ul className={styles.eventList}>
-          {groups.map(({ group, followupCount }) => {
-            return (
-              <li key={group.slug}>
-                <Link
-                  href={`/events/${encodeURIComponent(group.slug)}`}
-                  className={styles.eventRow}
-                >
-                  <div className={styles.eventMain}>
-                    <h2 className={styles.eventName}>
-                      {group.displayName}
-                      {followupCount > 0 && (
-                        <span
-                          className={styles.followupBadge}
-                          aria-label={`${followupCount} 個人該 ping 了`}
-                        >
-                          ⏰ {followupCount}
-                        </span>
-                      )}
-                    </h2>
-                    <p className={styles.eventMeta}>
-                      {group.cards.length} 位 · 最近見面：{formatYmd(group.mostRecentMet)}
-                    </p>
-                  </div>
-                  <span className={styles.chevron} aria-hidden="true">
-                    →
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <EventList items={items} />
       )}
     </article>
   );
