@@ -8,6 +8,7 @@ import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
 import { categorizeTimeline } from "@/lib/timeline/categorize";
+import { bucketFollowups, totalFollowups } from "@/lib/timeline/followups";
 
 import styles from "./home.module.css";
 
@@ -24,8 +25,12 @@ export default async function HomePage() {
     order: "desc",
     limit: 200,
   });
-  const sections = categorizeTimeline(cards, { now: new Date() });
+  const now = new Date();
+  const sections = categorizeTimeline(cards, { now });
   const totalInSections = sections.reduce((sum, section) => sum + section.cards.length, 0);
+  // Follow-up urgency chip — same data path the dedicated /followups page
+  // uses, just summarized into a count for the home header.
+  const followupsTotal = totalFollowups(bucketFollowups(cards, now));
   const firstName = user.displayName?.split(" ")[0] ?? "";
 
   return (
@@ -41,6 +46,14 @@ export default async function HomePage() {
         </p>
         {cards.length > 0 && (
           <div className={styles.quickActions}>
+            {followupsTotal > 0 && (
+              <Link
+                href="/followups"
+                className={`${styles.quickAction} ${styles.quickActionUrgent}`}
+              >
+                ⏰ {followupsTotal} 個人該 ping 了
+              </Link>
+            )}
             <Link href="/log" className={styles.quickAction}>
               🗣️ 對話速記
             </Link>
