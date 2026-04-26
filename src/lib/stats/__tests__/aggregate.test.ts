@@ -45,6 +45,20 @@ function evItem(cardId: string, daysAgo: number, name = cardId): RecapItem {
   };
 }
 
+function evItemWithCompany(cardId: string, daysAgo: number, companyName: string): RecapItem {
+  const event: ContactEvent = {
+    id: `e-${cardId}-${daysAgo}`,
+    at: dayOffset(NOW, daysAgo),
+    note: "n",
+    authorUid: "u",
+    authorDisplay: null,
+  };
+  return {
+    card: aCard({ id: cardId, nameZh: cardId, companyZh: companyName }),
+    event,
+  };
+}
+
 describe("aggregateStats", () => {
   it("empty cards + empty events → zeros across the board", () => {
     const out = aggregateStats([], [], NOW);
@@ -52,6 +66,7 @@ describe("aggregateStats", () => {
     expect(out.thisMonth).toEqual({ logCount: 0, newCardCount: 0, distinctPeople: 0 });
     expect(out.streak).toEqual({ current: 0, longest: 0 });
     expect(out.topPeople).toEqual([]);
+    expect(out.topCompanies).toEqual([]);
     expect(out.totalCards).toBe(0);
   });
 
@@ -174,5 +189,55 @@ describe("aggregateStats", () => {
     const out = aggregateStats([], [epochEvent], NOW);
     expect(out.thisWeek.logCount).toBe(0);
     expect(out.streak).toEqual({ current: 0, longest: 0 });
+  });
+});
+
+describe("aggregateStats — topCompanies", () => {
+  it("aggregates by company name with logCount + distinctPeople", () => {
+    const events = [
+      evItemWithCompany("a", 1, "Acme"),
+      evItemWithCompany("a", 2, "Acme"), // same person twice
+      evItemWithCompany("b", 3, "Acme"), // different person same company
+      evItemWithCompany("c", 5, "Beta"),
+      evItemWithCompany("d", 7, "Beta"),
+    ];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topCompanies).toEqual([
+      { companyName: "Acme", logCount: 3, distinctPeople: 2 },
+      { companyName: "Beta", logCount: 2, distinctPeople: 2 },
+    ]);
+  });
+
+  it("excludes events whose card has no company", () => {
+    const events = [
+      evItem("nocompany", 1), // no company on card
+      evItemWithCompany("withcompany", 2, "Acme"),
+    ];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topCompanies.map((c) => c.companyName)).toEqual(["Acme"]);
+  });
+
+  it("excludes events outside the 30-day window", () => {
+    const events = [
+      evItemWithCompany("recent", 5, "Acme"),
+      evItemWithCompany("old", 60, "Acme"), // outside window
+    ];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topCompanies[0]).toEqual({ companyName: "Acme", logCount: 1, distinctPeople: 1 });
+  });
+
+  it("caps at 3 companies and sorts by logCount desc", () => {
+    const events = [
+      evItemWithCompany("a", 1, "C1"),
+      evItemWithCompany("a", 2, "C1"),
+      evItemWithCompany("a", 3, "C1"),
+      evItemWithCompany("a", 1, "C2"),
+      evItemWithCompany("a", 2, "C2"),
+      evItemWithCompany("a", 1, "C3"),
+      evItemWithCompany("a", 1, "C4"), // tied with C3, but C4 sorts after by name tiebreak so C3 wins
+    ];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topCompanies).toHaveLength(3);
+    expect(out.topCompanies.map((c) => c.companyName)).toEqual(["C1", "C2", "C3"]);
   });
 });

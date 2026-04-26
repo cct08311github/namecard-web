@@ -16,6 +16,15 @@ export interface TopPerson {
   logCount: number;
 }
 
+export interface TopCompany {
+  /** Display name as it appears on the card (companyZh || companyEn). */
+  companyName: string;
+  /** Total log events from this company in the window. */
+  logCount: number;
+  /** Distinct people from this company logged with in the window. */
+  distinctPeople: number;
+}
+
 export interface Streak {
   /** Consecutive days back-to-back from today with ≥1 log. */
   current: number;
@@ -30,6 +39,8 @@ export interface AggregatedStats {
   streak: Streak;
   /** Top 3 most-logged-with people in last 30 days. */
   topPeople: TopPerson[];
+  /** Top 3 most-logged-with companies in last 30 days. */
+  topCompanies: TopCompany[];
   /** Total live (non-deleted) cards in the workspace. */
   totalCards: number;
 }
@@ -151,6 +162,43 @@ function computeStreak(items: readonly RecapItem[], now: Date): Streak {
   return { current, longest };
 }
 
+function computeTopCompanies(items: readonly RecapItem[], cutoff: Date, limit = 3): TopCompany[] {
+  const counts = new Map<
+    string,
+    { companyName: string; logCount: number; people: Set<string>; lastAt: number }
+  >();
+  for (const item of items) {
+    if (!item.event.at || item.event.at.getTime() < cutoff.getTime()) continue;
+    const companyName = (item.card.companyZh || item.card.companyEn || "").trim();
+    if (!companyName) continue; // skip events whose card has no company
+    const cur = counts.get(companyName);
+    if (cur) {
+      cur.logCount++;
+      cur.people.add(item.card.id);
+      cur.lastAt = Math.max(cur.lastAt, item.event.at.getTime());
+    } else {
+      counts.set(companyName, {
+        companyName,
+        logCount: 1,
+        people: new Set([item.card.id]),
+        lastAt: item.event.at.getTime(),
+      });
+    }
+  }
+  const list = [...counts.values()];
+  list.sort((a, b) => {
+    if (b.logCount !== a.logCount) return b.logCount - a.logCount;
+    if (b.people.size !== a.people.size) return b.people.size - a.people.size;
+    if (b.lastAt !== a.lastAt) return b.lastAt - a.lastAt;
+    return a.companyName < b.companyName ? -1 : 1;
+  });
+  return list.slice(0, limit).map((x) => ({
+    companyName: x.companyName,
+    logCount: x.logCount,
+    distinctPeople: x.people.size,
+  }));
+}
+
 function computeTopPeople(items: readonly RecapItem[], cutoff: Date, limit = 3): TopPerson[] {
   const counts = new Map<string, { card: CardSummary; logCount: number; lastAt: number }>();
   for (const item of items) {
@@ -196,6 +244,7 @@ export function aggregateStats(
     temperature: temperatureCounts(live, now),
     streak: computeStreak(events, now),
     topPeople: computeTopPeople(events, monthCutoff, 3),
+    topCompanies: computeTopCompanies(events, monthCutoff, 3),
     totalCards: live.length,
   };
 }
