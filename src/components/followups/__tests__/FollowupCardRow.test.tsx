@@ -66,6 +66,17 @@ describe("FollowupCardRow quick contact links", () => {
     const link = screen.getByLabelText(/LINE 聯絡/) as HTMLAnchorElement;
     expect(link.getAttribute("href")).toBe("https://line.me/R/ti/p/~wang%2Fda");
   });
+
+  it("shows default '{days} 天' when daysLabel prop omitted", () => {
+    render(<FollowupCardRow card={makeCard()} days={42} />);
+    expect(screen.getByText("42 天")).toBeInTheDocument();
+  });
+
+  it("renders daysLabel override when provided (used by reminder sections)", () => {
+    render(<FollowupCardRow card={makeCard()} days={0} daysLabel="📅 今天" />);
+    expect(screen.getByText("📅 今天")).toBeInTheDocument();
+    expect(screen.queryByText("0 天")).toBeNull();
+  });
 });
 
 describe("FollowupCardRow next-pick flow", () => {
