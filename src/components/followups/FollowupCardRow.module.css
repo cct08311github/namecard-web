@@ -58,6 +58,31 @@
   white-space: nowrap;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.quickAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  line-height: 1;
+  text-decoration: none;
+  background: transparent;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.quickAction:hover {
+  background: var(--color-bg-raised);
+}
+
 .markBtn {
   font-family: var(--font-sans);
   font-size: var(--text-caption);

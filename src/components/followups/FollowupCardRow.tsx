@@ -37,6 +37,8 @@ export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCa
   const primaryEmail = card.emails?.find((e) => e.primary)?.value ?? card.emails?.[0]?.value;
   const primaryPhone = card.phones?.find((p) => p.primary)?.value ?? card.phones?.[0]?.value;
   const lineId = card.social?.lineId;
+  // LINE deep-link works cross-platform (web → opens LINE app or login).
+  const lineUrl = lineId ? `https://line.me/R/ti/p/~${encodeURIComponent(lineId)}` : null;
 
   function handleMark() {
     startTransition(async () => {
@@ -61,15 +63,49 @@ export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCa
           </div>
           <span className={styles.days}>{days} 天</span>
         </Link>
-        <button
-          type="button"
-          className={styles.markBtn}
-          onClick={handleMark}
-          disabled={pending || done}
-          aria-label={`標記已聯絡 ${primary}`}
-        >
-          {done ? "✓ 完成" : pending ? "記錄中…" : "✅ 已聯絡"}
-        </button>
+        <div className={styles.actions}>
+          {primaryEmail && (
+            <a
+              href={`mailto:${primaryEmail}`}
+              className={styles.quickAction}
+              aria-label={`寄信給 ${primary}`}
+              title="寄信"
+            >
+              📧
+            </a>
+          )}
+          {primaryPhone && (
+            <a
+              href={`tel:${primaryPhone}`}
+              className={styles.quickAction}
+              aria-label={`撥電話給 ${primary}`}
+              title="撥電話"
+            >
+              📞
+            </a>
+          )}
+          {lineUrl && (
+            <a
+              href={lineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.quickAction}
+              aria-label={`LINE 聯絡 ${primary}`}
+              title="LINE"
+            >
+              💬
+            </a>
+          )}
+          <button
+            type="button"
+            className={styles.markBtn}
+            onClick={handleMark}
+            disabled={pending || done}
+            aria-label={`標記已聯絡 ${primary}`}
+          >
+            {done ? "✓ 完成" : pending ? "記錄中…" : "✅ 已聯絡"}
+          </button>
+        </div>
       </div>
       {showAiDrafts && (
         <ReengageDraftsButton
