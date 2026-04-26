@@ -18,6 +18,11 @@ const EXAMPLES = [
   "tomorrow 4pm: Alice, Bob, Charlie",
 ];
 
+interface PrepBoardProps {
+  /** Optional initial textarea content (e.g. seeded by ?attendees= URL param). */
+  initialText?: string;
+}
+
 type Phase =
   | { kind: "input" }
   | { kind: "loading" }
@@ -39,8 +44,8 @@ function pickRoleCompany(card: {
   return [role, company].filter(Boolean).join(" @ ");
 }
 
-export function PrepBoard() {
-  const [text, setText] = useState("");
+export function PrepBoard({ initialText = "" }: PrepBoardProps = {}) {
+  const [text, setText] = useState(initialText);
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
   const [pending, startTransition] = useTransition();
   const now = new Date();

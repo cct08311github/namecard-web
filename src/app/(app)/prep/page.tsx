@@ -6,7 +6,20 @@ export const metadata = {
   title: "會議準備",
 };
 
-export default function PrepPage() {
+interface PrepPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function PrepPage({ searchParams }: PrepPageProps) {
+  const raw = await searchParams;
+  const attendeesParam = raw.attendees;
+  const initialText =
+    typeof attendeesParam === "string"
+      ? attendeesParam.slice(0, 2000)
+      : Array.isArray(attendeesParam)
+        ? attendeesParam.join(", ").slice(0, 2000)
+        : "";
+
   return (
     <article className={styles.article}>
       <header className={styles.header}>
@@ -20,7 +33,7 @@ export default function PrepPage() {
         </p>
       </header>
 
-      <PrepBoard />
+      <PrepBoard initialText={initialText} />
     </article>
   );
 }
