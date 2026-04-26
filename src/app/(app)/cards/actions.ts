@@ -786,3 +786,60 @@ export const bulkLogContactAction = authedAction
       return { ok: true, logged, total: parsedInput.ids.length };
     },
   );
+
+/**
+ * 📷 Attach (or replace) a photo on an existing card. Lets users who
+ * created a card manually or via voice add a real card photo later —
+ * the OCR-only frontImagePath path was a one-shot at create time.
+ * Reuses the same uploadCardImage pipeline (Sharp → WebP → Storage).
+ */
+export const attachCardImageAction = authedAction
+  .inputSchema(
+    z.object({
+      cardId: z.string().min(1),
+      fileBase64: z.string().min(1),
+      mimeType: z.string().refine((v) => v.startsWith("image/"), "must be image/*"),
+      side: z.enum(["front", "back"]).default("front"),
+      originalName: z.string().max(200).optional(),
+    }),
+  )
+  .action(
+    async ({
+      parsedInput,
+      ctx,
+    }): Promise<{ ok: true; path: string } | { ok: false; reason: string }> => {
+      const buffer = Buffer.from(parsedInput.fileBase64, "base64");
+      if (buffer.byteLength === 0) return { ok: false, reason: "empty image payload" };
+      if (buffer.byteLength > 10 * 1024 * 1024) return { ok: false, reason: "image exceeds 10MB" };
+
+      // Lazy-import keeps the storage helper (Sharp, Firebase Admin)
+      // out of any cold-import budget that doesn't need it.
+      const { uploadCardImage } = await import("@/lib/storage/card-images");
+      let upload;
+      try {
+        upload = await uploadCardImage({
+          uid: ctx.user.uid,
+          fileBuffer: buffer,
+          originalName: parsedInput.originalName,
+          mimeType: parsedInput.mimeType,
+        });
+      } catch (err) {
+        return { ok: false, reason: err instanceof Error ? err.message : "upload failed" };
+      }
+
+      try {
+        const patch =
+          parsedInput.side === "back"
+            ? { backImagePath: upload.path }
+            : { frontImagePath: upload.path };
+        await updateCardForUser(parsedInput.cardId, patch, { uid: ctx.user.uid });
+      } catch (err) {
+        return { ok: false, reason: err instanceof Error ? err.message : "card update failed" };
+      }
+
+      revalidatePath("/");
+      revalidatePath("/cards");
+      revalidatePath(`/cards/${parsedInput.cardId}`);
+      return { ok: true, path: upload.path };
+    },
+  );
