@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { DailyBriefingSection } from "@/components/coach/DailyBriefingSection";
+import { OnboardingHero } from "@/components/home/OnboardingHero";
 import { TimelineSection } from "@/components/timeline/TimelineSection";
 import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
@@ -50,14 +51,7 @@ export default async function HomePage() {
       </header>
 
       {cards.length === 0 ? (
-        <div className={styles.empty}>
-          <p className={styles.emptyLead}>
-            還沒有任何名片。從手動建立第一張開始—— 就算不用 OCR，這個工具也已經準備好陪你記錄關係。
-          </p>
-          <Link href="/cards/new" className={styles.emptyBtn}>
-            建立第一張名片
-          </Link>
-        </div>
+        <OnboardingHero />
       ) : totalInSections === 0 ? (
         <div className={styles.empty}>
           <p className={styles.emptyLead}>
