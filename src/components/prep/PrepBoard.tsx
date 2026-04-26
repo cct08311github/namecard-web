@@ -8,6 +8,7 @@ import { encodePrefill } from "@/lib/voice/extract";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 
 import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
+import { VoiceMicButton } from "@/components/cards/VoiceMicButton";
 
 import styles from "./PrepBoard.module.css";
 
@@ -76,6 +77,10 @@ export function PrepBoard() {
           onChange={(e) => setText(e.target.value)}
           rows={3}
           placeholder="例：明天 3pm 跟 Karen Chen, Tom Lee 開會"
+          disabled={loading}
+        />
+        <VoiceMicButton
+          onFinalTranscript={(t) => setText((prev) => (prev ? `${prev} ${t}` : t))}
           disabled={loading}
         />
         <div className={styles.actions}>

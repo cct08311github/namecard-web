@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { askCardQuestionAction } from "@/app/(app)/cards/actions";
 
 import styles from "./CardChatBox.module.css";
+import { VoiceMicButton } from "./VoiceMicButton";
 
 interface CardChatBoxProps {
   cardId: string;
@@ -85,6 +86,12 @@ export function CardChatBox({ cardId, displayName }: CardChatBoxProps) {
           rows={2}
           placeholder={placeholder}
           maxLength={500}
+          disabled={pending}
+        />
+        <VoiceMicButton
+          onFinalTranscript={(t) =>
+            setQuestion((prev) => (prev ? `${prev} ${t}` : t).slice(0, 500))
+          }
           disabled={pending}
         />
         <div className={styles.actions}>
