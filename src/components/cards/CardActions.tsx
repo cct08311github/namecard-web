@@ -11,6 +11,7 @@ import {
   setFollowUpAction,
   toggleCardPinAction,
 } from "@/app/(app)/cards/actions";
+import { localYmdAfterDays } from "@/lib/cards/follow-up-date";
 import { shareCardVcard } from "@/lib/share/card-share";
 
 import styles from "./CardActions.module.css";
@@ -148,12 +149,6 @@ export function CardActions({
         router.refresh();
       }
     });
-  };
-
-  const quickOffsetDays = (days: number): string => {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
   };
 
   const handleTogglePin = () => {
@@ -345,13 +340,13 @@ export function CardActions({
               value={followUpDraft}
               onChange={(e) => setFollowUpDraft(e.target.value)}
               aria-label="下次聯絡日期"
-              min={new Date().toISOString().slice(0, 10)}
+              min={localYmdAfterDays(0)}
             />
             <div className={styles.noteActions}>
               <button
                 type="button"
                 className={styles.secondary}
-                onClick={() => submitFollowUp(quickOffsetDays(3))}
+                onClick={() => submitFollowUp(localYmdAfterDays(3))}
                 disabled={pending}
               >
                 +3 天
@@ -359,7 +354,7 @@ export function CardActions({
               <button
                 type="button"
                 className={styles.secondary}
-                onClick={() => submitFollowUp(quickOffsetDays(7))}
+                onClick={() => submitFollowUp(localYmdAfterDays(7))}
                 disabled={pending}
               >
                 +7 天
@@ -367,7 +362,7 @@ export function CardActions({
               <button
                 type="button"
                 className={styles.secondary}
-                onClick={() => submitFollowUp(quickOffsetDays(14))}
+                onClick={() => submitFollowUp(localYmdAfterDays(14))}
                 disabled={pending}
               >
                 +14 天
