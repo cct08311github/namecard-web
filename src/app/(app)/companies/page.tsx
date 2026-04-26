@@ -31,8 +31,20 @@ export default async function CompaniesPage() {
     orderBy: "createdAt",
     order: "desc",
   });
-  const groups = groupCardsByCompany(cards);
+  const rawGroups = groupCardsByCompany(cards);
   const now = new Date();
+
+  // Decorate with follow-up count, then hybrid-sort: groups that need
+  // attention bubble to the top (by count desc), and the calm-tail
+  // keeps the original mostRecentTouch ordering.
+  const groups = rawGroups
+    .map((g) => ({ group: g, followupCount: countFollowupsInCards(g.cards, now) }))
+    .sort((a, b) => {
+      if (a.followupCount !== b.followupCount) return b.followupCount - a.followupCount;
+      const aTouch = a.group.mostRecentTouch?.getTime() ?? 0;
+      const bTouch = b.group.mostRecentTouch?.getTime() ?? 0;
+      return bTouch - aTouch;
+    });
 
   return (
     <article className={styles.article}>
@@ -49,7 +61,7 @@ export default async function CompaniesPage() {
         </h1>
         {groups.length > 0 ? (
           <p className={styles.lead}>
-            按最近互動排序。點進去看同公司的所有人、彼此職位、互動歷史。
+            該追蹤的公司排前面，其他按最近互動排序。點進去看同公司的所有人、彼此職位、互動歷史。
           </p>
         ) : (
           <p className={styles.lead}>
@@ -66,10 +78,9 @@ export default async function CompaniesPage() {
         </section>
       ) : (
         <ul className={styles.companyList}>
-          {groups.map((group) => {
+          {groups.map(({ group, followupCount }) => {
             const head = group.cards[0];
             const headRole = head?.jobTitleZh || head?.jobTitleEn;
-            const followupCount = countFollowupsInCards(group.cards, now);
             return (
               <li key={group.slug}>
                 <Link
