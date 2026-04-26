@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { CardSummary } from "@/db/cards";
 
-import { bucketFollowups, dueRemindersToday, totalFollowups } from "../followups";
+import {
+  bucketFollowups,
+  dueRemindersToday,
+  totalFollowups,
+  upcomingRemindersThisWeek,
+} from "../followups";
 
 const NOW = new Date("2026-04-24T00:00:00Z");
 
@@ -154,5 +159,52 @@ describe("dueRemindersToday", () => {
     const c = mk({ id: "c", followUpAt: daysAgo(1) });
     const out = dueRemindersToday([a, b, c], NOW);
     expect(out.map((x) => x.card.id)).toEqual(["b", "a", "c"]);
+  });
+});
+
+describe("upcomingRemindersThisWeek", () => {
+  function daysAhead(n: number): Date {
+    return new Date(NOW.getTime() + n * 24 * 60 * 60 * 1000);
+  }
+
+  it("includes a card with followUpAt 3 days out", () => {
+    const c = mk({ id: "a", followUpAt: daysAhead(3) });
+    expect(upcomingRemindersThisWeek([c], NOW)).toHaveLength(1);
+  });
+
+  it("excludes today (already in dueRemindersToday)", () => {
+    const todayMidnight = new Date(NOW);
+    todayMidnight.setHours(12, 0, 0, 0);
+    const c = mk({ id: "t", followUpAt: todayMidnight });
+    expect(upcomingRemindersThisWeek([c], NOW)).toHaveLength(0);
+  });
+
+  it("includes the boundary day (exactly +7 days)", () => {
+    const c = mk({ id: "b", followUpAt: daysAhead(7) });
+    expect(upcomingRemindersThisWeek([c], NOW)).toHaveLength(1);
+  });
+
+  it("excludes 8+ days out (outside the week window)", () => {
+    const c = mk({ id: "x", followUpAt: daysAhead(8) });
+    expect(upcomingRemindersThisWeek([c], NOW)).toHaveLength(0);
+  });
+
+  it("excludes soft-deleted cards", () => {
+    const c = mk({ id: "d", followUpAt: daysAhead(3), deletedAt: daysAgo(1) });
+    expect(upcomingRemindersThisWeek([c], NOW)).toHaveLength(0);
+  });
+
+  it("orders soonest first; id tiebreak deterministic", () => {
+    const a = mk({ id: "a", followUpAt: daysAhead(5) });
+    const b = mk({ id: "b", followUpAt: daysAhead(2) });
+    const c = mk({ id: "c", followUpAt: daysAhead(2) });
+    const out = upcomingRemindersThisWeek([a, b, c], NOW);
+    expect(out.map((x) => x.card.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("respects custom windowDays", () => {
+    const c = mk({ id: "f", followUpAt: daysAhead(20) });
+    expect(upcomingRemindersThisWeek([c], NOW, 30)).toHaveLength(1);
+    expect(upcomingRemindersThisWeek([c], NOW, 7)).toHaveLength(0);
   });
 });

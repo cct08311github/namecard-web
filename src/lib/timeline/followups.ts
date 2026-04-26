@@ -136,3 +136,39 @@ export function dueRemindersToday(
   );
   return out;
 }
+
+/**
+ * Cards with followUpAt strictly after end-of-today and within
+ * `windowDays` (default 7) inclusive. Used for /followups 「下週提醒」 —
+ * gives business users a glance at their upcoming week without
+ * doubling-up with 今日提醒 (which covers today and earlier).
+ *
+ * Sorted ascending by followUpAt (soonest first), then id tiebreak.
+ */
+export function upcomingRemindersThisWeek(
+  cards: CardSummary[],
+  now: Date,
+  windowDays = 7,
+): Array<{ card: CardSummary; days: number }> {
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const endOfWindow = new Date(endOfToday);
+  endOfWindow.setDate(endOfWindow.getDate() + windowDays);
+
+  const out: Array<{ card: CardSummary; days: number }> = [];
+  for (const card of cards) {
+    if (card.deletedAt) continue;
+    if (!card.followUpAt) continue;
+    const t = card.followUpAt.getTime();
+    if (t <= endOfToday.getTime()) continue; // already in dueRemindersToday
+    if (t > endOfWindow.getTime()) continue; // outside the week window
+    const days = daysSinceContact(card, now) ?? 0;
+    out.push({ card, days });
+  }
+  out.sort(
+    (a, b) =>
+      (a.card.followUpAt?.getTime() ?? 0) - (b.card.followUpAt?.getTime() ?? 0) ||
+      a.card.id.localeCompare(b.card.id),
+  );
+  return out;
+}
