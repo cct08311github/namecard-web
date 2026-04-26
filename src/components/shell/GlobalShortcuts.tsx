@@ -132,6 +132,12 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
           </div>
           <div className={styles.row}>
             <dt>
+              <kbd>n</kbd>
+            </dt>
+            <dd>對話速記（最快速 capture）</dd>
+          </div>
+          <div className={styles.row}>
+            <dt>
               <kbd>g</kbd> <kbd>h</kbd>
             </dt>
             <dd>回首頁（時間軸）</dd>
@@ -141,6 +147,36 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
               <kbd>g</kbd> <kbd>c</kbd>
             </dt>
             <dd>名片冊</dd>
+          </div>
+          <div className={styles.row}>
+            <dt>
+              <kbd>g</kbd> <kbd>l</kbd>
+            </dt>
+            <dd>對話速記 /log</dd>
+          </div>
+          <div className={styles.row}>
+            <dt>
+              <kbd>g</kbd> <kbd>p</kbd>
+            </dt>
+            <dd>會議準備 /prep</dd>
+          </div>
+          <div className={styles.row}>
+            <dt>
+              <kbd>g</kbd> <kbd>r</kbd>
+            </dt>
+            <dd>對話日誌 /recap</dd>
+          </div>
+          <div className={styles.row}>
+            <dt>
+              <kbd>g</kbd> <kbd>f</kbd>
+            </dt>
+            <dd>追蹤 /followups</dd>
+          </div>
+          <div className={styles.row}>
+            <dt>
+              <kbd>g</kbd> <kbd>s</kbd>
+            </dt>
+            <dd>儀表板 /stats</dd>
           </div>
           <div className={styles.row}>
             <dt>
