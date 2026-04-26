@@ -4,6 +4,7 @@ import { ActionItemsSection } from "@/components/coach/ActionItemsSection";
 import { FollowupCardRow } from "@/components/followups/FollowupCardRow";
 import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
+import { reminderDateLabel } from "@/lib/cards/reminder-label";
 import { readSession } from "@/lib/firebase/session";
 import {
   bucketFollowups,
@@ -73,7 +74,15 @@ export default async function FollowupsPage() {
           </header>
           <ol className={styles.list}>
             {reminders.map(({ card, days }) => (
-              <FollowupCardRow key={card.id} card={card} days={days} showAiDrafts={showAiDrafts} />
+              <FollowupCardRow
+                key={card.id}
+                card={card}
+                days={days}
+                daysLabel={
+                  card.followUpAt ? `📅 ${reminderDateLabel(card.followUpAt, now)}` : undefined
+                }
+                showAiDrafts={showAiDrafts}
+              />
             ))}
           </ol>
         </section>
@@ -90,7 +99,15 @@ export default async function FollowupsPage() {
           </header>
           <ol className={styles.list}>
             {upcoming.map(({ card, days }) => (
-              <FollowupCardRow key={card.id} card={card} days={days} showAiDrafts={showAiDrafts} />
+              <FollowupCardRow
+                key={card.id}
+                card={card}
+                days={days}
+                daysLabel={
+                  card.followUpAt ? `📅 ${reminderDateLabel(card.followUpAt, now)}` : undefined
+                }
+                showAiDrafts={showAiDrafts}
+              />
             ))}
           </ol>
         </section>

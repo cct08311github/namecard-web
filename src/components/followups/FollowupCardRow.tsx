@@ -30,6 +30,12 @@ const NEXT_OPTIONS: readonly NextOption[] = [
 interface FollowupCardRowProps {
   card: CardSummary;
   days: number;
+  /**
+   * Override for the right-side label (default `${days} 天`).
+   * Reminder sections pass a planning-friendly label like
+   * "📅 今天" / "📅 明天" / "📅 4/29".
+   */
+  daysLabel?: string;
   /** When false, hides the ✨ AI 草稿 disclosure (e.g. server didn't config LLM). */
   showAiDrafts?: boolean;
 }
@@ -40,7 +46,12 @@ interface FollowupCardRowProps {
  * purpose — triage flow should be fast; typing a note is an extra
  * click the user can do from the detail page when they want to.
  */
-export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCardRowProps) {
+export function FollowupCardRow({
+  card,
+  days,
+  daysLabel,
+  showAiDrafts = false,
+}: FollowupCardRowProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [stage, setStage] = useState<"idle" | "picking">("idle");
@@ -84,7 +95,7 @@ export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCa
             <TemperatureBadge temperature={computeTemperature(card, new Date())} compact />
             {secondary && <span className={styles.secondary}>{secondary}</span>}
           </div>
-          <span className={styles.days}>{days} 天</span>
+          <span className={styles.days}>{daysLabel ?? `${days} 天`}</span>
         </Link>
         <div className={styles.actions}>
           {primaryEmail && (
