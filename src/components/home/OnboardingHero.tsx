@@ -11,21 +11,25 @@ interface PathCardData {
   emphasis?: boolean;
 }
 
+// Order matters: business users' instinct after a networking event is
+// "I have a stack of paper cards" — scan goes first with emphasis.
+// Voice is the secondary on-ramp for "I just talked to someone, no card".
+// Manual + import are escape hatches for the long tail.
 const PATHS: PathCardData[] = [
-  {
-    href: "/cards/voice",
-    emoji: "🎙️",
-    title: "語音建卡",
-    description: "30 秒講出剛遇到的人，AI 幫你抽出姓名、職稱、公司",
-    cta: "開始說話",
-    emphasis: true,
-  },
   {
     href: "/cards/scan",
     emoji: "📷",
     title: "拍實體名片",
     description: "OCR 掃描，自動填欄位 — 適合剛從 networking event 回來",
     cta: "上傳照片",
+    emphasis: true,
+  },
+  {
+    href: "/cards/voice",
+    emoji: "🎙️",
+    title: "語音建卡",
+    description: "30 秒講出剛遇到的人，AI 幫你抽出姓名、職稱、公司",
+    cta: "開始說話",
   },
   {
     href: "/cards/new",
