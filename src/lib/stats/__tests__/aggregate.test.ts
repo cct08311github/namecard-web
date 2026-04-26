@@ -67,6 +67,7 @@ describe("aggregateStats", () => {
     expect(out.streak).toEqual({ current: 0, longest: 0 });
     expect(out.topPeople).toEqual([]);
     expect(out.topCompanies).toEqual([]);
+    expect(out.topEvents).toEqual([]);
     expect(out.totalCards).toBe(0);
   });
 
@@ -239,5 +240,61 @@ describe("aggregateStats — topCompanies", () => {
     const out = aggregateStats([], events, NOW);
     expect(out.topCompanies).toHaveLength(3);
     expect(out.topCompanies.map((c) => c.companyName)).toEqual(["C1", "C2", "C3"]);
+  });
+});
+
+function evItemWithEvent(cardId: string, daysAgo: number, eventTag: string): RecapItem {
+  const event: ContactEvent = {
+    id: `e-${cardId}-${daysAgo}`,
+    at: dayOffset(NOW, daysAgo),
+    note: "n",
+    authorUid: "u",
+    authorDisplay: null,
+  };
+  return {
+    card: aCard({ id: cardId, nameZh: cardId, firstMetEventTag: eventTag }),
+    event,
+  };
+}
+
+describe("aggregateStats — topEvents", () => {
+  it("aggregates by firstMetEventTag with logCount + distinctPeople", () => {
+    const events = [
+      evItemWithEvent("a", 1, "CES 2024"),
+      evItemWithEvent("a", 2, "CES 2024"),
+      evItemWithEvent("b", 3, "CES 2024"),
+      evItemWithEvent("c", 5, "GitHub Universe"),
+    ];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topEvents).toEqual([
+      { eventTag: "CES 2024", logCount: 3, distinctPeople: 2 },
+      { eventTag: "GitHub Universe", logCount: 1, distinctPeople: 1 },
+    ]);
+  });
+
+  it("excludes events whose card has no firstMetEventTag", () => {
+    const events = [evItem("noevent", 1), evItemWithEvent("withevent", 2, "CES 2024")];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topEvents.map((e) => e.eventTag)).toEqual(["CES 2024"]);
+  });
+
+  it("excludes events outside the 30-day window", () => {
+    const events = [
+      evItemWithEvent("recent", 5, "CES 2024"),
+      evItemWithEvent("old", 60, "CES 2024"),
+    ];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topEvents[0]).toEqual({ eventTag: "CES 2024", logCount: 1, distinctPeople: 1 });
+  });
+
+  it("caps at 3 events", () => {
+    const events = [
+      evItemWithEvent("a", 1, "C1"),
+      evItemWithEvent("a", 1, "C2"),
+      evItemWithEvent("a", 1, "C3"),
+      evItemWithEvent("a", 1, "C4"),
+    ];
+    const out = aggregateStats([], events, NOW);
+    expect(out.topEvents).toHaveLength(3);
   });
 });

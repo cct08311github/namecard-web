@@ -11,6 +11,7 @@ function emptyStats(over: Partial<AggregatedStats> = {}): AggregatedStats {
     streak: { current: 0, longest: 0 },
     topPeople: [],
     topCompanies: [],
+    topEvents: [],
     totalCards: 0,
     ...over,
   };
