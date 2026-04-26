@@ -1,0 +1,92 @@
+.banner {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .banner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--color-accent-soft, var(--color-paper)) 35%, var(--color-paper)) 0%,
+      var(--color-paper) 100%
+    );
+    border: var(--border-hair) solid var(--color-accent-ink);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-xl);
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.title {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin: 0;
+  letter-spacing: var(--tracking-tight);
+}
+
+.subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.iosTip {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink);
+  background: var(--color-paper);
+  border-left: 3px solid var(--color-accent-ink);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.primary {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.primary:hover {
+  background: var(--color-accent-ink);
+}
+
+.secondary {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  color: var(--color-ink-muted);
+  border: var(--border-hair) solid transparent;
+  cursor: pointer;
+}
+
+.secondary:hover {
+  color: var(--color-accent-ink);
+}
