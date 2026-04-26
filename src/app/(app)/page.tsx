@@ -69,6 +69,9 @@ export default async function HomePage() {
             <Link href="/log" className={styles.quickAction}>
               🗣️ 對話速記
             </Link>
+            <Link href="/cards/scan" className={styles.quickAction}>
+              📷 拍照建檔
+            </Link>
             <Link href="/cards/voice" className={styles.quickAction}>
               🎙️ 語音建卡
             </Link>

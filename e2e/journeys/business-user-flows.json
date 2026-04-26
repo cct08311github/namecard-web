@@ -1,0 +1,207 @@
+{
+  "$comment": "Core business-user journeys for namecard-web UX audit. Each journey starts on `/` (the timeline home) unless noted. The `expected_clicks` is the click budget assuming the user has zero prior knowledge of URLs and only uses visible UI. Routes were extracted from src/app/(app)/ on 2026-04-26 and matched against AppShell PRIMARY (15 entries), MobileFab actions (4 entries), home quickActions (3 entries) and OnboardingHero PATHS (4 entries — only visible when cards.length === 0).",
+  "base_url": "https://mac-mini.tailde842d.ts.net/namecard-web",
+  "auth": {
+    "method": "google_oauth_session_cookie",
+    "cookie_name": "__nc_session",
+    "note": "Tester (chiu0831@gmail.com) signed in earlier — middleware should let us straight in to /."
+  },
+  "known_routes": {
+    "primary_nav": [
+      "/",
+      "/followups",
+      "/intros",
+      "/cards",
+      "/cards/new",
+      "/cards/voice",
+      "/log",
+      "/recap",
+      "/prep",
+      "/stats",
+      "/companies",
+      "/events",
+      "/tags",
+      "/import",
+      "/workspace/members"
+    ],
+    "orphan_routes_no_nav": ["/cards/scan"],
+    "additional_routes": [
+      "/admin",
+      "/cards/duplicates",
+      "/cards/[id]",
+      "/companies/[slug]",
+      "/events/[tag]",
+      "/export"
+    ],
+    "mobile_fab_actions": [
+      "/log",
+      "/cards/voice",
+      "OPEN_SEARCH_EVENT",
+      "/followups (only when followupsTotal>0)"
+    ],
+    "home_quick_actions_post_onboarding": [
+      "/log",
+      "/cards/voice",
+      "/followups (only when followupsTotal>0)"
+    ],
+    "onboarding_hero_paths_zero_cards_only": [
+      "/cards/voice",
+      "/cards/scan",
+      "/cards/new",
+      "/import"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "A_photo_capture",
+      "name": "拍照建檔（OCR）",
+      "from": "/",
+      "goal": "用相機/上傳照片建立一張名片",
+      "expected_clicks": 2,
+      "steps": [
+        { "action": "navigate", "to": "/", "note": "從時間軸首頁出發" },
+        {
+          "action": "find_entry",
+          "look_for": "拍照 / scan / OCR / 📷",
+          "scope": "AppShell rail + 首頁 quickActions + MobileFab"
+        },
+        { "action": "click", "target": "拍照建檔入口" },
+        { "action": "verify", "url_contains": "/cards/scan" },
+        { "action": "upload", "file": "fixtures/sample-card.jpg" },
+        { "action": "verify", "element": "OCR 解析結果欄位 / 校對表單" }
+      ],
+      "success_criteria": {
+        "url": "/cards/scan",
+        "clicks_used_<=": 2,
+        "must_be_reachable_without_typing_url": true
+      }
+    },
+    {
+      "id": "B_voice_capture",
+      "name": "語音建檔",
+      "from": "/",
+      "goal": "用講話建立一張新名片",
+      "expected_clicks": 1,
+      "steps": [
+        { "action": "navigate", "to": "/" },
+        { "action": "click", "target": "🎙️ 語音建卡 (quickAction or rail)" },
+        { "action": "verify", "url_contains": "/cards/voice" },
+        { "action": "verify", "element": "錄音按鈕 / Recorder UI" }
+      ],
+      "success_criteria": {
+        "url": "/cards/voice",
+        "clicks_used_<=": 1
+      }
+    },
+    {
+      "id": "C_manual_capture",
+      "name": "手動建檔",
+      "from": "/",
+      "goal": "手動填表建立一張名片",
+      "expected_clicks": 2,
+      "steps": [
+        { "action": "navigate", "to": "/" },
+        { "action": "click", "target": "新增 / ＋ rail link" },
+        { "action": "verify", "url_contains": "/cards/new" },
+        { "action": "verify", "element": "<form> + 姓名欄位" }
+      ],
+      "success_criteria": {
+        "url": "/cards/new",
+        "clicks_used_<=": 2
+      }
+    },
+    {
+      "id": "D_find_person",
+      "name": "找到某張卡",
+      "from": "/",
+      "goal": "用搜尋找到名片（鍵盤 Cmd+K 或 SearchBox）",
+      "expected_clicks": 1,
+      "steps": [
+        { "action": "navigate", "to": "/" },
+        { "action": "click_or_kbd", "target": "SearchBox 觸發按鈕 or Cmd+K" },
+        { "action": "type", "text": "test" },
+        { "action": "verify", "element": "搜尋結果列表 (or 空狀態提示)" }
+      ],
+      "success_criteria": {
+        "search_dialog_opens": true,
+        "clicks_used_<=": 1
+      }
+    },
+    {
+      "id": "E_conversation_log",
+      "name": "對話速記",
+      "from": "/",
+      "goal": "講一句話讓系統自動找卡並寫入 timeline log",
+      "expected_clicks": 1,
+      "steps": [
+        { "action": "navigate", "to": "/" },
+        { "action": "click", "target": "🗣️ 對話速記 (quickAction or rail)" },
+        { "action": "verify", "url_contains": "/log" },
+        { "action": "verify", "element": "錄音 / 文字輸入區" }
+      ],
+      "success_criteria": {
+        "url": "/log",
+        "clicks_used_<=": 1
+      }
+    },
+    {
+      "id": "F_triage_followups",
+      "name": "Triage：⏰ 該 ping 了 → ✅ 已聯絡",
+      "from": "/",
+      "goal": "看到首頁的 follow-up 提醒 → 進去 → 標記已聯絡 → 設下次提醒",
+      "expected_clicks": 3,
+      "steps": [
+        { "action": "navigate", "to": "/" },
+        { "action": "click", "target": "⏰ N 個人該 ping 了 / 追蹤 nav" },
+        { "action": "verify", "url_contains": "/followups" },
+        { "action": "click", "target": "第一張卡的「已聯絡」按鈕" },
+        { "action": "click", "target": "下次提醒 / snooze 控制" },
+        { "action": "verify", "element": "確認 toast 或狀態 badge 更新" }
+      ],
+      "success_criteria": {
+        "url": "/followups",
+        "actions_visible": ["mark_contacted", "set_next_reminder"]
+      }
+    },
+    {
+      "id": "G_inline_edit",
+      "name": "編輯一張卡",
+      "from": "/cards",
+      "goal": "開一張卡 → 改一個欄位 → 存",
+      "expected_clicks": 3,
+      "steps": [
+        { "action": "navigate", "to": "/cards" },
+        { "action": "click", "target": "任一張卡的卡面" },
+        { "action": "verify", "url_matches": "/cards/[id]" },
+        { "action": "click", "target": "「編輯」或 inline edit 觸發" },
+        { "action": "type", "field": "備註 / 任意欄位", "text": "audit-note" },
+        { "action": "verify", "element": "「儲存」按鈕 visible" }
+      ],
+      "success_criteria": {
+        "edit_mode_reachable": true,
+        "clicks_used_<=": 3
+      }
+    },
+    {
+      "id": "H_group_view",
+      "name": "群組視角：公司／場合溫度分布",
+      "from": "/",
+      "goal": "進到一家公司 → 看溫度分布／待追蹤 → 點進該公司某張卡",
+      "expected_clicks": 3,
+      "steps": [
+        { "action": "navigate", "to": "/" },
+        { "action": "click", "target": "公司 nav (rail)" },
+        { "action": "verify", "url_contains": "/companies" },
+        { "action": "click", "target": "第一家公司 row" },
+        { "action": "verify", "url_matches": "/companies/.*" },
+        { "action": "verify", "element": "溫度分布 / 待追蹤指標 / 卡片列表" },
+        { "action": "click", "target": "公司詳情頁的某張名片" },
+        { "action": "verify", "url_matches": "/cards/[id]" }
+      ],
+      "success_criteria": {
+        "drill_down_works": true,
+        "clicks_used_<=": 3
+      }
+    }
+  ]
+}

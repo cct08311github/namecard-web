@@ -21,6 +21,7 @@ const PRIMARY: NavItem[] = [
   { href: "/intros", label: "🤝 介紹建議", description: "AI 找誰跟誰應該認識" },
   { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
   { href: "/cards/new", label: "新增", description: "手動建立一張" },
+  { href: "/cards/scan", label: "📷 拍照建檔", description: "拍紙本名片 OCR 自動填" },
   { href: "/cards/voice", label: "🎙️ 語音建卡", description: "講 30 秒讓 AI 解析" },
   { href: "/log", label: "🗣️ 對話速記", description: "講一句 log 進對方的卡" },
   { href: "/recap", label: "📓 對話日誌", description: "最近 14 天 log 過的對話" },
