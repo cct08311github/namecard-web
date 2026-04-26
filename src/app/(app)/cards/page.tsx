@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CardsSelectionShell } from "@/components/cards/CardsSelectionShell";
 import { ExportButton } from "@/components/cards/ExportButton";
+import { PinnedFilterChip } from "@/components/cards/PinnedFilterChip";
 import { TagFilterBar } from "@/components/cards/TagFilterBar";
 import { TemperatureFilterBar } from "@/components/cards/TemperatureFilterBar";
 import { ViewToggle } from "@/components/cards/ViewToggle";
@@ -134,6 +135,15 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
     cards = filterByTemperature(cards, selectedTempLevels, now);
   }
 
+  // Pinned-only filter — composable with all other filters. URL: ?pinned=1.
+  const pinnedOnly = raw.pinned === "1";
+  if (pinnedOnly) {
+    cards = cards.filter((c) => c.isPinned);
+  }
+  // Total pinned count for the chip label, computed from the pre-pinned-
+  // filter universe so users can see how many they have to choose from.
+  const pinnedCount = allCards.filter((c) => c.isPinned).length;
+
   // Surface a duplicate-count nudge in the header. Computed over the
   // unfiltered list so the link is visible regardless of the current
   // search/tag state — the actual /cards/duplicates page also runs
@@ -211,6 +221,7 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
 
       <TagFilterBar tags={allTags} selectedIds={tag} tagMode={tagMode} />
       <TemperatureFilterBar counts={tempCounts} selected={selectedTempLevels} />
+      <PinnedFilterChip active={pinnedOnly} totalPinned={pinnedCount} />
 
       {cards.length === 0 ? (
         <div className={styles.empty}>
