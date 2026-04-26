@@ -16,7 +16,29 @@ export async function generateMetadata({ params }: PageProps) {
   const card = await getCardByPublicSlug(decodeURIComponent(slug));
   if (!card) return { title: "找不到名片" };
   const name = card.nameZh || card.nameEn || "名片";
-  return { title: `${name} · 數位名片` };
+  const role = card.jobTitleZh || card.jobTitleEn;
+  const company = card.companyZh || card.companyEn;
+  const subtitle = [role, company].filter(Boolean).join(" @ ");
+  // Description doubles as social-card preview text — keep it short and
+  // human, not a SEO keyword stuff. Falls back to whyRemember when role
+  // and company are both blank so the preview always says *something*.
+  const description = subtitle || card.whyRemember || `${name} · 數位名片`;
+  const title = `${name} · 數位名片`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      siteName: "Namecard",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
 }
 
 function lineUrl(lineId: string): string {
