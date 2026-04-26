@@ -65,4 +65,10 @@ describe("AppShell follow-up badge", () => {
     render(<AppShell user={user}>body</AppShell>);
     expect(screen.queryByLabelText(/個人該 ping 了/)).toBeNull();
   });
+
+  it("PRIMARY rail includes 拍照建檔 link to /cards/scan", () => {
+    render(<AppShell user={user}>body</AppShell>);
+    const link = screen.getByText(/拍照建檔/).closest("a");
+    expect(link?.getAttribute("href")).toBe("/cards/scan");
+  });
 });
