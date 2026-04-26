@@ -6,6 +6,7 @@ import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import { listCardsForUser, listRecentContactEventsForUser } from "@/db/cards";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { isCoachConfigured } from "@/lib/coach/llm";
+import { companySlug } from "@/lib/companies/group";
 import { readSession } from "@/lib/firebase/session";
 import { aggregateStats } from "@/lib/stats/aggregate";
 
@@ -97,6 +98,29 @@ export default async function StatsPage() {
                 <span className={styles.topMeta}>
                   <TemperatureBadge temperature={computeTemperature(p.card, now)} compact />
                   <span className={styles.topCount}>{p.logCount} 次對話</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {stats.topCompanies.length > 0 && (
+        <section aria-label="本月最常聊到的公司" className={styles.statBlock}>
+          <h2 className={styles.blockTitle}>本月最常聊到的公司</h2>
+          <ol className={styles.topList}>
+            {stats.topCompanies.map((c) => (
+              <li key={c.companyName} className={styles.topItem}>
+                <Link
+                  href={`/companies/${encodeURIComponent(companySlug(c.companyName))}`}
+                  className={styles.topName}
+                >
+                  {c.companyName}
+                </Link>
+                <span className={styles.topMeta}>
+                  <span className={styles.topCount}>
+                    {c.logCount} 次 · {c.distinctPeople} 人
+                  </span>
                 </span>
               </li>
             ))}

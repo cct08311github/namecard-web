@@ -10,6 +10,7 @@ function emptyStats(over: Partial<AggregatedStats> = {}): AggregatedStats {
     temperature: { hot: 0, warm: 0, active: 0, quiet: 0, cold: 0 },
     streak: { current: 0, longest: 0 },
     topPeople: [],
+    topCompanies: [],
     totalCards: 0,
     ...over,
   };
