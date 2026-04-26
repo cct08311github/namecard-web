@@ -56,6 +56,16 @@
   margin: var(--space-xs) 0 0;
 }
 
+.urgency {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.urgency:hover {
+  text-decoration: underline;
+}
+
 .headerActions {
   display: flex;
   gap: var(--space-sm);

@@ -49,6 +49,16 @@
   color: var(--color-ink);
 }
 
+.urgency {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.urgency:hover {
+  text-decoration: underline;
+}
+
 .lead {
   font-family: var(--font-sans);
   font-size: var(--text-body);
