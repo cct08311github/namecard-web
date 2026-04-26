@@ -258,7 +258,14 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
                 {card.firstMetEventTag && (
                   <div>
                     <dt>場合</dt>
-                    <dd>{card.firstMetEventTag}</dd>
+                    <dd>
+                      <Link
+                        href={`/events/${encodeURIComponent(card.firstMetEventTag)}`}
+                        className={styles.crossLink}
+                      >
+                        {card.firstMetEventTag}
+                      </Link>
+                    </dd>
                   </div>
                 )}
                 {card.firstMetContext && (

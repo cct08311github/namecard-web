@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import { listCardsForUser } from "@/db/cards";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
+import { companySlug } from "@/lib/companies/group";
 import { findEventBySlug } from "@/lib/events/group";
 import { readSession } from "@/lib/firebase/session";
 import { countFollowupsInCards } from "@/lib/timeline/followups";
@@ -77,7 +78,22 @@ export default async function EventDetailPage({ params }: PageProps) {
               </Link>
             </>
           )}
-          {companies.length > 0 && <> · 公司：{companies.join("、")}</>}
+          {companies.length > 0 && (
+            <>
+              {" · "}公司：
+              {companies.map((name, i) => (
+                <span key={name}>
+                  {i > 0 && "、"}
+                  <Link
+                    href={`/companies/${encodeURIComponent(companySlug(name))}`}
+                    className={styles.crossLink}
+                  >
+                    {name}
+                  </Link>
+                </span>
+              ))}
+            </>
+          )}
         </p>
       </header>
 
