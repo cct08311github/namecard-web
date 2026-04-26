@@ -4,13 +4,28 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { logContactAction } from "@/app/(app)/cards/actions";
+import { logContactAction, setFollowUpAction } from "@/app/(app)/cards/actions";
 import { ReengageDraftsButton } from "@/components/coach/ReengageDraftsButton";
 import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
 import type { CardSummary } from "@/db/cards";
+import { localYmdAfterDays } from "@/lib/cards/follow-up-date";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 
 import styles from "./FollowupCardRow.module.css";
+
+interface NextOption {
+  label: string;
+  /** null = clear follow-up ("不用了"). */
+  days: number | null;
+}
+
+const NEXT_OPTIONS: readonly NextOption[] = [
+  { label: "1 週", days: 7 },
+  { label: "2 週", days: 14 },
+  { label: "1 月", days: 30 },
+  { label: "3 月", days: 90 },
+  { label: "不用了", days: null },
+];
 
 interface FollowupCardRowProps {
   card: CardSummary;
@@ -28,7 +43,7 @@ interface FollowupCardRowProps {
 export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCardRowProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [done, setDone] = useState(false);
+  const [stage, setStage] = useState<"idle" | "picking">("idle");
 
   const primary = card.nameZh || card.nameEn || "（未命名）";
   const secondary = [card.jobTitleZh || card.jobTitleEn, card.companyZh || card.companyEn]
@@ -44,10 +59,18 @@ export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCa
     startTransition(async () => {
       const result = await logContactAction({ id: card.id, note: "" });
       if (result?.serverError) return;
-      setDone(true);
-      // Give the user a moment to register the "done" state, then refresh
-      // the list so this row drops out of the bucket.
-      setTimeout(() => router.refresh(), 600);
+      // Stay in the row and offer the next-contact picker — this is the
+      // moment the user is most likely to commit to a reminder.
+      setStage("picking");
+    });
+  }
+
+  function handlePick(option: NextOption) {
+    startTransition(async () => {
+      const followUpAt = option.days === null ? "" : localYmdAfterDays(option.days);
+      const result = await setFollowUpAction({ id: card.id, followUpAt });
+      if (result?.serverError) return;
+      router.refresh();
     });
   }
 
@@ -100,14 +123,30 @@ export function FollowupCardRow({ card, days, showAiDrafts = false }: FollowupCa
             type="button"
             className={styles.markBtn}
             onClick={handleMark}
-            disabled={pending || done}
+            disabled={pending || stage === "picking"}
             aria-label={`標記已聯絡 ${primary}`}
           >
-            {done ? "✓ 完成" : pending ? "記錄中…" : "✅ 已聯絡"}
+            {stage === "picking" ? "✓ 完成" : pending ? "記錄中…" : "✅ 已聯絡"}
           </button>
         </div>
       </div>
-      {showAiDrafts && (
+      {stage === "picking" && (
+        <div className={styles.nextPicker} aria-label={`下次聯絡 ${primary}`}>
+          <span className={styles.nextLabel}>下次聯絡：</span>
+          {NEXT_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              className={styles.nextBtn}
+              onClick={() => handlePick(opt)}
+              disabled={pending}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {showAiDrafts && stage !== "picking" && (
         <ReengageDraftsButton
           cardId={card.id}
           primaryEmail={primaryEmail}
