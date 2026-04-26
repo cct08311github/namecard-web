@@ -54,6 +54,14 @@
   color: var(--color-accent);
 }
 
+.subStat {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 400;
+  color: var(--color-ink-muted);
+  letter-spacing: var(--tracking-normal);
+}
+
 .lead {
   font-family: var(--font-sans);
   font-size: var(--text-body);

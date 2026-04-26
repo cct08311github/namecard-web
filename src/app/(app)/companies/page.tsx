@@ -71,6 +71,12 @@ export default async function CompaniesPage() {
         <p className={styles.kicker}>公司視角</p>
         <h1 className={styles.title}>
           <em>{items.length}</em> 家公司
+          {(() => {
+            const needing = items.filter((i) => i.followupCount > 0).length;
+            return needing > 0 ? (
+              <span className={styles.subStat}> · 其中 {needing} 家有人該追蹤</span>
+            ) : null;
+          })()}
         </h1>
         {items.length > 0 ? (
           <p className={styles.lead}>
