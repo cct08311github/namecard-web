@@ -12,13 +12,23 @@ import styles from "./MobileFab.module.css";
  */
 export const OPEN_SEARCH_EVENT = "namecard:openSearch";
 
+interface MobileFabProps {
+  /** Total pending follow-ups; if > 0, surfaces a 4th sheet action + count badge. */
+  followupsTotal?: number;
+}
+
 /**
  * Mobile-only floating action button. Defaults to a single ⊕ glyph in
  * the bottom-right; tap toggles a small action sheet with the three
- * highest-frequency captures (對話速記, 語音建卡, 找人). Backdrop click
- * + Esc both close. Hidden on ≥769px via media query in the .css module.
+ * highest-frequency captures (對話速記, 語音建卡, 找人). When pending
+ * follow-ups exist, a 4th 「⏰ 追蹤」 action appears in the sheet and
+ * a numeric badge overlays the closed FAB — same urgency cue as the
+ * desktop AppShell rail badge.
+ *
+ * Backdrop click + Esc both close. Hidden on ≥769px via media query
+ * in the .css module.
  */
-export function MobileFab() {
+export function MobileFab({ followupsTotal = 0 }: MobileFabProps) {
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement | null>(null);
 
@@ -50,6 +60,16 @@ export function MobileFab() {
       )}
       {open && (
         <div ref={sheetRef} className={styles.sheet} role="menu" aria-label="快速動作">
+          {followupsTotal > 0 && (
+            <Link
+              href="/followups"
+              className={styles.action}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              ⏰ 追蹤 ({followupsTotal} 個)
+            </Link>
+          )}
           <Link
             href="/log"
             className={styles.action}
@@ -79,6 +99,11 @@ export function MobileFab() {
         aria-label={open ? "關閉快速動作" : "打開快速動作"}
       >
         {open ? "×" : "⊕"}
+        {!open && followupsTotal > 0 && (
+          <span className={styles.fabBadge} aria-label={`${followupsTotal} 個人該 ping 了`}>
+            {followupsTotal}
+          </span>
+        )}
       </button>
     </div>
   );

@@ -108,7 +108,7 @@ export function AppShell({ user, followupsTotal = 0, children }: AppShellProps) 
         </aside>
       </MobileNavWrapper>
       <main className={styles.main}>{children}</main>
-      <MobileFab />
+      <MobileFab followupsTotal={followupsTotal} />
       <GlobalShortcuts />
     </div>
   );
