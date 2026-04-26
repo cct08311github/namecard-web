@@ -32,6 +32,36 @@
   font-weight: 500;
 }
 
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.filterInput {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.filterInput:focus {
+  outline: none;
+  border-color: var(--color-accent-ink);
+}
+
+.filterCount {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+
 .list {
   list-style: none;
   padding: 0;
