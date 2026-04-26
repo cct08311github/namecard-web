@@ -162,9 +162,24 @@ describe("CardActions quick CTA row", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
       fireEvent.click(trigger);
       expect(screen.getByLabelText(/下次聯絡日期/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "今天" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /\+3 天/ })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /\+7 天/ })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /\+14 天/ })).toBeInTheDocument();
+    });
+
+    it("clicking 今天 fires setFollowUpAction with today's local YMD", async () => {
+      const { setFollowUpAction } = await import("@/app/(app)/cards/actions");
+      const { localYmdAfterDays } = await import("@/lib/cards/follow-up-date");
+      const mocked = vi.mocked(setFollowUpAction);
+      mocked.mockClear();
+      render(<CardActions cardId="abc" />);
+      fireEvent.click(screen.getByRole("button", { name: /設定下次聯絡/ }));
+      fireEvent.click(screen.getByRole("button", { name: "今天" }));
+      await vi.waitFor(() => {
+        expect(mocked).toHaveBeenCalledTimes(1);
+      });
+      expect(mocked.mock.calls[0]![0]!.followUpAt).toBe(localYmdAfterDays(0));
     });
 
     it("shows existing reminder date in the trigger label and offers 取消提醒", () => {

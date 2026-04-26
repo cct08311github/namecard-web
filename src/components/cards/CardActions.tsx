@@ -346,6 +346,14 @@ export function CardActions({
               <button
                 type="button"
                 className={styles.secondary}
+                onClick={() => submitFollowUp(localYmdAfterDays(0))}
+                disabled={pending}
+              >
+                今天
+              </button>
+              <button
+                type="button"
+                className={styles.secondary}
                 onClick={() => submitFollowUp(localYmdAfterDays(3))}
                 disabled={pending}
               >
