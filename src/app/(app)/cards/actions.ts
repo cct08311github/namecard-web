@@ -807,7 +807,9 @@ export const attachCardImageAction = authedAction
     async ({
       parsedInput,
       ctx,
-    }): Promise<{ ok: true; path: string } | { ok: false; reason: string }> => {
+    }): Promise<
+      { ok: true; path: string; fieldsExtracted: number } | { ok: false; reason: string }
+    > => {
       const buffer = Buffer.from(parsedInput.fileBase64, "base64");
       if (buffer.byteLength === 0) return { ok: false, reason: "empty image payload" };
       if (buffer.byteLength > 10 * 1024 * 1024) return { ok: false, reason: "image exceeds 10MB" };
@@ -827,12 +829,56 @@ export const attachCardImageAction = authedAction
         return { ok: false, reason: err instanceof Error ? err.message : "upload failed" };
       }
 
+      // Best-effort: run OCR against the new front image so blank
+      // fields on a manually-created card auto-populate. fill-empty
+      // strategy never overwrites the user's typing. OCR failure is
+      // non-fatal — the photo is still saved.
+      let fieldsExtracted = 0;
+      let ocrPatch: Record<string, unknown> = {};
+      if (parsedInput.side === "front") {
+        try {
+          const card = await getCardForUser(ctx.user.uid, parsedInput.cardId);
+          if (card && !card.deletedAt) {
+            const { getOcrProvider } = await import("@/lib/ocr");
+            const { mergeOcrIntoExisting } = await import("@/lib/ocr/merge");
+            const provider = getOcrProvider();
+            const ocrResult = await provider.extract({
+              source: { kind: "url", url: upload.signedUrl },
+              hintLanguage: "mixed",
+            });
+            if (ocrResult.ok) {
+              const current = {
+                nameZh: card.nameZh,
+                nameEn: card.nameEn,
+                jobTitleZh: card.jobTitleZh,
+                jobTitleEn: card.jobTitleEn,
+                department: card.department,
+                companyZh: card.companyZh,
+                companyEn: card.companyEn,
+                phones: card.phones,
+                emails: card.emails,
+                social: card.social ?? {},
+              };
+              ocrPatch = mergeOcrIntoExisting(current, ocrResult.fields, "fill-empty");
+              fieldsExtracted = Object.keys(ocrPatch).length;
+            }
+          }
+        } catch (err) {
+          console.error("[cards/attachCardImage] OCR step failed:", err);
+        }
+      }
+
       try {
-        const patch =
+        const sidePatch =
           parsedInput.side === "back"
             ? { backImagePath: upload.path }
             : { frontImagePath: upload.path };
-        await updateCardForUser(parsedInput.cardId, patch, { uid: ctx.user.uid });
+        // Single update with both image path and any OCR-merged fields.
+        await updateCardForUser(
+          parsedInput.cardId,
+          { ...ocrPatch, ...sidePatch },
+          { uid: ctx.user.uid },
+        );
       } catch (err) {
         return { ok: false, reason: err instanceof Error ? err.message : "card update failed" };
       }
@@ -840,6 +886,6 @@ export const attachCardImageAction = authedAction
       revalidatePath("/");
       revalidatePath("/cards");
       revalidatePath(`/cards/${parsedInput.cardId}`);
-      return { ok: true, path: upload.path };
+      return { ok: true, path: upload.path, fieldsExtracted };
     },
   );

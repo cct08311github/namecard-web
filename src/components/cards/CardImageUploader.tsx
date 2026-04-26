@@ -38,10 +38,12 @@ export function CardImageUploader({ cardId, hasFrontImage }: CardImageUploaderPr
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const router = useRouter();
 
   const onFile = (file: File) => {
     setError(null);
+    setToast(null);
     if (file.size > MAX_BYTES) {
       setError("檔案超過 10MB");
       return;
@@ -67,6 +69,11 @@ export function CardImageUploader({ cardId, hasFrontImage }: CardImageUploaderPr
         if (!res.data.ok) {
           setError(res.data.reason);
           return;
+        }
+        if (res.data.fieldsExtracted > 0) {
+          setToast(`✨ AI 從照片補了 ${res.data.fieldsExtracted} 個空白欄位`);
+          // Auto-clear so the toast doesn't linger after the page rehydrates.
+          setTimeout(() => setToast(null), 5000);
         }
         router.refresh();
       } catch (err) {
@@ -101,6 +108,11 @@ export function CardImageUploader({ cardId, hasFrontImage }: CardImageUploaderPr
       {error && (
         <p role="alert" className={styles.error}>
           {error}
+        </p>
+      )}
+      {toast && (
+        <p role="status" className={styles.toast}>
+          {toast}
         </p>
       )}
     </div>
