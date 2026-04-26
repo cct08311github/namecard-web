@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/shell/AppShell";
+import { listCardsForUser } from "@/db/cards";
 import { readSession } from "@/lib/firebase/session";
+import { bucketFollowups, dueRemindersToday, totalFollowups } from "@/lib/timeline/followups";
 import { ensurePersonalWorkspace } from "@/lib/workspace/ensure";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -10,5 +12,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // First-login idempotent bootstrap.
   await ensurePersonalWorkspace({ uid: user.uid, displayName: user.displayName });
 
-  return <AppShell user={user}>{children}</AppShell>;
+  // Compute the follow-up urgency count once, here, so every page in the
+  // (app) group can show a global badge in the rail without repeating
+  // the query per-page. Costs +1 Firestore read on pages that don't
+  // already query cards — acceptable at personal-workspace scale.
+  let followupsTotal = 0;
+  try {
+    const cards = await listCardsForUser(user.uid, {
+      limit: 200,
+      orderBy: "createdAt",
+      order: "desc",
+    });
+    const now = new Date();
+    followupsTotal =
+      totalFollowups(bucketFollowups(cards, now)) + dueRemindersToday(cards, now).length;
+  } catch (err) {
+    // Don't take down the entire app shell if the count query fails.
+    console.error("[layout] followups count failed:", err instanceof Error ? err.message : err);
+  }
+
+  return (
+    <AppShell user={user} followupsTotal={followupsTotal}>
+      {children}
+    </AppShell>
+  );
 }

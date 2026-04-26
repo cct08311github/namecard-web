@@ -35,10 +35,12 @@ const PRIMARY: NavItem[] = [
 
 interface AppShellProps {
   user: SessionUser;
+  /** Total pending follow-ups (staleness + scheduled reminders due today). */
+  followupsTotal?: number;
   children: React.ReactNode;
 }
 
-export function AppShell({ user, children }: AppShellProps) {
+export function AppShell({ user, followupsTotal = 0, children }: AppShellProps) {
   return (
     <div className={styles.shell}>
       {/* SearchBox lives at the shell root so the trigger stays reachable
@@ -57,14 +59,29 @@ export function AppShell({ user, children }: AppShellProps) {
           <nav>
             <p className={styles.navLabel}>導覽</p>
             <ul className={styles.navList}>
-              {PRIMARY.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className={styles.link}>
-                    <span className={styles.linkLabel}>{item.label}</span>
-                    <span className={styles.linkHint}>{item.description}</span>
-                  </Link>
-                </li>
-              ))}
+              {PRIMARY.map((item) => {
+                // Surface a global urgency badge on the 「追蹤」 entry so
+                // users see pending action items from any page.
+                const showBadge = item.href === "/followups" && followupsTotal > 0;
+                return (
+                  <li key={item.href}>
+                    <Link href={item.href} className={styles.link}>
+                      <span className={styles.linkLabel}>
+                        {item.label}
+                        {showBadge && (
+                          <span
+                            className={styles.followupBadge}
+                            aria-label={`${followupsTotal} 個人該 ping 了`}
+                          >
+                            {followupsTotal}
+                          </span>
+                        )}
+                      </span>
+                      <span className={styles.linkHint}>{item.description}</span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
 
