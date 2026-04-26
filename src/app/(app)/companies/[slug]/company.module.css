@@ -66,6 +66,15 @@
   text-decoration: underline;
 }
 
+.crossLink {
+  color: var(--color-accent-ink);
+  text-decoration: none;
+}
+
+.crossLink:hover {
+  text-decoration: underline;
+}
+
 .headerActions {
   display: flex;
   gap: var(--space-sm);

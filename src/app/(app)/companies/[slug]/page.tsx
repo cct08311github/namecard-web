@@ -74,7 +74,19 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               </Link>
             </>
           )}
-          {sharedEvents.length > 0 && <> · 認識場合：{sharedEvents.join("、")}</>}
+          {sharedEvents.length > 0 && (
+            <>
+              {" · "}認識場合：
+              {sharedEvents.map((tag, i) => (
+                <span key={tag}>
+                  {i > 0 && "、"}
+                  <Link href={`/events/${encodeURIComponent(tag)}`} className={styles.crossLink}>
+                    {tag}
+                  </Link>
+                </span>
+              ))}
+            </>
+          )}
         </p>
         <div className={styles.headerActions}>
           <a

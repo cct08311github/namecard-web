@@ -59,6 +59,15 @@
   text-decoration: underline;
 }
 
+.crossLink {
+  color: var(--color-accent-ink);
+  text-decoration: none;
+}
+
+.crossLink:hover {
+  text-decoration: underline;
+}
+
 .lead {
   font-family: var(--font-sans);
   font-size: var(--text-body);

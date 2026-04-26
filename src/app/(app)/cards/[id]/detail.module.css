@@ -185,6 +185,15 @@
   line-height: var(--leading-normal);
 }
 
+.crossLink {
+  color: var(--color-accent-ink);
+  text-decoration: none;
+}
+
+.crossLink:hover {
+  text-decoration: underline;
+}
+
 .notesBody {
   font-family: var(--font-serif);
   font-size: var(--text-body);
