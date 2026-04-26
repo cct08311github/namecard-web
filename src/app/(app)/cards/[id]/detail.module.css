@@ -289,6 +289,28 @@
   border-bottom-style: solid;
 }
 
+.prepLink {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-accent-ink);
+  text-decoration: none;
+  padding: var(--space-xs) var(--space-md);
+  border: var(--border-hair) dashed var(--color-accent-ink);
+  border-radius: var(--radius-sm);
+  align-self: flex-start;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.prepLink:hover {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-soft, var(--color-paper)) 40%,
+    var(--color-paper)
+  );
+}
+
 .timestamps {
   display: flex;
   flex-direction: column;

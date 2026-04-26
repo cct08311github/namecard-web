@@ -356,6 +356,10 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
             />
           )}
 
+          <Link href={`/prep?attendees=${encodeURIComponent(primary)}`} className={styles.prepLink}>
+            📅 用這人準備下次見面 →
+          </Link>
+
           <footer className={styles.timestamps}>
             {card.createdAt && (
               <p>
