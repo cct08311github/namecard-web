@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { TemperatureBadge } from "@/components/cards/TemperatureBadge";
+import { TemperatureMixStrip } from "@/components/cards/TemperatureMixStrip";
 import { listCardsForUser } from "@/db/cards";
+import { countByTemperature } from "@/lib/cards/filter";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { findCompanyBySlug } from "@/lib/companies/group";
 import { readSession } from "@/lib/firebase/session";
@@ -49,7 +51,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const sharedEvents = Array.from(
     new Set(group.cards.map((c) => c.firstMetEventTag).filter(Boolean) as string[]),
   );
-  const followupCount = countFollowupsInCards(group.cards, new Date());
+  const now = new Date();
+  const followupCount = countFollowupsInCards(group.cards, now);
+  const tempCounts = countByTemperature(group.cards, now);
 
   return (
     <article className={styles.article}>
@@ -87,6 +91,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               ))}
             </>
           )}
+        </p>
+        <p className={styles.tempStripRow}>
+          <TemperatureMixStrip counts={tempCounts} />
         </p>
         <div className={styles.headerActions}>
           <a

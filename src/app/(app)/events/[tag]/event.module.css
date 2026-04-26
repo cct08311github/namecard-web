@@ -68,6 +68,10 @@
   text-decoration: underline;
 }
 
+.tempStripRow {
+  margin: var(--space-xs) 0 0;
+}
+
 .lead {
   font-family: var(--font-sans);
   font-size: var(--text-body);
