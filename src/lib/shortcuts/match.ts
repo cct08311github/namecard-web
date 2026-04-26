@@ -88,6 +88,16 @@ export function matchKeyEvent(ctx: ShortcutContext, e: KeyEventLike): MatchResul
         return { action: { kind: "go", href: "/cards" }, nextPrefix: null };
       case "t":
         return { action: { kind: "go", href: "/tags" }, nextPrefix: null };
+      case "l":
+        return { action: { kind: "go", href: "/log" }, nextPrefix: null };
+      case "p":
+        return { action: { kind: "go", href: "/prep" }, nextPrefix: null };
+      case "r":
+        return { action: { kind: "go", href: "/recap" }, nextPrefix: null };
+      case "f":
+        return { action: { kind: "go", href: "/followups" }, nextPrefix: null };
+      case "s":
+        return { action: { kind: "go", href: "/stats" }, nextPrefix: null };
       case "Escape":
         return { action: null, nextPrefix: null };
       default:
@@ -102,6 +112,9 @@ export function matchKeyEvent(ctx: ShortcutContext, e: KeyEventLike): MatchResul
       return { action: null, nextPrefix: "g" };
     case "c":
       return { action: { kind: "go", href: "/cards/new" }, nextPrefix: null };
+    case "n":
+      // 「n」 = 「new conversation log」 — most common quick-capture.
+      return { action: { kind: "go", href: "/log" }, nextPrefix: null };
     case "?":
       return { action: { kind: "show-help" }, nextPrefix: null };
     case "Escape":

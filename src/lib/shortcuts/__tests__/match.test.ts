@@ -130,3 +130,27 @@ describe("matchKeyEvent — help overlay", () => {
     expect(ignored.nextPrefix).toBe(helpOpen.prefix);
   });
 });
+
+describe("matchKeyEvent — extended g-prefix nav", () => {
+  it("g l → /log", () => {
+    expect(matchKeyEvent(gPrefix, key("l")).action).toEqual({ kind: "go", href: "/log" });
+  });
+  it("g p → /prep", () => {
+    expect(matchKeyEvent(gPrefix, key("p")).action).toEqual({ kind: "go", href: "/prep" });
+  });
+  it("g r → /recap", () => {
+    expect(matchKeyEvent(gPrefix, key("r")).action).toEqual({ kind: "go", href: "/recap" });
+  });
+  it("g f → /followups", () => {
+    expect(matchKeyEvent(gPrefix, key("f")).action).toEqual({ kind: "go", href: "/followups" });
+  });
+  it("g s → /stats", () => {
+    expect(matchKeyEvent(gPrefix, key("s")).action).toEqual({ kind: "go", href: "/stats" });
+  });
+});
+
+describe("matchKeyEvent — leaf 'n' shortcut", () => {
+  it("'n' alone → /log (fastest conversation-capture path)", () => {
+    expect(matchKeyEvent(noPrefix, key("n")).action).toEqual({ kind: "go", href: "/log" });
+  });
+});
