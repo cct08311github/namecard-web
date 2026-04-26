@@ -44,3 +44,19 @@
   color: var(--color-error, #b00020);
   margin: 0;
 }
+
+.toast {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-accent-ink);
+  background: color-mix(
+    in oklch,
+    var(--color-accent-soft, var(--color-paper)) 50%,
+    var(--color-paper)
+  );
+  border: var(--border-hair) solid var(--color-accent-ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  margin: 0;
+  letter-spacing: var(--tracking-wide);
+}
