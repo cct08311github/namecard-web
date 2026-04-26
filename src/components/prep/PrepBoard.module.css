@@ -292,3 +292,58 @@
   margin: 0;
   line-height: var(--leading-relaxed);
 }
+
+.logToggle {
+  align-self: flex-start;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.logToggle:hover:not(:disabled) {
+  border-color: var(--color-accent-ink);
+}
+
+.logBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--color-paper);
+  border: var(--border-hair) solid var(--color-accent-ink);
+  border-radius: var(--radius-sm);
+}
+
+.logInput {
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-hair) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  resize: vertical;
+  min-height: 3rem;
+  outline: none;
+}
+
+.logActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  justify-content: flex-end;
+}
+
+.logDone {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-accent-ink);
+  letter-spacing: var(--tracking-wide);
+  margin: 0;
+  align-self: flex-start;
+}

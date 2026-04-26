@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
+import { logContactAction } from "@/app/(app)/cards/actions";
 import { findAttendeesAction, type PrepResult } from "@/app/(app)/prep/actions";
 import { encodePrefill } from "@/lib/voice/extract";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
@@ -48,7 +49,28 @@ export function PrepBoard({ initialText = "" }: PrepBoardProps = {}) {
   const [text, setText] = useState(initialText);
   const [phase, setPhase] = useState<Phase>({ kind: "input" });
   const [pending, startTransition] = useTransition();
+  // Per-candidate inline-log state. Keyed by cardId so multiple cards can
+  // expand independently. `done` records cards already logged this session.
+  const [openLogId, setOpenLogId] = useState<string | null>(null);
+  const [logDraft, setLogDraft] = useState("");
+  const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
+  const [logError, setLogError] = useState<string | null>(null);
   const now = new Date();
+
+  const submitLog = (cardId: string) => {
+    const note = logDraft.trim();
+    setLogError(null);
+    startTransition(async () => {
+      const res = await logContactAction({ id: cardId, note });
+      if (res?.serverError) {
+        setLogError(res.serverError);
+        return;
+      }
+      setDoneIds((prev) => new Set(prev).add(cardId));
+      setOpenLogId(null);
+      setLogDraft("");
+    });
+  };
 
   const submit = () => {
     const trimmed = text.trim();
@@ -153,6 +175,7 @@ export function PrepBoard({ initialText = "" }: PrepBoardProps = {}) {
         </button>
         <span className={styles.boardSummary}>找到 {phase.results.length} 位 attendee</span>
       </div>
+      {logError && <p className={styles.error}>{logError}</p>}
 
       <ol className={styles.attendeeList}>
         {phase.results.map((result, i) => (
@@ -173,28 +196,84 @@ export function PrepBoard({ initialText = "" }: PrepBoardProps = {}) {
               </Link>
             ) : (
               <ul className={styles.candidateList}>
-                {result.candidates.map((c) => (
-                  <li key={c.card.id} className={styles.candidate}>
-                    <div className={styles.candidateHeader}>
-                      <Link href={`/cards/${c.card.id}`} className={styles.candidateName}>
-                        {pickName(c.card)}
-                      </Link>
-                      <TemperatureBadge temperature={computeTemperature(c.card, now)} compact />
-                    </div>
-                    {pickRoleCompany(c.card) && (
-                      <p className={styles.candidateMeta}>{pickRoleCompany(c.card)}</p>
-                    )}
-                    {c.card.whyRemember && (
-                      <p className={styles.whyRemember}>{c.card.whyRemember}</p>
-                    )}
-                    {c.lastEventNote && (
-                      <div className={styles.lastEvent}>
-                        <span className={styles.lastEventLabel}>上次（{c.lastEventDate}）聊到</span>
-                        <p className={styles.lastEventNote}>{c.lastEventNote}</p>
+                {result.candidates.map((c) => {
+                  const isDone = doneIds.has(c.card.id);
+                  const isOpen = openLogId === c.card.id;
+                  return (
+                    <li key={c.card.id} className={styles.candidate}>
+                      <div className={styles.candidateHeader}>
+                        <Link href={`/cards/${c.card.id}`} className={styles.candidateName}>
+                          {pickName(c.card)}
+                        </Link>
+                        <TemperatureBadge temperature={computeTemperature(c.card, now)} compact />
                       </div>
-                    )}
-                  </li>
-                ))}
+                      {pickRoleCompany(c.card) && (
+                        <p className={styles.candidateMeta}>{pickRoleCompany(c.card)}</p>
+                      )}
+                      {c.card.whyRemember && (
+                        <p className={styles.whyRemember}>{c.card.whyRemember}</p>
+                      )}
+                      {c.lastEventNote && (
+                        <div className={styles.lastEvent}>
+                          <span className={styles.lastEventLabel}>
+                            上次（{c.lastEventDate}）聊到
+                          </span>
+                          <p className={styles.lastEventNote}>{c.lastEventNote}</p>
+                        </div>
+                      )}
+                      {isDone ? (
+                        <p className={styles.logDone}>✅ 已記錄</p>
+                      ) : isOpen ? (
+                        <div className={styles.logBox}>
+                          <textarea
+                            className={styles.logInput}
+                            value={logDraft}
+                            onChange={(e) => setLogDraft(e.target.value.slice(0, 500))}
+                            rows={2}
+                            placeholder="一句話摘要剛剛聊了什麼（可留空）"
+                            maxLength={500}
+                            autoFocus
+                            disabled={pending}
+                          />
+                          <div className={styles.logActions}>
+                            <button
+                              type="button"
+                              className={styles.smallBtn}
+                              onClick={() => submitLog(c.card.id)}
+                              disabled={pending}
+                            >
+                              記錄到 {pickName(c.card)}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.smallBtn}
+                              onClick={() => {
+                                setOpenLogId(null);
+                                setLogDraft("");
+                              }}
+                              disabled={pending}
+                            >
+                              取消
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.logToggle}
+                          onClick={() => {
+                            setOpenLogId(c.card.id);
+                            setLogDraft("");
+                            setLogError(null);
+                          }}
+                          disabled={pending}
+                        >
+                          ✅ 記錄
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </li>
