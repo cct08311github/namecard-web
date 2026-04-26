@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DailyBriefingSection } from "@/components/coach/DailyBriefingSection";
 import { OnboardingHero } from "@/components/home/OnboardingHero";
 import { PwaInstallHint } from "@/components/home/PwaInstallHint";
+import { DueTodaySection } from "@/components/timeline/DueTodaySection";
 import { TimelineSection } from "@/components/timeline/TimelineSection";
 import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
@@ -79,9 +80,18 @@ export default async function HomePage() {
         <>
           {isCoachConfigured() && cards.length >= 3 && <DailyBriefingSection />}
           <div className={styles.sections}>
-            {sections.map((section) => (
-              <TimelineSection key={section.id} section={section} />
-            ))}
+            {sections.map((section) =>
+              section.id === "due-today" ? (
+                <DueTodaySection
+                  key={section.id}
+                  section={section}
+                  now={now}
+                  showAiDrafts={isCoachConfigured()}
+                />
+              ) : (
+                <TimelineSection key={section.id} section={section} />
+              ),
+            )}
           </div>
         </>
       )}
