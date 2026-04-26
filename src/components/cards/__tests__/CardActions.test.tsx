@@ -176,6 +176,7 @@ describe("CardActions quick CTA row", () => {
 
     it("clicking +7 天 fires setFollowUpAction with 7-day-out date", async () => {
       const { setFollowUpAction } = await import("@/app/(app)/cards/actions");
+      const { localYmdAfterDays } = await import("@/lib/cards/follow-up-date");
       const mocked = vi.mocked(setFollowUpAction);
       mocked.mockClear();
       render(<CardActions cardId="abc" />);
@@ -185,11 +186,10 @@ describe("CardActions quick CTA row", () => {
         expect(mocked).toHaveBeenCalledTimes(1);
       });
       const call = mocked.mock.calls[0]![0]!;
-      // Check it's an ISO date 7 days out (allow 1-day skew across timezones).
-      const target = new Date();
-      target.setDate(target.getDate() + 7);
-      const expected = target.toISOString().slice(0, 10);
-      expect(call.followUpAt).toBe(expected);
+      // Compare against the same TZ-safe helper the production code uses
+      // (PR #175). Older versions of this test used toISOString() which is
+      // UTC-based and would skew on dates near the local-day boundary.
+      expect(call.followUpAt).toBe(localYmdAfterDays(7));
     });
 
     it("clicking 取消提醒 fires setFollowUpAction with null", async () => {
