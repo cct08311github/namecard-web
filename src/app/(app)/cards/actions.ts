@@ -51,6 +51,7 @@ import { callReengageLlm } from "@/lib/coach/reengage-llm";
 import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-store";
 import { readCoachCache, writeCoachCache } from "@/lib/coach/store";
 import { pickCanonicalCompany } from "@/lib/companies/group";
+import { validateImageMagicBytes } from "@/lib/scan/file-validation";
 import { encodePrefill, type ExtractedCard } from "@/lib/voice/extract";
 import { callExtractLlm, callExtractLlmMulti } from "@/lib/voice/extract-llm";
 
@@ -813,6 +814,16 @@ export const attachCardImageAction = authedAction
       const buffer = Buffer.from(parsedInput.fileBase64, "base64");
       if (buffer.byteLength === 0) return { ok: false, reason: "empty image payload" };
       if (buffer.byteLength > 10 * 1024 * 1024) return { ok: false, reason: "image exceeds 10MB" };
+
+      // P1: magic-byte validation — reject SVG / non-image payloads before
+      // they touch Storage (prevents SVG-XSS via uploaded "images").
+      const magicCheck = validateImageMagicBytes(buffer);
+      if (!magicCheck.valid) {
+        return {
+          ok: false,
+          reason: "invalid-image: file signature does not match a supported image format",
+        };
+      }
 
       // Lazy-import keeps the storage helper (Sharp, Firebase Admin)
       // out of any cold-import budget that doesn't need it.

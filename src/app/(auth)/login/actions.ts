@@ -17,7 +17,15 @@ export const signInWithIdTokenAction = publicAction
   .action(async ({ parsedInput }) => {
     const user = await createSession(parsedInput.idToken);
     await ensurePersonalWorkspace({ uid: user.uid, displayName: user.displayName });
-    return { ok: true as const, next: parsedInput.next ?? "/" };
+    // Belt-and-suspenders: re-validate the `next` redirect target server-side.
+    // The page already sanitises it, but defence-in-depth rejects anything that
+    // slipped through (e.g. direct API callers). Only allow relative paths.
+    const rawNext = parsedInput.next;
+    const safeNext =
+      typeof rawNext === "string" && rawNext.startsWith("/") && !rawNext.startsWith("//")
+        ? rawNext
+        : "/";
+    return { ok: true as const, next: safeNext };
   });
 
 export async function signOutAction(): Promise<void> {

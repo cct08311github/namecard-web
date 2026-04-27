@@ -11,7 +11,13 @@ interface LoginPageProps {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await readSession();
   if (user) redirect("/");
-  const { next } = await searchParams;
+  const { next: rawNext } = await searchParams;
+  // P0 open-redirect guard: only allow relative paths that start with "/"
+  // but not "//" (which browsers treat as protocol-relative, i.e. external).
+  const safeNext =
+    typeof rawNext === "string" && rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : null;
   return (
     <main className={styles.shell}>
       <article className={styles.article}>
@@ -24,7 +30,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <br />
           只有被允許的 email 能存取。
         </p>
-        <LoginForm next={next} />
+        <LoginForm next={safeNext ?? undefined} />
         <p className={styles.footnote}>未被授權卻該有存取權？請聯絡管理員更新 ALLOWED_EMAILS。</p>
       </article>
     </main>
