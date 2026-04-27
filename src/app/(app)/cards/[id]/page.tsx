@@ -174,10 +174,18 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
                     : temp.daysSince === 0
                       ? "今天聯絡過"
                       : `上次互動 ${temp.daysSince} 天前`;
+                // contactEvents loaded with limit=30; show "30+" when capped.
+                const eventCountLabel =
+                  contactEvents.length === 0
+                    ? null
+                    : contactEvents.length >= 30
+                      ? "💬 互動 30+ 次"
+                      : `💬 互動 ${contactEvents.length} 次`;
                 return (
                   <span className={styles.kickerMeta}>
                     <TemperatureBadge temperature={temp} />
                     <span className={styles.lastSeen}>{lastSeen}</span>
+                    {eventCountLabel && <span className={styles.lastSeen}>{eventCountLabel}</span>}
                   </span>
                 );
               })()}
