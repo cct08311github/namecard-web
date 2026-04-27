@@ -19,10 +19,10 @@ interface MobileFabProps {
 
 /**
  * Mobile-only floating action button. Defaults to a single ⊕ glyph in
- * the bottom-right; tap toggles a small action sheet with the three
- * highest-frequency captures (對話速記, 語音建卡, 找人). When pending
- * follow-ups exist, a 4th 「⏰ 追蹤」 action appears in the sheet and
- * a numeric badge overlays the closed FAB — same urgency cue as the
+ * the bottom-right; tap toggles a small action sheet with the four
+ * highest-frequency captures (對話速記, 語音建卡, 拍照建檔, 找人). When
+ * pending follow-ups exist, a 5th 「⏰ 追蹤」 action appears in the sheet
+ * and a numeric badge overlays the closed FAB — same urgency cue as the
  * desktop AppShell rail badge.
  *
  * Backdrop click + Esc both close. Hidden on ≥769px via media query
@@ -85,6 +85,14 @@ export function MobileFab({ followupsTotal = 0 }: MobileFabProps) {
             onClick={() => setOpen(false)}
           >
             🎙️ 語音建卡
+          </Link>
+          <Link
+            href="/cards/scan"
+            className={styles.action}
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            📷 拍照建檔
           </Link>
           <button type="button" className={styles.action} role="menuitem" onClick={handleSearch}>
             🔍 找人

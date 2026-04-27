@@ -35,4 +35,11 @@ describe("MobileFab follow-up integration", () => {
     fireEvent.click(screen.getByLabelText("打開快速動作"));
     expect(screen.queryByText(/⏰ 追蹤/)).toBeNull();
   });
+
+  it("includes 📷 拍照建檔 sheet action linking to /cards/scan", () => {
+    render(<MobileFab />);
+    fireEvent.click(screen.getByLabelText("打開快速動作"));
+    const link = screen.getByText(/📷 拍照建檔/).closest("a");
+    expect(link?.getAttribute("href")).toBe("/cards/scan");
+  });
 });
