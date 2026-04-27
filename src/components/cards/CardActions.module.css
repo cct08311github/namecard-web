@@ -120,6 +120,20 @@
   color: var(--color-fg);
 }
 
+.gcalLink {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  text-align: center;
+  padding: var(--space-xs) var(--space-md);
+  color: var(--color-accent-ink);
+  text-decoration: none;
+}
+
+.gcalLink:hover {
+  text-decoration: underline;
+}
+
 .destructive {
   color: var(--color-fg-muted);
   border-color: var(--color-border);
