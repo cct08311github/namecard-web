@@ -16,6 +16,11 @@
  * E2E_TEST_MODE=1 freely.
  */
 export function assertNotProductionWithE2EMode(): void {
+  // Skip if Firebase Auth Emulator is active — that's an unambiguous test
+  // environment signal (firebase emulators:exec sets FIREBASE_AUTH_EMULATOR_HOST,
+  // and a real prod deploy can never legitimately have it set).
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) return;
+
   if (process.env.NODE_ENV === "production" && process.env.E2E_TEST_MODE === "1") {
     throw new Error(
       "[prod-guard] E2E_TEST_MODE=1 must never be set in production. " +

@@ -38,6 +38,28 @@ describe("assertNotProductionWithE2EMode", () => {
     expect(() => assertNotProductionWithE2EMode()).not.toThrow();
   });
 
+  describe("Firebase Auth Emulator bypass", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("does NOT throw when production + E2E_TEST_MODE=1 + FIREBASE_AUTH_EMULATOR_HOST set (CI E2E path)", () => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("E2E_TEST_MODE", "1");
+      vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "localhost:9099");
+      expect(() => assertNotProductionWithE2EMode()).not.toThrow();
+    });
+
+    it("STILL throws when production + E2E_TEST_MODE=1 + FIREBASE_AUTH_EMULATOR_HOST NOT set (real prod safety)", () => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("E2E_TEST_MODE", "1");
+      vi.stubEnv("FIREBASE_AUTH_EMULATOR_HOST", "");
+      expect(() => assertNotProductionWithE2EMode()).toThrow(
+        /E2E_TEST_MODE=1 must never be set in production/,
+      );
+    });
+  });
+
   describe("boundary: non-'1' values of E2E_TEST_MODE in production", () => {
     beforeEach(() => {
       vi.stubEnv("NODE_ENV", "production");
