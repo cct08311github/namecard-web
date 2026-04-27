@@ -55,6 +55,17 @@ function parseDotenv(filepath) {
 const PROJECT_DIR = "/Users/openclaw/.openclaw/shared/projects/namecard-web";
 const dotenvProd = parseDotenv(path.join(PROJECT_DIR, ".env.production"));
 
+// Sanity check: E2E_TEST_MODE must never be set in production.
+// This fires at PM2 config-eval time (before the process even starts) so
+// operators get an early warning if .env.production was accidentally edited.
+if (dotenvProd.E2E_TEST_MODE === "1") {
+  console.error(
+    "[ecosystem.config.cjs] WARNING: E2E_TEST_MODE=1 is set in .env.production. " +
+      "This is a test-only flag and must never be active in production. " +
+      "Remove it from .env.production before proceeding.",
+  );
+}
+
 module.exports = {
   apps: [
     {

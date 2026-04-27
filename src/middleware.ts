@@ -20,10 +20,18 @@ function isPublic(pathname: string): boolean {
   // Public profile pages: /u/{slug} renders a single user's card without
   // auth so it can be shared like a digital business card.
   if (pathname.startsWith("/u/")) return true;
-  // Test-only bypass route — route handler itself returns 404 in production
-  // (gated by E2E_TEST_MODE). Exposing it here just keeps it reachable for
-  // Playwright under CI to mint sessions.
-  if (pathname === "/api/test/bypass-login") return true;
+  // Test-only bypass route — only exempt from auth when BOTH conditions hold:
+  //   • NODE_ENV is not "production"  (never allow in prod regardless of mode)
+  //   • E2E_TEST_MODE=1               (explicitly enabled for the current run)
+  // The route handler adds its own E2E_TEST_MODE guard; this middleware layer
+  // is a defence-in-depth gate so the route is unreachable in prod even if
+  // that guard were accidentally removed.
+  if (
+    pathname === "/api/test/bypass-login" &&
+    process.env.NODE_ENV !== "production" &&
+    process.env.E2E_TEST_MODE === "1"
+  )
+    return true;
   return false;
 }
 

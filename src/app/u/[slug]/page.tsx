@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getCardByPublicSlug } from "@/db/cards";
+import { sanitizePhoneForTelHref } from "@/lib/share/phone";
+import { safeExternalUrl } from "@/lib/share/url-safety";
 
 import styles from "./profile.module.css";
 
@@ -67,9 +69,11 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const phones = card.phones ?? [];
   const emails = card.emails ?? [];
   const lineId = card.social?.lineId;
-  const linkedinUrl = card.social?.linkedinUrl;
+  // Belt-and-suspenders: filter through allowlist even though schema already
+  // rejects unsafe schemes — guards against data migrated before this fix.
+  const linkedinUrl = safeExternalUrl(card.social?.linkedinUrl);
   const wechatId = card.social?.wechatId;
-  const websiteUrl = card.social?.websiteUrl;
+  const websiteUrl = safeExternalUrl(card.social?.websiteUrl);
 
   return (
     <main className={styles.page}>
@@ -102,7 +106,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
             {phones.map((phone, i) => (
               <li key={`phone-${i}`}>
                 <span className={styles.contactLabel}>📞 {phone.label}</span>
-                <a href={`tel:${phone.value}`} className={styles.contactValue}>
+                <a
+                  href={`tel:${sanitizePhoneForTelHref(phone.value)}`}
+                  className={styles.contactValue}
+                >
                   {phone.value}
                 </a>
               </li>
