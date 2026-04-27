@@ -6,16 +6,22 @@ import { LoginForm, SIGNIN_TIMEOUT_MS } from "../LoginForm";
 
 // Stub away all the auth surface so we can drive the LoginForm flow
 // in isolation. Each test re-mocks signInWithPopup as needed.
-const signInWithPopupMock = vi.fn();
-const signInWithIdTokenActionMock = vi.fn();
-
-const signInWithRedirectMock = vi.fn(() => Promise.resolve());
-const getRedirectResultMock = vi.fn(() => Promise.resolve(null));
+const {
+  signInWithPopupMock,
+  signInWithIdTokenActionMock,
+  signInWithRedirectMock,
+  getRedirectResultMock,
+} = vi.hoisted(() => ({
+  signInWithPopupMock: vi.fn(),
+  signInWithIdTokenActionMock: vi.fn(),
+  signInWithRedirectMock: vi.fn(),
+  getRedirectResultMock: vi.fn(),
+}));
 
 vi.mock("firebase/auth", () => ({
-  signInWithPopup: (...args: unknown[]) => signInWithPopupMock(...args),
-  signInWithRedirect: (...args: unknown[]) => signInWithRedirectMock(...args),
-  getRedirectResult: (...args: unknown[]) => getRedirectResultMock(...args),
+  signInWithPopup: signInWithPopupMock,
+  signInWithRedirect: signInWithRedirectMock,
+  getRedirectResult: getRedirectResultMock,
   GoogleAuthProvider: vi.fn(),
 }));
 vi.mock("@/lib/firebase/client", () => ({
@@ -23,7 +29,7 @@ vi.mock("@/lib/firebase/client", () => ({
   googleAuthProvider: vi.fn(() => ({})),
 }));
 vi.mock("../actions", () => ({
-  signInWithIdTokenAction: (...args: unknown[]) => signInWithIdTokenActionMock(...args),
+  signInWithIdTokenAction: signInWithIdTokenActionMock,
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
