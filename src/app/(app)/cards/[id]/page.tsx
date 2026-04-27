@@ -34,6 +34,19 @@ interface DetailPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/**
+ * Truncate a contact-event note for inline display in the header.
+ * Cuts at the nearest space ≤ max so we don't bisect a word, then
+ * appends an ellipsis. Returns the original string when already short.
+ */
+function truncateNote(note: string, max: number): string {
+  if (note.length <= max) return note;
+  const slice = note.slice(0, max);
+  const lastSpace = slice.lastIndexOf(" ");
+  const cut = lastSpace > max * 0.6 ? lastSpace : max;
+  return `${slice.slice(0, cut).trimEnd()}…`;
+}
+
 export async function generateMetadata({ params }: DetailPageProps) {
   const { id } = await params;
   const user = await readSession();
@@ -190,6 +203,12 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
                 );
               })()}
             </div>
+            {contactEvents[0]?.note?.trim() && (
+              <p className={styles.recentNote} title="最近一次的對話速記">
+                <span aria-hidden="true">📓 </span>
+                {truncateNote(contactEvents[0].note.trim(), 100)}
+              </p>
+            )}
             <h1 className={styles.name}>
               <CardInlineEdit
                 cardId={card.id}
