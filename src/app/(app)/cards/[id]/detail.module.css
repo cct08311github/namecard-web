@@ -274,8 +274,8 @@
   display: grid;
   grid-template-columns: 5rem 1fr;
   gap: var(--space-sm);
-  align-items: baseline;
-  padding: var(--space-xs) 0;
+  align-items: center;
+  padding: 0;
   border-bottom: var(--border-hair) solid var(--color-border);
 }
 
@@ -291,14 +291,25 @@
   color: var(--color-fg-subtle);
 }
 
-.contactValue {
+.contactValue,
+.contactLink {
   font-family: var(--font-serif);
   font-size: var(--text-body);
   color: var(--color-fg);
   text-decoration: none;
+  /* Ensure minimum 44px touch target on mobile (Apple HIG / WCAG 2.5.8) */
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-xs) 0;
 }
 
-.contactValue:hover {
+.contactLink {
+  color: var(--color-accent-ink);
+}
+
+.contactValue:is(a):hover,
+.contactLink:hover {
   color: var(--color-accent-ink);
   text-decoration: underline;
 }

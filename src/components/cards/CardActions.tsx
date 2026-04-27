@@ -15,6 +15,7 @@ import { localYmdAfterDays } from "@/lib/cards/follow-up-date";
 import { googleCalendarEventUrl } from "@/lib/calendar/gcal-url";
 import { shareCardVcard } from "@/lib/share/card-share";
 import { formatContactSummary } from "@/lib/share/contact-summary";
+import { lineDeepLink } from "@/lib/share/line-url";
 
 import styles from "./CardActions.module.css";
 import { VoiceMicButton } from "./VoiceMicButton";
@@ -222,11 +223,8 @@ export function CardActions({
     }
   };
 
-  // LINE deep-link: older LINE IDs (@foo) use line://ti/p/@foo, user IDs
-  // without @ use ~{id}. Both open the LINE app when present.
-  const lineHref = lineId
-    ? `https://line.me/ti/p/${lineId.startsWith("@") ? encodeURIComponent(lineId) : `~${encodeURIComponent(lineId)}`}`
-    : null;
+  // LINE deep-link: shared formula centralised in lineDeepLink().
+  const lineHref = lineDeepLink(lineId);
 
   return (
     <section className={styles.actions} aria-label="Actions">
