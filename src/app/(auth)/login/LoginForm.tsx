@@ -1,9 +1,9 @@
 "use client";
 
 import { FirebaseError } from "firebase/app";
-import { signInWithPopup } from "firebase/auth";
+import { getRedirectResult, signInWithPopup, signInWithRedirect } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { getClientAuth, googleAuthProvider } from "@/lib/firebase/client";
 
@@ -14,11 +14,26 @@ interface LoginFormProps {
   next?: string;
 }
 
+/**
+ * iOS Safari (and most in-app browsers) silently break signInWithPopup —
+ * popup gets blocked, opens but never resolves the credential, or the
+ * 3rd-party-cookie story breaks. Detect those and fall back to the
+ * redirect-based flow.
+ *
+ * Conservative — when uncertain we'd rather take the redirect path
+ * than let the user stare at a hung popup (issue #233).
+ */
+function shouldUseRedirect(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 type ErrorKind =
   | null
   | { kind: "popup-blocked" }
   | { kind: "popup-closed" }
   | { kind: "not-allowed" }
+  | { kind: "timeout" }
   | { kind: "unknown"; message: string };
 
 function describeError(error: ErrorKind): string | null {
@@ -30,22 +45,118 @@ function describeError(error: ErrorKind): string | null {
       return "你關閉了登入視窗。再試一次。";
     case "not-allowed":
       return "此 Google 帳號不在 ALLOWED_EMAILS 白名單內。";
+    case "timeout":
+      return "登入超過 15 秒沒有回應。試試清掉 cookie 或開無痕視窗，或按 F12 看 console 有什麼紅字。";
     case "unknown":
       return error.message;
   }
 }
 
+/**
+ * 15 s — long enough for slow popup + Firebase verify + workspace
+ * bootstrap; short enough that a wedged action surfaces feedback
+ * before the user gives up.
+ */
+export const SIGNIN_TIMEOUT_MS = 15_000;
+
 export function LoginForm({ next }: LoginFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<ErrorKind>(null);
+  // Watchdog: if the transition doesn't resolve in 15 s, surface a
+  // visible timeout error. Without this the button just sits on
+  // 「驗證中…」 forever — the symptom user reported in #233.
+  const [timedOut, setTimedOut] = useState(false);
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear the watchdog whenever pending flips back to false (success
+  // OR caught-error path — both setError(...) calls above end the
+  // transition naturally).
+  useEffect(() => {
+    if (!pending && watchdogRef.current) {
+      clearTimeout(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+  }, [pending]);
+
+  const finalizeSignIn = (idToken: string) => {
+    setError(null);
+    setTimedOut(false);
+    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+    watchdogRef.current = setTimeout(() => {
+      setTimedOut(true);
+      setError({ kind: "timeout" });
+    }, SIGNIN_TIMEOUT_MS);
+    startTransition(async () => {
+      const result = await signInWithIdTokenAction({ idToken, next });
+      if (result?.serverError) {
+        setError(
+          result.serverError.includes("ALLOWED_EMAILS")
+            ? { kind: "not-allowed" }
+            : { kind: "unknown", message: result.serverError },
+        );
+        return;
+      }
+      const target = result?.data?.next ?? "/";
+      router.push(target);
+      router.refresh();
+    });
+  };
+
+  // After a redirect-based sign-in (iOS Safari path), Google bounces
+  // the user back here. getRedirectResult returns the credential; we
+  // exchange it for a session cookie via the same server action.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const auth = getClientAuth();
+        const credential = await getRedirectResult(auth);
+        if (cancelled || !credential) return;
+        const idToken = await credential.user.getIdToken(true);
+        finalizeSignIn(idToken);
+      } catch (err) {
+        if (cancelled) return;
+        setError({
+          kind: "unknown",
+          message: err instanceof Error ? err.message : "未知錯誤",
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-only — getRedirectResult is one-shot per page load
 
   const handleSignIn = () => {
     setError(null);
+    setTimedOut(false);
+    const auth = getClientAuth();
+    const provider = googleAuthProvider();
+
+    if (shouldUseRedirect()) {
+      // signInWithRedirect navigates away — the result comes back via
+      // the useEffect above on the next page load. Don't start a
+      // transition here; pending will flip true after redirect.
+      signInWithRedirect(auth, provider).catch((err) => {
+        setError({
+          kind: "unknown",
+          message: err instanceof Error ? err.message : "redirect failed",
+        });
+      });
+      return;
+    }
+
+    // Desktop / non-iOS: popup is faster, no page reload.
+    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+    watchdogRef.current = setTimeout(() => {
+      setTimedOut(true);
+      setError({ kind: "timeout" });
+    }, SIGNIN_TIMEOUT_MS);
     startTransition(async () => {
       try {
-        const auth = getClientAuth();
-        const credential = await signInWithPopup(auth, googleAuthProvider());
+        const credential = await signInWithPopup(auth, provider);
         const idToken = await credential.user.getIdToken(true);
         const result = await signInWithIdTokenAction({ idToken, next });
         if (result?.serverError) {
@@ -74,11 +185,15 @@ export function LoginForm({ next }: LoginFormProps) {
     });
   };
 
+  // Button label: timed-out trumps pending so the user sees something
+  // actionable; without timeout we fall back to the original two states.
+  const buttonLabel = timedOut ? "請重新整理頁面再試" : pending ? "驗證中…" : "以 Google 帳號登入";
+
   return (
     <div className={styles.formWrap}>
       <button type="button" className={styles.button} onClick={handleSignIn} disabled={pending}>
         <GoogleG />
-        <span>{pending ? "驗證中…" : "以 Google 帳號登入"}</span>
+        <span>{buttonLabel}</span>
       </button>
       {error && (
         <p role="alert" className={styles.error}>
