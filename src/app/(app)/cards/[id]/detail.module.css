@@ -194,6 +194,16 @@
   text-decoration: underline;
 }
 
+.recentNote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-body);
+  color: var(--color-fg-muted);
+  margin: var(--space-xs) 0 0;
+  line-height: var(--leading-snug);
+  max-width: 56ch;
+}
+
 .notesBody {
   font-family: var(--font-serif);
   font-size: var(--text-body);
