@@ -25,6 +25,7 @@ import { isCoachConfigured } from "@/lib/coach/llm";
 import { companySlug, pickCanonicalCompany } from "@/lib/companies/group";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { linkedInSearchUrl } from "@/lib/share/linkedin-search";
+import { lineDeepLink } from "@/lib/share/line-url";
 import { findAnniversariesToday } from "@/lib/timeline/anniversaries";
 import { readSession } from "@/lib/firebase/session";
 
@@ -332,7 +333,7 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
               {card.phones.map((phone, index) => (
                 <li key={`phone-${index}`}>
                   <span className={styles.contactLabel}>{phone.label}</span>
-                  <a href={`tel:${phone.value}`} className={styles.contactValue}>
+                  <a href={`tel:${phone.value}`} className={styles.contactLink}>
                     {phone.value}
                   </a>
                 </li>
@@ -340,7 +341,7 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
               {card.emails.map((email, index) => (
                 <li key={`email-${index}`}>
                   <span className={styles.contactLabel}>{email.label}</span>
-                  <a href={`mailto:${email.value}`} className={styles.contactValue}>
+                  <a href={`mailto:${email.value}`} className={styles.contactLink}>
                     {email.value}
                   </a>
                 </li>
@@ -350,7 +351,7 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
                   <span className={styles.contactLabel}>linkedin</span>
                   <a
                     href={card.social.linkedinUrl}
-                    className={styles.contactValue}
+                    className={styles.contactLink}
                     target="_blank"
                     rel="noreferrer noopener"
                   >
@@ -361,7 +362,19 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
               {card.social?.lineId && (
                 <li>
                   <span className={styles.contactLabel}>line</span>
-                  <span className={styles.contactValue}>{card.social.lineId}</span>
+                  {lineDeepLink(card.social.lineId) ? (
+                    <a
+                      href={lineDeepLink(card.social.lineId)!}
+                      className={styles.contactLink}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      aria-label={`開啟 LINE：${card.social.lineId}`}
+                    >
+                      {card.social.lineId}
+                    </a>
+                  ) : (
+                    <span className={styles.contactValue}>{card.social.lineId}</span>
+                  )}
                 </li>
               )}
               {card.social?.wechatId && (
