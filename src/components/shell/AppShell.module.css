@@ -58,6 +58,14 @@
   }
 }
 
+.navGroup {
+  margin-bottom: var(--space-lg);
+}
+
+.navGroup:last-child {
+  margin-bottom: 0;
+}
+
 .navLabel {
   font-family: var(--font-sans);
   font-size: var(--text-caption);

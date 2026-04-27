@@ -15,23 +15,50 @@ interface NavItem {
   description: string;
 }
 
-const PRIMARY: NavItem[] = [
-  { href: "/", label: "時間軸", description: "最近沒聯絡 · 本月認識" },
-  { href: "/followups", label: "追蹤", description: "誰該 ping 了" },
-  { href: "/intros", label: "🤝 介紹建議", description: "AI 找誰跟誰應該認識" },
-  { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
-  { href: "/cards/new", label: "新增", description: "手動建立一張" },
-  { href: "/cards/scan", label: "📷 拍照建檔", description: "拍紙本名片 OCR 自動填" },
-  { href: "/cards/voice", label: "🎙️ 語音建卡", description: "講 30 秒讓 AI 解析" },
-  { href: "/log", label: "🗣️ 對話速記", description: "講一句 log 進對方的卡" },
-  { href: "/recap", label: "📓 對話日誌", description: "最近 14 天 log 過的對話" },
-  { href: "/prep", label: "📅 會議準備", description: "貼上出席者，10 秒拿到 context" },
-  { href: "/stats", label: "📊 儀表板", description: "本週對話、新人脈、溫度、streak" },
-  { href: "/companies", label: "公司", description: "同公司聯絡人聚合" },
-  { href: "/events", label: "場合", description: "同場合認識的人" },
-  { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
-  { href: "/import", label: "匯入", description: "vCard / CSV / LinkedIn" },
-  { href: "/workspace/members", label: "成員", description: "邀請 · 權限" },
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+// Grouped to avoid the dashboard-by-numbers anti-pattern (15+ items
+// flat). Order within groups goes most-frequent-first.
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "行動",
+    items: [
+      { href: "/", label: "時間軸", description: "最近沒聯絡 · 本月認識" },
+      { href: "/followups", label: "追蹤", description: "誰該 ping 了" },
+      { href: "/intros", label: "🤝 介紹建議", description: "AI 找誰跟誰應該認識" },
+    ],
+  },
+  {
+    label: "捕捉",
+    items: [
+      { href: "/cards/new", label: "新增", description: "手動建立一張" },
+      { href: "/cards/scan", label: "📷 拍照建檔", description: "拍紙本名片 OCR 自動填" },
+      { href: "/cards/voice", label: "🎙️ 語音建卡", description: "講 30 秒讓 AI 解析" },
+      { href: "/log", label: "🗣️ 對話速記", description: "講一句 log 進對方的卡" },
+    ],
+  },
+  {
+    label: "回顧",
+    items: [
+      { href: "/cards", label: "名片冊", description: "畫廊 · 清單" },
+      { href: "/recap", label: "📓 對話日誌", description: "最近 14 天 log 過的對話" },
+      { href: "/prep", label: "📅 會議準備", description: "貼上出席者，10 秒拿到 context" },
+      { href: "/stats", label: "📊 儀表板", description: "本週對話、新人脈、溫度、streak" },
+      { href: "/companies", label: "公司", description: "同公司聯絡人聚合" },
+      { href: "/events", label: "場合", description: "同場合認識的人" },
+      { href: "/tags", label: "標籤", description: "分類 · 重新命名" },
+    ],
+  },
+  {
+    label: "設定",
+    items: [
+      { href: "/import", label: "匯入", description: "vCard / CSV / LinkedIn" },
+      { href: "/workspace/members", label: "成員", description: "邀請 · 權限" },
+    ],
+  },
 ];
 
 interface AppShellProps {
@@ -58,32 +85,36 @@ export function AppShell({ user, followupsTotal = 0, children }: AppShellProps) 
           </Link>
 
           <nav>
-            <p className={styles.navLabel}>導覽</p>
-            <ul className={styles.navList}>
-              {PRIMARY.map((item) => {
-                // Surface a global urgency badge on the 「追蹤」 entry so
-                // users see pending action items from any page.
-                const showBadge = item.href === "/followups" && followupsTotal > 0;
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} className={styles.link}>
-                      <span className={styles.linkLabel}>
-                        {item.label}
-                        {showBadge && (
-                          <span
-                            className={styles.followupBadge}
-                            aria-label={`${followupsTotal} 個人該 ping 了`}
-                          >
-                            {followupsTotal}
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className={styles.navGroup}>
+                <p className={styles.navLabel}>{group.label}</p>
+                <ul className={styles.navList}>
+                  {group.items.map((item) => {
+                    // Surface a global urgency badge on the 「追蹤」 entry so
+                    // users see pending action items from any page.
+                    const showBadge = item.href === "/followups" && followupsTotal > 0;
+                    return (
+                      <li key={item.href}>
+                        <Link href={item.href} className={styles.link}>
+                          <span className={styles.linkLabel}>
+                            {item.label}
+                            {showBadge && (
+                              <span
+                                className={styles.followupBadge}
+                                aria-label={`${followupsTotal} 個人該 ping 了`}
+                              >
+                                {followupsTotal}
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                      <span className={styles.linkHint}>{item.description}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                          <span className={styles.linkHint}>{item.description}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </nav>
 
           <footer className={styles.footer}>

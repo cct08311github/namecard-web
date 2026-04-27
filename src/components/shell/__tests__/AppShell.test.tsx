@@ -71,4 +71,12 @@ describe("AppShell follow-up badge", () => {
     const link = screen.getByText(/拍照建檔/).closest("a");
     expect(link?.getAttribute("href")).toBe("/cards/scan");
   });
+
+  it("rail is grouped into 4 sections (行動/捕捉/回顧/設定)", () => {
+    render(<AppShell user={user}>body</AppShell>);
+    expect(screen.getByText("行動")).toBeInTheDocument();
+    expect(screen.getByText("捕捉")).toBeInTheDocument();
+    expect(screen.getByText("回顧")).toBeInTheDocument();
+    expect(screen.getByText("設定")).toBeInTheDocument();
+  });
 });
