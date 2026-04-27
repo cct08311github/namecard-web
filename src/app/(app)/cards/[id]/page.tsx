@@ -398,12 +398,20 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
           <CardActions
             cardId={card.id}
             displayName={primary}
+            primaryPhone={primaryPhone?.value}
+            primaryEmail={primaryEmail?.value}
             phones={card.phones?.map((p) => ({ label: p.label, value: p.value }))}
             emails={card.emails?.map((e) => ({ label: e.label, value: e.value }))}
             lineId={card.social?.lineId}
             linkedinUrl={card.social?.linkedinUrl}
             isPinned={card.isPinned}
             followUpAt={card.followUpAt ? card.followUpAt.toISOString().slice(0, 10) : null}
+            nameZh={card.nameZh}
+            nameEn={card.nameEn}
+            jobTitleZh={card.jobTitleZh}
+            jobTitleEn={card.jobTitleEn}
+            companyZh={card.companyZh}
+            companyEn={card.companyEn}
           />
 
           <PublicProfileToggle
