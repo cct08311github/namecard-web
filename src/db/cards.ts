@@ -801,9 +801,10 @@ export async function listContactEventsForUser(
  * the existing lastContactedAt-desc query — `logContactEvent` bumps
  * that field, so cards-with-recent-events naturally cluster at the top.
  *
- * Bounded I/O: stops walking once a card's lastContactedAt is older
- * than `sinceDays`. For a real user this is ~tens of cards/day, not
- * the whole rolodex.
+ * Bounded I/O: the card list is sorted by lastContactedAt desc, so we
+ * slice off the tail that falls outside the cutoff window before firing
+ * sub-collection reads. All remaining reads are dispatched in parallel
+ * via Promise.all — previously these were sequential (N+1 pattern).
  */
 export async function listRecentContactEventsForUser(
   uid: string,
@@ -820,11 +821,27 @@ export async function listRecentContactEventsForUser(
     limit: 200,
   });
 
-  const items: Array<{ card: CardSummary; event: ContactEvent }> = [];
+  // Slice the list to cards within the time window (list is sorted desc
+  // so we can stop at the first card that falls outside the cutoff).
+  const recentCards: CardSummary[] = [];
   for (const card of cards) {
     if (!card.lastContactedAt) continue;
     if (card.lastContactedAt.getTime() < cutoff) break;
-    const events = await listContactEventsForUser(card.id, uid, perCardLimit);
+    recentCards.push(card);
+  }
+
+  if (recentCards.length === 0) return [];
+
+  // Fetch all sub-collection event lists in parallel instead of one-by-one.
+  const perCard = await Promise.all(
+    recentCards.map(async (card) => ({
+      card,
+      events: await listContactEventsForUser(card.id, uid, perCardLimit),
+    })),
+  );
+
+  const items: Array<{ card: CardSummary; event: ContactEvent }> = [];
+  for (const { card, events } of perCard) {
     for (const event of events) {
       if (event.at.getTime() < cutoff) continue;
       items.push({ card, event });
