@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isAllowedUrlOrEmpty } from "@/lib/share/url-safety";
+
 /**
  * Firestore schema & Zod validators.
  *
@@ -47,11 +49,29 @@ export const addressSchema = z.object({
 export const socialSchema = z.object({
   lineId: z.string().max(100).optional(),
   wechatId: z.string().max(100).optional(),
-  linkedinUrl: z.string().max(500).optional(),
+  linkedinUrl: z
+    .string()
+    .max(500)
+    .refine(isAllowedUrlOrEmpty, {
+      message: "linkedinUrl scheme must be http, https, mailto, or tel",
+    })
+    .optional(),
   twitterHandle: z.string().max(60).optional(),
   instagramHandle: z.string().max(60).optional(),
-  facebookUrl: z.string().max(500).optional(),
-  websiteUrl: z.string().max(500).optional(),
+  facebookUrl: z
+    .string()
+    .max(500)
+    .refine(isAllowedUrlOrEmpty, {
+      message: "facebookUrl scheme must be http, https, mailto, or tel",
+    })
+    .optional(),
+  websiteUrl: z
+    .string()
+    .max(500)
+    .refine(isAllowedUrlOrEmpty, {
+      message: "websiteUrl scheme must be http, https, mailto, or tel",
+    })
+    .optional(),
 });
 
 /** Base schema shared between create / update / DB representation. */
@@ -69,7 +89,13 @@ const cardBaseShape = {
   // Company
   companyZh: z.string().max(100).optional(),
   companyEn: z.string().max(100).optional(),
-  companyWebsite: z.string().max(500).optional(),
+  companyWebsite: z
+    .string()
+    .max(500)
+    .refine(isAllowedUrlOrEmpty, {
+      message: "companyWebsite scheme must be http, https, mailto, or tel",
+    })
+    .optional(),
 
   // Multi-value
   phones: z.array(phoneSchema).max(10).default([]),

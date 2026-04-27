@@ -26,6 +26,7 @@ import { companySlug, pickCanonicalCompany } from "@/lib/companies/group";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
 import { linkedInSearchUrl } from "@/lib/share/linkedin-search";
 import { lineDeepLink } from "@/lib/share/line-url";
+import { safeExternalUrl } from "@/lib/share/url-safety";
 import { findAnniversariesToday } from "@/lib/timeline/anniversaries";
 import { readSession } from "@/lib/firebase/session";
 
@@ -346,11 +347,11 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
                   </a>
                 </li>
               ))}
-              {card.social?.linkedinUrl && (
+              {safeExternalUrl(card.social?.linkedinUrl) && (
                 <li>
                   <span className={styles.contactLabel}>linkedin</span>
                   <a
-                    href={card.social.linkedinUrl}
+                    href={safeExternalUrl(card.social?.linkedinUrl)!}
                     className={styles.contactLink}
                     target="_blank"
                     rel="noreferrer noopener"

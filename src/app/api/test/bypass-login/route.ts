@@ -17,9 +17,14 @@
  */
 import { NextResponse } from "next/server";
 
+import { assertNotProductionWithE2EMode } from "@/lib/security/prod-guard";
 import { getAdminAuth } from "@/lib/firebase/server";
 import { createSession } from "@/lib/firebase/session";
 import { ensurePersonalWorkspace } from "@/lib/workspace/ensure";
+
+// Fail fast at module-load time if someone ships E2E_TEST_MODE=1 to production.
+// This complements the runtime `isEnabled()` check below with a startup-time guard.
+assertNotProductionWithE2EMode();
 
 export const dynamic = "force-dynamic";
 

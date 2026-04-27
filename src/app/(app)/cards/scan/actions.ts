@@ -4,7 +4,9 @@ import { z } from "zod";
 
 import { authedAction } from "@/lib/auth/safe-action";
 import { getOcrProvider } from "@/lib/ocr";
+import { validateImageMagicBytes } from "@/lib/scan/file-validation";
 import { uploadCardImage } from "@/lib/storage/card-images";
+import { incrementAndCheckScanLimit } from "@/db/scanLimits";
 
 /**
  * Server actions behind the Scan-a-card flow.
@@ -30,6 +32,34 @@ export const scanCardAction = authedAction
     }
     if (buffer.byteLength > 10 * 1024 * 1024) {
       throw new Error("image exceeds 10MB limit");
+    }
+
+    // P1: Verify file magic bytes — reject SVG and any non-image type
+    // regardless of the client-supplied MIME header.
+    const magic = validateImageMagicBytes(buffer);
+    if (!magic.valid) {
+      return {
+        ok: false as const,
+        imagePath: null,
+        error: {
+          kind: "invalid-file-type",
+          message: magic.reason ?? "unsupported file type",
+        },
+      };
+    }
+
+    // P1: Enforce per-user daily OCR quota.
+    const dailyLimit = Number(process.env.OCR_DAILY_LIMIT_PER_USER ?? 50);
+    const quota = await incrementAndCheckScanLimit(ctx.user.uid, dailyLimit);
+    if (!quota.allowed) {
+      return {
+        ok: false as const,
+        imagePath: null,
+        error: {
+          kind: "rate-limit-exceeded",
+          message: `今日掃描次數已達上限（${dailyLimit} 次）。明天再試，或手動輸入名片資料。`,
+        },
+      };
     }
 
     const upload = await uploadCardImage({

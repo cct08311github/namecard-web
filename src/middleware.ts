@@ -20,10 +20,24 @@ function isPublic(pathname: string): boolean {
   // Public profile pages: /u/{slug} renders a single user's card without
   // auth so it can be shared like a digital business card.
   if (pathname.startsWith("/u/")) return true;
-  // Test-only bypass route — route handler itself returns 404 in production
-  // (gated by E2E_TEST_MODE). Exposing it here just keeps it reachable for
-  // Playwright under CI to mint sessions.
-  if (pathname === "/api/test/bypass-login") return true;
+  // Test-only bypass route — only exempt from auth when BOTH conditions hold:
+  //   • E2E_TEST_MODE=1                     (explicitly enabled for the current run)
+  //   • FIREBASE_AUTH_EMULATOR_HOST is set  (confirms an emulator environment)
+  //
+  // NODE_ENV is intentionally NOT used: `next start` (CI E2E) runs with
+  // NODE_ENV=production, so a NODE_ENV check would block the bypass in the
+  // exact scenario it's needed. FIREBASE_AUTH_EMULATOR_HOST is a clearer,
+  // deliberate signal of a test environment — the route handler's own guard
+  // already relies on it — and it would never be set in a real production
+  // deploy. This middleware layer is defence-in-depth: even if the route
+  // handler's guard were accidentally removed, the route stays unreachable
+  // unless both vars are present.
+  if (
+    pathname === "/api/test/bypass-login" &&
+    process.env.E2E_TEST_MODE === "1" &&
+    Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST)
+  )
+    return true;
   return false;
 }
 
