@@ -51,6 +51,7 @@ import { callReengageLlm } from "@/lib/coach/reengage-llm";
 import { readReengageCache, writeReengageCache } from "@/lib/coach/reengage-store";
 import { readCoachCache, writeCoachCache } from "@/lib/coach/store";
 import { pickCanonicalCompany } from "@/lib/companies/group";
+import { validateImageMagicBytes } from "@/lib/scan/file-validation";
 import { encodePrefill, type ExtractedCard } from "@/lib/voice/extract";
 import { callExtractLlm, callExtractLlmMulti } from "@/lib/voice/extract-llm";
 
@@ -813,6 +814,12 @@ export const attachCardImageAction = authedAction
       const buffer = Buffer.from(parsedInput.fileBase64, "base64");
       if (buffer.byteLength === 0) return { ok: false, reason: "empty image payload" };
       if (buffer.byteLength > 10 * 1024 * 1024) return { ok: false, reason: "image exceeds 10MB" };
+
+      // P1: Verify magic bytes — client-supplied MIME is untrustworthy.
+      const magic = validateImageMagicBytes(buffer);
+      if (!magic.valid) {
+        return { ok: false, reason: magic.reason ?? "unsupported file type" };
+      }
 
       // Lazy-import keeps the storage helper (Sharp, Firebase Admin)
       // out of any cold-import budget that doesn't need it.

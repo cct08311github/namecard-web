@@ -121,7 +121,7 @@ export function ScanFlow() {
       setPhase({
         kind: "ocr-failed",
         previewUrl,
-        imagePath: data.imagePath,
+        imagePath: data.imagePath ?? undefined,
         message: formatOcrError(err),
       });
       return;
@@ -318,6 +318,10 @@ function formatOcrError(err: {
       return "OCR 服務未配置";
     case "payload-too-large":
       return "照片太大（已嘗試壓縮但仍超過 20MB）。請改用較小解析度。";
+    case "rate-limit-exceeded":
+      return err.message || "今日掃描次數已達上限。明天再試，或改手動輸入名片資料。";
+    case "invalid-file-type":
+      return "不支援的圖片格式（SVG 不允許）。請上傳 JPEG、PNG、WebP 或 HEIC 圖片。";
     default:
       return err.message;
   }

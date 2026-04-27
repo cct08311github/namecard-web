@@ -11,7 +11,11 @@ interface LoginPageProps {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await readSession();
   if (user) redirect("/");
-  const { next } = await searchParams;
+  const { next: rawNext } = await searchParams;
+  // Sanitize: only allow same-origin relative paths (starts with "/" but
+  // not "//", which browsers interpret as a protocol-relative URL).
+  const next =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : undefined;
   return (
     <main className={styles.shell}>
       <article className={styles.article}>

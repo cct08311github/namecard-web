@@ -17,7 +17,11 @@ export const signInWithIdTokenAction = publicAction
   .action(async ({ parsedInput }) => {
     const user = await createSession(parsedInput.idToken);
     await ensurePersonalWorkspace({ uid: user.uid, displayName: user.displayName });
-    return { ok: true as const, next: parsedInput.next ?? "/" };
+    // Belt-and-suspenders: re-validate even though login/page.tsx already
+    // sanitizes. Only allow same-origin relative paths.
+    const rawNext = parsedInput.next ?? "/";
+    const safeNext = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+    return { ok: true as const, next: safeNext };
   });
 
 export async function signOutAction(): Promise<void> {
