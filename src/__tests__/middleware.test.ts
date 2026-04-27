@@ -43,45 +43,44 @@ describe("middleware — public path bypass", () => {
 });
 
 describe("middleware — /api/test/bypass-login E2E_TEST_MODE guard", () => {
-  // process.env.NODE_ENV is typed read-only by @types/node; cast to a mutable
-  // record so we can set/restore it within these unit tests only.
+  // Cast process.env to a mutable record so we can set/restore env vars.
   const env = process.env as Record<string, string | undefined>;
 
-  // Capture original env values so we can restore them after each test.
-  let originalNodeEnv: string | undefined;
+  // Capture original values so we can restore them after each test.
   let originalE2eTestMode: string | undefined;
+  let originalEmulatorHost: string | undefined;
 
   beforeEach(() => {
-    originalNodeEnv = env.NODE_ENV;
     originalE2eTestMode = env.E2E_TEST_MODE;
+    originalEmulatorHost = env.FIREBASE_AUTH_EMULATOR_HOST;
   });
 
   afterEach(() => {
-    // Restore originals (or delete if they weren't set).
-    if (originalNodeEnv === undefined) {
-      delete env.NODE_ENV;
-    } else {
-      env.NODE_ENV = originalNodeEnv;
-    }
     if (originalE2eTestMode === undefined) {
       delete env.E2E_TEST_MODE;
     } else {
       env.E2E_TEST_MODE = originalE2eTestMode;
     }
+    if (originalEmulatorHost === undefined) {
+      delete env.FIREBASE_AUTH_EMULATOR_HOST;
+    } else {
+      env.FIREBASE_AUTH_EMULATOR_HOST = originalEmulatorHost;
+    }
   });
 
-  it("lets /api/test/bypass-login through when NODE_ENV=development and E2E_TEST_MODE=1", () => {
-    env.NODE_ENV = "development";
+  it("lets /api/test/bypass-login through when E2E_TEST_MODE=1 AND FIREBASE_AUTH_EMULATOR_HOST is set", () => {
     env.E2E_TEST_MODE = "1";
+    env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
 
     const res = middleware(makeRequest("/api/test/bypass-login"));
     expect(res.status).toBeLessThan(400);
     expect(res.headers.get("location")).toBeNull();
   });
 
-  it("redirects /api/test/bypass-login to /login when E2E_TEST_MODE is unset (security lock-down)", () => {
-    env.NODE_ENV = "development";
-    delete env.E2E_TEST_MODE;
+  it("redirects /api/test/bypass-login to /login when FIREBASE_AUTH_EMULATOR_HOST is unset (security lock-down)", () => {
+    // Simulates prod deploy where someone leaked E2E_TEST_MODE but emulator is not running.
+    env.E2E_TEST_MODE = "1";
+    delete env.FIREBASE_AUTH_EMULATOR_HOST;
 
     const res = middleware(makeRequest("/api/test/bypass-login"));
     expect(res.status).toBe(307);
@@ -90,9 +89,10 @@ describe("middleware — /api/test/bypass-login E2E_TEST_MODE guard", () => {
     expect(loc.searchParams.get("next")).toBe("/api/test/bypass-login");
   });
 
-  it("redirects /api/test/bypass-login to /login when NODE_ENV=production (security lock-down)", () => {
-    env.NODE_ENV = "production";
-    env.E2E_TEST_MODE = "1";
+  it("redirects /api/test/bypass-login to /login when E2E_TEST_MODE is unset (security lock-down)", () => {
+    // Simulates local dev with emulator running but test mode not opted in.
+    delete env.E2E_TEST_MODE;
+    env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
 
     const res = middleware(makeRequest("/api/test/bypass-login"));
     expect(res.status).toBe(307);
