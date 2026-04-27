@@ -351,6 +351,50 @@ describeIfEmulator("firestore.rules", () => {
     });
   });
 
+  describe("publicSlugs collection", () => {
+    // publicSlugs is Admin-SDK-only. All client SDK access must be denied,
+    // even for authenticated users — there is no scenario where the browser
+    // should read or write this collection directly.
+
+    it("anonymous client SDK cannot read publicSlugs/foo", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "publicSlugs", "foo"), {
+          cardId: "card1",
+          workspaceId: UID_ALICE,
+          ownerUid: UID_ALICE,
+          createdAt: new Date(),
+        });
+      });
+      const anon = testEnv.unauthenticatedContext().firestore();
+      await assertFails(getDoc(doc(anon, "publicSlugs", "foo")));
+    });
+
+    it("authenticated client SDK cannot read publicSlugs/{slug} (Admin SDK only)", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "publicSlugs", "bar"), {
+          cardId: "card2",
+          workspaceId: UID_ALICE,
+          ownerUid: UID_ALICE,
+          createdAt: new Date(),
+        });
+      });
+      const alice = testEnv.authenticatedContext(UID_ALICE).firestore();
+      await assertFails(getDoc(doc(alice, "publicSlugs", "bar")));
+    });
+
+    it("authenticated client SDK cannot write to publicSlugs/{slug}", async () => {
+      const alice = testEnv.authenticatedContext(UID_ALICE).firestore();
+      await assertFails(
+        setDoc(doc(alice, "publicSlugs", "new-slug"), {
+          cardId: "card3",
+          workspaceId: UID_ALICE,
+          ownerUid: UID_ALICE,
+          createdAt: new Date(),
+        }),
+      );
+    });
+  });
+
   describe("tags", () => {
     beforeEach(async () => {
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
