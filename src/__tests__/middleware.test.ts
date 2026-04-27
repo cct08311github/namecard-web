@@ -5,7 +5,7 @@
  * middleware and assert the response status / Location header.
  */
 import { NextRequest } from "next/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { SESSION_COOKIE_NAME } from "@/lib/firebase/shared";
 import { middleware } from "@/middleware";
@@ -20,7 +20,7 @@ function makeRequest(pathname: string, opts?: { sessionCookie?: string }): NextR
 }
 
 describe("middleware — public path bypass", () => {
-  it.each([["/login"], ["/unauthorized"], ["/api/health"], ["/api/test/bypass-login"]])(
+  it.each([["/login"], ["/unauthorized"], ["/api/health"]])(
     "lets %s through without session cookie (NextResponse.next)",
     (path) => {
       const res = middleware(makeRequest(path));
@@ -39,6 +39,66 @@ describe("middleware — public path bypass", () => {
   it("lets /favicon.ico through", () => {
     const res = middleware(makeRequest("/favicon.ico"));
     expect(res.headers.get("location")).toBeNull();
+  });
+});
+
+describe("middleware — /api/test/bypass-login E2E_TEST_MODE guard", () => {
+  // process.env.NODE_ENV is typed read-only by @types/node; cast to a mutable
+  // record so we can set/restore it within these unit tests only.
+  const env = process.env as Record<string, string | undefined>;
+
+  // Capture original env values so we can restore them after each test.
+  let originalNodeEnv: string | undefined;
+  let originalE2eTestMode: string | undefined;
+
+  beforeEach(() => {
+    originalNodeEnv = env.NODE_ENV;
+    originalE2eTestMode = env.E2E_TEST_MODE;
+  });
+
+  afterEach(() => {
+    // Restore originals (or delete if they weren't set).
+    if (originalNodeEnv === undefined) {
+      delete env.NODE_ENV;
+    } else {
+      env.NODE_ENV = originalNodeEnv;
+    }
+    if (originalE2eTestMode === undefined) {
+      delete env.E2E_TEST_MODE;
+    } else {
+      env.E2E_TEST_MODE = originalE2eTestMode;
+    }
+  });
+
+  it("lets /api/test/bypass-login through when NODE_ENV=development and E2E_TEST_MODE=1", () => {
+    env.NODE_ENV = "development";
+    env.E2E_TEST_MODE = "1";
+
+    const res = middleware(makeRequest("/api/test/bypass-login"));
+    expect(res.status).toBeLessThan(400);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("redirects /api/test/bypass-login to /login when E2E_TEST_MODE is unset (security lock-down)", () => {
+    env.NODE_ENV = "development";
+    delete env.E2E_TEST_MODE;
+
+    const res = middleware(makeRequest("/api/test/bypass-login"));
+    expect(res.status).toBe(307);
+    const loc = new URL(res.headers.get("location")!);
+    expect(loc.pathname).toBe("/login");
+    expect(loc.searchParams.get("next")).toBe("/api/test/bypass-login");
+  });
+
+  it("redirects /api/test/bypass-login to /login when NODE_ENV=production (security lock-down)", () => {
+    env.NODE_ENV = "production";
+    env.E2E_TEST_MODE = "1";
+
+    const res = middleware(makeRequest("/api/test/bypass-login"));
+    expect(res.status).toBe(307);
+    const loc = new URL(res.headers.get("location")!);
+    expect(loc.pathname).toBe("/login");
+    expect(loc.searchParams.get("next")).toBe("/api/test/bypass-login");
   });
 });
 
