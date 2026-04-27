@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createCardAction } from "@/app/(app)/cards/actions";
 import { scanCardAction } from "@/app/(app)/cards/scan/actions";
 import type { CardCreateInput } from "@/db/schema";
+import { compressImage } from "@/lib/image/compress";
 import type { OcrFields } from "@/lib/ocr/types";
 
 import { CardFormPrefilled } from "./CardFormPrefilled";
@@ -13,6 +14,7 @@ import styles from "./ScanFlow.module.css";
 
 type Phase =
   | { kind: "idle" }
+  | { kind: "compressing"; previewUrl: string }
   | { kind: "uploading"; previewUrl: string }
   | {
       kind: "review";
@@ -39,17 +41,60 @@ export function ScanFlow() {
   async function handleFile(file: File) {
     setSubmitError(null);
     const previewUrl = URL.createObjectURL(file);
+
+    // Step 1: Client-side compression to avoid 413 on large iPhone photos.
+    setPhase({ kind: "compressing", previewUrl });
+    let uploadBlob: Blob;
+    try {
+      uploadBlob = await compressImage(file, {
+        maxLongestSide: 2048,
+        quality: 0.85,
+        skipIfBelowBytes: 2 * 1024 * 1024, // skip if already < 2 MB
+      });
+    } catch {
+      // Compression failed (e.g. corrupt image); fall back to original.
+      uploadBlob = file;
+    }
+
+    // Step 2: Encode and send to server action.
     setPhase({ kind: "uploading", previewUrl });
 
-    const fileBase64 = await blobToBase64(file);
-    const result = await scanCardAction({
-      fileBase64,
-      mimeType: file.type || "image/jpeg",
-      originalName: file.name,
-    });
+    const fileBase64 = await blobToBase64(uploadBlob);
+    let result: Awaited<ReturnType<typeof scanCardAction>>;
+    try {
+      result = await scanCardAction({
+        fileBase64,
+        mimeType: file.type || "image/jpeg",
+        originalName: file.name,
+      });
+    } catch (err) {
+      // Next.js throws before reaching the action when the body is too large.
+      // Detect by inspecting the error message for status 413.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("413") || msg.toLowerCase().includes("body exceeded")) {
+        setPhase({
+          kind: "ocr-failed",
+          previewUrl,
+          message: formatOcrError({ kind: "payload-too-large", message: msg }),
+        });
+      } else {
+        setPhase({ kind: "ocr-failed", previewUrl, message: `上傳失敗：${msg}` });
+      }
+      return;
+    }
 
     if (result?.serverError) {
-      setPhase({ kind: "ocr-failed", previewUrl, message: result.serverError });
+      // Check if the server surfaced a payload-too-large message.
+      const isPayloadTooLarge =
+        result.serverError.includes("413") ||
+        result.serverError.toLowerCase().includes("body exceeded");
+      setPhase({
+        kind: "ocr-failed",
+        previewUrl,
+        message: isPayloadTooLarge
+          ? formatOcrError({ kind: "payload-too-large", message: result.serverError })
+          : result.serverError,
+      });
       return;
     }
     if (result?.validationErrors) {
@@ -120,6 +165,18 @@ export function ScanFlow() {
 
   if (phase.kind === "idle") {
     return <UploadPicker onFile={handleFile} />;
+  }
+
+  if (phase.kind === "compressing") {
+    return (
+      <div className={styles.layout}>
+        <ImagePane url={phase.previewUrl} />
+        <div className={styles.pane}>
+          <div className={styles.statusPill}>縮圖中…</div>
+          <p className={styles.statusHint}>正在壓縮圖片以加快上傳速度。</p>
+        </div>
+      </div>
+    );
   }
 
   if (phase.kind === "uploading") {
@@ -259,6 +316,8 @@ function formatOcrError(err: {
       return "OCR 回傳格式異常，改手動輸入較快";
     case "unsupported":
       return "OCR 服務未配置";
+    case "payload-too-large":
+      return "照片太大（已嘗試壓縮但仍超過 20MB）。請改用較小解析度。";
     default:
       return err.message;
   }
