@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { createCardAction } from "@/app/(app)/cards/actions";
 import { scanCardAction } from "@/app/(app)/cards/scan/actions";
@@ -128,7 +128,7 @@ export function ScanFlow() {
         <ImagePane url={phase.previewUrl} />
         <div className={styles.pane}>
           <div className={styles.statusPill}>辨識中…</div>
-          <p className={styles.statusHint}>MiniMax 正在讀這張卡。通常 3-6 秒。</p>
+          <OcrProgressHint />
         </div>
       </div>
     );
@@ -213,10 +213,46 @@ function ImagePane({ url }: { url: string }) {
   );
 }
 
-function formatOcrError(err: { kind: string; message: string; retryAfterMs?: number }): string {
+/**
+ * Shows an escalating hint while MiniMax OCR is running.
+ *
+ * Phases: initial (0-8s) → slow (8-18s) → very slow (18s+).
+ * All thresholds are comfortably under the 30s server-side AbortController
+ * timeout, so the user always sees a final message before the error appears.
+ */
+function OcrProgressHint() {
+  const [elapsed, setElapsed] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  if (elapsed < 8) {
+    return <p className={styles.statusHint}>MiniMax 正在讀這張卡。通常 3-6 秒。</p>;
+  }
+  if (elapsed < 18) {
+    return <p className={styles.statusHint}>還在辨識中，MiniMax 有時比較慢，請稍候…</p>;
+  }
+  return <p className={styles.statusHint}>快好了，最長等到 30 秒後會告知結果。</p>;
+}
+
+function formatOcrError(err: {
+  kind: string;
+  message: string;
+  retryAfterMs?: number;
+  timeoutMs?: number;
+}): string {
   switch (err.kind) {
     case "rate-limit":
       return `API 流量限制，請 ${Math.ceil((err.retryAfterMs ?? 5000) / 1000)} 秒後再試`;
+    case "timeout":
+      return `辨識逾時（${Math.round((err.timeoutMs ?? 30000) / 1000)} 秒）。MiniMax 目前較慢，請稍後再試，或改手動輸入。`;
     case "network":
       return `網路錯誤：${err.message}`;
     case "invalid-response":

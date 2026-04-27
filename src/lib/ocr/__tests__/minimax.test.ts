@@ -173,6 +173,38 @@ describe("minimax provider", () => {
     expect(result.error.kind).toBe("invalid-response");
   });
 
+  it("surfaces AbortError as timeout error with timeoutMs", async () => {
+    const fetchImpl = (async (_url: unknown, init: unknown) => {
+      const signal = (init as RequestInit)?.signal;
+      // Immediately abort so the AbortError fires synchronously-ish.
+      await new Promise<void>((_, reject) => {
+        if (signal?.aborted) {
+          reject(Object.assign(new Error("The operation was aborted."), { name: "AbortError" }));
+          return;
+        }
+        signal?.addEventListener("abort", () => {
+          reject(Object.assign(new Error("The operation was aborted."), { name: "AbortError" }));
+        });
+      });
+      return new Response("never");
+    }) as unknown as typeof fetch;
+
+    const provider = createMinimaxProvider({
+      apiKey: "test-key",
+      fetchImpl,
+    });
+    // Use a very short timeout so the AbortController fires immediately.
+    const result = await provider.extract({
+      source: { kind: "url", url: "https://img.example/x.jpg" },
+      timeoutMs: 1,
+    });
+    if (result.ok) throw new Error("expected not-ok");
+    expect(result.error.kind).toBe("timeout");
+    if (result.error.kind === "timeout") {
+      expect(result.error.timeoutMs).toBe(1);
+    }
+  });
+
   it("returns invalid-response when completion JSON fails Zod schema", async () => {
     const provider = createMinimaxProvider({
       apiKey: "test-key",
