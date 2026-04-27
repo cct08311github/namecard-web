@@ -14,6 +14,7 @@ import {
 import { localYmdAfterDays } from "@/lib/cards/follow-up-date";
 import { googleCalendarEventUrl } from "@/lib/calendar/gcal-url";
 import { shareCardVcard } from "@/lib/share/card-share";
+import { formatContactSummary } from "@/lib/share/contact-summary";
 
 import styles from "./CardActions.module.css";
 import { VoiceMicButton } from "./VoiceMicButton";
@@ -45,6 +46,13 @@ interface CardActionsProps {
   isPinned?: boolean;
   /** Existing follow-up reminder, if any. ISO YYYY-MM-DD string for input parity. */
   followUpAt?: string | null;
+  /** Optional bilingual fields used by the 「📋 複製聯絡資訊」 formatter. */
+  nameZh?: string;
+  nameEn?: string;
+  jobTitleZh?: string;
+  jobTitleEn?: string;
+  companyZh?: string;
+  companyEn?: string;
 }
 
 export function CardActions({
@@ -58,6 +66,12 @@ export function CardActions({
   linkedinUrl,
   isPinned = false,
   followUpAt = null,
+  nameZh,
+  nameEn,
+  jobTitleZh,
+  jobTitleEn,
+  companyZh,
+  companyEn,
 }: CardActionsProps) {
   // Normalize: prefer the full list when given, else wrap the single
   // primary into a 1-item list. Empty when there's nothing to show.
@@ -162,6 +176,29 @@ export function CardActions({
         router.refresh();
       }
     });
+  };
+
+  const handleCopyContact = async () => {
+    const text = formatContactSummary({
+      nameZh,
+      nameEn,
+      jobTitleZh,
+      jobTitleEn,
+      companyZh,
+      companyEn,
+      primaryEmail,
+      primaryPhone,
+    });
+    if (!text) {
+      setToast("沒有可複製的內容");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setToast("聯絡資訊已複製");
+    } catch {
+      setToast("複製失敗，請手動選取");
+    }
   };
 
   const handleShare = async () => {
@@ -432,6 +469,9 @@ export function CardActions({
         </button>
         <button type="button" className={styles.secondary} onClick={handleShare}>
           📤 分享名片
+        </button>
+        <button type="button" className={styles.secondary} onClick={handleCopyContact}>
+          📋 複製聯絡資訊
         </button>
         <a href={`/api/cards/${cardId}/vcard`} className={styles.secondary}>
           匯出 vCard
