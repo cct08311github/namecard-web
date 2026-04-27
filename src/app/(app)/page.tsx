@@ -6,6 +6,7 @@ import { PwaInstallHint } from "@/components/home/PwaInstallHint";
 import { AnniversariesSection } from "@/components/timeline/AnniversariesSection";
 import { DueTodaySection } from "@/components/timeline/DueTodaySection";
 import { TimelineSection } from "@/components/timeline/TimelineSection";
+import { UncontactedSection } from "@/components/timeline/UncontactedSection";
 import { listCardsForUser } from "@/db/cards";
 import { isCoachConfigured } from "@/lib/coach/llm";
 import { readSession } from "@/lib/firebase/session";
@@ -106,6 +107,16 @@ export default async function HomePage() {
               if (section.id === "anniversaries") {
                 return (
                   <AnniversariesSection
+                    key={section.id}
+                    section={section}
+                    now={now}
+                    showAiDrafts={isCoachConfigured()}
+                  />
+                );
+              }
+              if (section.id === "uncontacted") {
+                return (
+                  <UncontactedSection
                     key={section.id}
                     section={section}
                     now={now}
