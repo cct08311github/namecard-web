@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { updateCardAction } from "@/app/(app)/cards/actions";
 import { scanCardAction } from "@/app/(app)/cards/scan/actions";
@@ -164,7 +164,7 @@ export function OcrRescanPanel({ cardId, current }: OcrRescanPanelProps) {
             height={200}
             unoptimized
           />
-          <p className={styles.uploading}>解析中…</p>
+          <OcrRescanProgressHint />
         </div>
       )}
 
@@ -299,6 +299,32 @@ function fieldPreviewRow(label: string, value: string | undefined) {
 
 function phaseWithPreview(phase: Extract<Phase, { kind: "review" }>): string {
   return phase.previewUrl;
+}
+
+/**
+ * Escalating hint for OcrRescanPanel's uploading state.
+ * Mirrors the logic in ScanFlow's OcrProgressHint.
+ */
+function OcrRescanProgressHint() {
+  const [elapsed, setElapsed] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  if (elapsed < 8) {
+    return <p className={styles.uploading}>解析中…通常 3-6 秒。</p>;
+  }
+  if (elapsed < 18) {
+    return <p className={styles.uploading}>還在解析中，稍候…</p>;
+  }
+  return <p className={styles.uploading}>快好了，最長等到 30 秒。</p>;
 }
 
 async function blobToBase64(file: File): Promise<string> {

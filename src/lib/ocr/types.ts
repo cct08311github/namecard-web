@@ -39,6 +39,7 @@ export type OcrError =
   | { kind: "rate-limit"; message: string; retryAfterMs?: number }
   | { kind: "invalid-response"; message: string; raw?: unknown }
   | { kind: "unsupported"; message: string }
+  | { kind: "timeout"; message: string; timeoutMs: number }
   | { kind: "unknown"; message: string };
 
 /**

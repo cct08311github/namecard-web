@@ -184,11 +184,21 @@ export function createMinimaxProvider(overrides?: {
           },
         };
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return {
+            ok: false,
+            error: {
+              kind: "timeout",
+              message: `MiniMax did not respond within ${timeoutMs}ms`,
+              timeoutMs,
+            },
+          };
+        }
         const msg = err instanceof Error ? err.message : String(err);
         return {
           ok: false,
           error: {
-            kind: msg.includes("abort") ? "network" : "unknown",
+            kind: "unknown",
             message: msg,
           },
         };
