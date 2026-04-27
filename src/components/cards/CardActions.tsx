@@ -12,6 +12,7 @@ import {
   toggleCardPinAction,
 } from "@/app/(app)/cards/actions";
 import { localYmdAfterDays } from "@/lib/cards/follow-up-date";
+import { googleCalendarEventUrl } from "@/lib/calendar/gcal-url";
 import { shareCardVcard } from "@/lib/share/card-share";
 
 import styles from "./CardActions.module.css";
@@ -332,6 +333,20 @@ export function CardActions({
         >
           {followUpAt ? `📅 下次聯絡：${followUpAt}` : "📅 設定下次聯絡"}
         </button>
+        {followUpAt && (
+          <a
+            className={styles.gcalLink}
+            href={googleCalendarEventUrl({
+              title: `跟 ${displayName ?? "聯絡人"} ping 一下`,
+              dateYmd: followUpAt,
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="把這個提醒加到 Google Calendar"
+          >
+            📆 加到 Google Calendar →
+          </a>
+        )}
         {followUpOpen && (
           <div className={styles.noteBox}>
             <input
