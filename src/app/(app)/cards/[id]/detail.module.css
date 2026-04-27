@@ -204,6 +204,20 @@
   max-width: 56ch;
 }
 
+.linkedinSearch {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-accent-ink);
+  text-decoration: none;
+}
+
+.linkedinSearch:hover {
+  text-decoration: underline;
+}
+
 .notesBody {
   font-family: var(--font-serif);
   font-size: var(--text-body);

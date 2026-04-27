@@ -24,6 +24,7 @@ import type { CardCreateInput } from "@/db/schema";
 import { isCoachConfigured } from "@/lib/coach/llm";
 import { companySlug, pickCanonicalCompany } from "@/lib/companies/group";
 import { computeTemperature } from "@/lib/cards/relationship-temp";
+import { linkedInSearchUrl } from "@/lib/share/linkedin-search";
 import { findAnniversariesToday } from "@/lib/timeline/anniversaries";
 import { readSession } from "@/lib/firebase/session";
 
@@ -370,6 +371,28 @@ export default async function CardDetailPage({ params, searchParams }: DetailPag
                 </li>
               )}
             </ul>
+            {(() => {
+              // Surface a LinkedIn-search shortcut only when no explicit
+              // linkedinUrl is already saved — otherwise the existing
+              // 「打開連結」 above is the better path.
+              if (card.social?.linkedinUrl) return null;
+              const url = linkedInSearchUrl({
+                name: card.nameZh || card.nameEn,
+                company: card.companyZh || card.companyEn,
+              });
+              if (!url) return null;
+              return (
+                <a
+                  className={styles.linkedinSearch}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="在 LinkedIn 找這個人"
+                >
+                  🔗 LinkedIn 搜尋 →
+                </a>
+              );
+            })()}
           </section>
 
           <CardActions
