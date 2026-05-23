@@ -4,7 +4,7 @@
   "auth": {
     "method": "google_oauth_session_cookie",
     "cookie_name": "__nc_session",
-    "note": "Tester (chiu0831@gmail.com) signed in earlier — middleware should let us straight in to /."
+    "note": "Tester (tester@example.com) signed in earlier — middleware should let us straight in to /."
   },
   "known_routes": {
     "primary_nav": [
