@@ -1,6 +1,6 @@
 # namecard-web 運維手冊 (RUNBOOK)
 
-> 目標 URL：**https://mac-mini.tailde842d.ts.net/namecard-web/**
+> 目標 URL：**https://<tailnet-host>/namecard-web/**
 > 機器：Mac mini M4（macOS Darwin 25.x）
 > 管理帳號：openclaw
 
@@ -23,7 +23,7 @@
 
 ```
 Tailscale MagicDNS (HTTPS)
-  └── mac-mini.tailde842d.ts.net/namecard-web/*
+  └── <tailnet-host>/namecard-web/*
         │
         ▼
   tailscale serve (TLS termination + path routing)
@@ -61,8 +61,8 @@ Tailscale MagicDNS (HTTPS)
 ```bash
 # 1. Clone（若尚未 clone）
 git clone https://github.com/cct08311github/namecard-web.git \
-  /Users/openclaw/.openclaw/shared/projects/namecard-web
-cd /Users/openclaw/.openclaw/shared/projects/namecard-web
+  ~/.openclaw/shared/projects/namecard-web
+cd ~/.openclaw/shared/projects/namecard-web
 
 # 2. 安裝依賴
 pnpm install
@@ -116,7 +116,7 @@ scripts/verify-deploy.sh
 每次 `git pull` 後執行以下步驟（已有 PM2 管理、Tailscale Serve 已設定）：
 
 ```bash
-cd /Users/openclaw/.openclaw/shared/projects/namecard-web
+cd ~/.openclaw/shared/projects/namecard-web
 
 # 1. 拉取最新程式碼
 git pull origin main
@@ -204,7 +204,7 @@ tailscale serve status
 tailscale serve --bg --set-path=/namecard-web http://localhost:3014/namecard-web
 
 # 驗證
-curl -s https://mac-mini.tailde842d.ts.net/namecard-web/api/health
+curl -s https://<tailnet-host>/namecard-web/api/health
 ```
 
 ### Session Cookie 失效（用戶被踢出）
@@ -277,8 +277,8 @@ npm install -g pm2@latest
 
 # 3. Clone 程式碼
 git clone https://github.com/cct08311github/namecard-web.git \
-  /Users/openclaw/.openclaw/shared/projects/namecard-web
-cd /Users/openclaw/.openclaw/shared/projects/namecard-web
+  ~/.openclaw/shared/projects/namecard-web
+cd ~/.openclaw/shared/projects/namecard-web
 
 # 4. 還原 service account + env
 mkdir -p ~/.config/namecard

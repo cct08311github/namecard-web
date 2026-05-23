@@ -7,7 +7,7 @@
 
 > **⚠️ Live Playwright run aborted at journey A**: The MCP browser instance hit `/login` because no `__nc_session` cookie was present in this isolated browser profile. The user's signed-in session lives in their own browser, not in MCP's headless one. **Per task instructions, this report is grounded in code-level analysis** (which conclusively answers all 8 journeys' "is the entry point reachable?" question — that was the audit's primary concern).
 >
-> A future live run requires either: (a) a service-account auth-bypass for `mac-mini.tailde842d.ts.net`, (b) a pre-warmed Playwright profile dir with the session cookie copied in, or (c) an env-flagged dev-mode that auto-mocks `readSession`. Any of those is a separate task — flagging it here so it doesn't get lost.
+> A future live run requires either: (a) a service-account auth-bypass for `<tailnet-host>`, (b) a pre-warmed Playwright profile dir with the session cookie copied in, or (c) an env-flagged dev-mode that auto-mocks `readSession`. Any of those is a separate task — flagging it here so it doesn't get lost.
 
 ---
 

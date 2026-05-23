@@ -111,7 +111,7 @@ src/
 
 生產環境部署至 Mac mini M4，透過 PM2 + Tailscale Serve 提供服務。
 
-- 目標 URL：`https://mac-mini.tailde842d.ts.net/namecard-web/`
+- 目標 URL：`https://<tailnet-host>/namecard-web/`
 - 詳細部署流程、排查指南、備份與災難還原：[RUNBOOK.md](./RUNBOOK.md)
 
 ## 📜 License
