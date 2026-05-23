@@ -142,7 +142,7 @@ echo ""
 echo "=================================================="
 if [ "$FAILED" -eq 0 ]; then
   echo -e "${GREEN}全部通過 — namecard-web 運行正常${NC}"
-  echo " 外部存取：https://mac-mini.tailde842d.ts.net/namecard-web/"
+  echo " 外部存取：https://<tailnet-host>/namecard-web/"
 else
   echo -e "${RED}部分檢查失敗 — 請依上方提示排查${NC}"
 fi

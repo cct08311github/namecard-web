@@ -52,7 +52,7 @@ function parseDotenv(filepath) {
   return env;
 }
 
-const PROJECT_DIR = "/Users/openclaw/.openclaw/shared/projects/namecard-web";
+const PROJECT_DIR = process.env.HOME + "/.openclaw/shared/projects/namecard-web";
 const dotenvProd = parseDotenv(path.join(PROJECT_DIR, ".env.production"));
 
 module.exports = {
@@ -77,8 +77,8 @@ module.exports = {
         PORT: "3014",
         NAMECARD_BASE_PATH: "/namecard-web",
       },
-      error_file: "/Users/openclaw/.pm2/logs/namecard-web-error.log",
-      out_file: "/Users/openclaw/.pm2/logs/namecard-web-out.log",
+      error_file: process.env.HOME + "/.pm2/logs/namecard-web-error.log",
+      out_file: process.env.HOME + "/.pm2/logs/namecard-web-out.log",
       merge_logs: true,
       log_date_format: "YYYY-MM-DD HH:mm:ss Z",
     },
