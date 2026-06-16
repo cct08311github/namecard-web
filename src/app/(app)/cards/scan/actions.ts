@@ -3,6 +3,8 @@
 import { z } from "zod";
 
 import { authedAction } from "@/lib/auth/safe-action";
+import { incrementAndCheckScanLimit } from "@/db/scanLimits";
+import { validateImageMagicBytes } from "@/lib/scan/file-validation";
 import { getOcrProvider } from "@/lib/ocr";
 import { uploadCardImage } from "@/lib/storage/card-images";
 
@@ -30,6 +32,34 @@ export const scanCardAction = authedAction
     }
     if (buffer.byteLength > 10 * 1024 * 1024) {
       throw new Error("image exceeds 10MB limit");
+    }
+
+    // P1: magic-byte validation — reject SVG / non-image payloads before
+    // they touch OCR or Storage (prevents SVG-XSS via uploaded "images").
+    const magicCheck = validateImageMagicBytes(buffer);
+    if (!magicCheck.valid) {
+      return {
+        ok: false as const,
+        error: {
+          kind: "invalid-image" as const,
+          message: "檔案格式不符，僅接受 JPEG/PNG/WebP/HEIC",
+        },
+      };
+    }
+
+    // P1: per-user daily OCR rate limit (default 50/day, override via env).
+    const limit = Number(process.env.OCR_DAILY_LIMIT_PER_USER ?? "50");
+    const limitCheck = await incrementAndCheckScanLimit(ctx.user.uid, limit);
+    if (!limitCheck.allowed) {
+      return {
+        ok: false as const,
+        error: {
+          kind: "rate-limit-exceeded" as const,
+          message: `今日掃描次數已達上限（${limit} 張/天），請明日再試。`,
+          usedToday: limitCheck.usedToday,
+          limit,
+        },
+      };
     }
 
     const upload = await uploadCardImage({

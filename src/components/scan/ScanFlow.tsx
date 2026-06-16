@@ -304,10 +304,13 @@ function formatOcrError(err: {
   message: string;
   retryAfterMs?: number;
   timeoutMs?: number;
+  limit?: number;
 }): string {
   switch (err.kind) {
     case "rate-limit":
       return `API 流量限制，請 ${Math.ceil((err.retryAfterMs ?? 5000) / 1000)} 秒後再試`;
+    case "rate-limit-exceeded":
+      return `今日掃描次數已達上限（${err.limit ?? 50} 張/天），請明日再試。`;
     case "timeout":
       return `辨識逾時（${Math.round((err.timeoutMs ?? 30000) / 1000)} 秒）。MiniMax 目前較慢，請稍後再試，或改手動輸入。`;
     case "network":
@@ -316,6 +319,8 @@ function formatOcrError(err: {
       return "OCR 回傳格式異常，改手動輸入較快";
     case "unsupported":
       return "OCR 服務未配置";
+    case "invalid-image":
+      return "檔案格式不符，僅接受 JPEG/PNG/WebP/HEIC 圖片。";
     case "payload-too-large":
       return "照片太大（已嘗試壓縮但仍超過 20MB）。請改用較小解析度。";
     default:

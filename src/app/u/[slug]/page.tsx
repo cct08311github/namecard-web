@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getCardByPublicSlug } from "@/db/cards";
+import { safeExternalUrl } from "@/lib/share/url-safety";
 
 import styles from "./profile.module.css";
 
@@ -67,9 +68,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const phones = card.phones ?? [];
   const emails = card.emails ?? [];
   const lineId = card.social?.lineId;
-  const linkedinUrl = card.social?.linkedinUrl;
+  // Sanitize at render: only pass through href if scheme is in allowlist (P1, #248).
+  const linkedinUrl = safeExternalUrl(card.social?.linkedinUrl);
   const wechatId = card.social?.wechatId;
-  const websiteUrl = card.social?.websiteUrl;
+  const websiteUrl = safeExternalUrl(card.social?.websiteUrl);
 
   return (
     <main className={styles.page}>

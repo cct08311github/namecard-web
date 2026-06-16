@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isAllowedUrlOrEmpty } from "@/lib/share/url-safety";
+
 /**
  * Firestore schema & Zod validators.
  *
@@ -44,14 +46,16 @@ export const addressSchema = z.object({
   postalCode: z.string().max(30).optional(),
 });
 
+const urlSchemeMsg = "URL 只允許 http(s)、mailto 或 tel 協議";
+
 export const socialSchema = z.object({
   lineId: z.string().max(100).optional(),
   wechatId: z.string().max(100).optional(),
-  linkedinUrl: z.string().max(500).optional(),
+  linkedinUrl: z.string().max(500).refine(isAllowedUrlOrEmpty, urlSchemeMsg).optional(),
   twitterHandle: z.string().max(60).optional(),
   instagramHandle: z.string().max(60).optional(),
-  facebookUrl: z.string().max(500).optional(),
-  websiteUrl: z.string().max(500).optional(),
+  facebookUrl: z.string().max(500).refine(isAllowedUrlOrEmpty, urlSchemeMsg).optional(),
+  websiteUrl: z.string().max(500).refine(isAllowedUrlOrEmpty, urlSchemeMsg).optional(),
 });
 
 /** Base schema shared between create / update / DB representation. */
@@ -69,7 +73,7 @@ const cardBaseShape = {
   // Company
   companyZh: z.string().max(100).optional(),
   companyEn: z.string().max(100).optional(),
-  companyWebsite: z.string().max(500).optional(),
+  companyWebsite: z.string().max(500).refine(isAllowedUrlOrEmpty, urlSchemeMsg).optional(),
 
   // Multi-value
   phones: z.array(phoneSchema).max(10).default([]),
