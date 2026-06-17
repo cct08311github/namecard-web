@@ -70,6 +70,14 @@ service cloud.firestore {
         resource.data.memberUids == incoming().memberUids;
     }
 
+    // ==================== publicSlugs (Admin SDK only) ====================
+    // Public card share slugs are created and resolved exclusively via the
+    // Firebase Admin SDK in server-side route handlers. Client SDK access is
+    // intentionally and unconditionally denied — do not relax this rule.
+    match /publicSlugs/{slug} {
+      allow read, write: if false;
+    }
+
     // ==================== Workspaces ====================
     match /workspaces/{wid} {
       allow read: if isMember(resource.data.memberUids);
